@@ -1,6 +1,24 @@
-# 20. Thiết kế SQL vật lý
+# 20. SQL baseline và kế hoạch đồng bộ model hiện hành
 
-Schema chuẩn để review: [database/schema.sql](../database/schema.sql), gồm 27 bảng. Khác biệt kỹ thuật so với mô hình logic ban đầu được ghi tại ADR-011; [08](08-database-design.md) đã cập nhật để thống nhất.
+**Trạng thái:** [database/schema.sql](../database/schema.sql) có 27 bảng thuộc baseline trước quyết định 2026-09-12. [08](08-database-design.md) và [23](23-organization-review-seatmap.md) đã chuyển sang model mới; SQL/seed/query/ERD/SVG chưa đồng bộ trong đợt sửa Markdown này. Không dùng baseline làm migration ứng dụng mới và không coi test baseline là test model mới.
+
+## Checklist SQL/ERD bắt buộc trước implementation
+
+1. User bỏ password bắt buộc; ExternalIdentity unique provider/subject, OtpChallenge keyed hash/purpose/attempts/expiry; AuthSession identity/authenticated_at. Đổi seed/quyền theo Google/OTP và company session.
+2. Organization + OrganizationMembership; Event.organization_id và created_by tách chủ nghiệp vụ/người thao tác; FK scope membership, refund/sales query lọc Organization.
+3. Venue catalog bounds/capacity/version; SeatLayout frozen và snapshots; LayoutSection/LayoutRow/Seat thuộc layout. Composite FK buộc session/layout đúng venue/event, SessionSeat đúng layout của session.
+4. ReservationQuota PK(customer_id,session_id), protocol trước Event. TicketType code/session unique; SessionSeat type đúng session. BookingItem snapshot attendee/type/giá; không global unique seat trong lịch sử item.
+5. Ticket code unique (hash/ciphertext), CheckIn unique ticket_id với method/actor/time; đổi tickets.checked_in_at/by baseline thành admitted_at/by cho USED. Giữ active_seat_guard và item unique.
+6. EventReview event/version, pending guard, submitted/expires/decision fields; ReasonNotice draft/sent với author/time/text; Notification recipient/dedupe; outbox cùng transaction. Deadline/calendar validation ở service, không CHECK phụ thuộc giờ hiện tại.
+7. SupportReport FK/quan hệ tài nguyên và scope status; Admin report restrictions ở service, không chỉ role seed.
+8. Cập nhật inventory query từ layout, sales query theo organization_id, integrity audit kiểm tra bounds/scope/CheckIn/admission/review. Regenerate Mermaid + SVG, gallery/version warning chỉ bỏ sau đối chiếu DDL thực.
+9. MySQL thật: migration từ rỗng, FK/UQ/CHECK, không cascade tiền/vé; chạy T-032–T-041 và các concurrency tests còn áp dụng. Không gọi đây là production migration đã áp dụng.
+
+Số bảng cuối cùng chỉ thống kê sau khi hoàn thành DDL; không sửa con số 27 để giả rằng baseline đã có bảng mới.
+
+## Phần tham khảo baseline ADR-011
+
+Các mục bên dưới mô tả chính xác SQL cũ phục vụ đối chiếu, không ghi đè model logic mới.
 
 ## Bản đồ bảng
 

@@ -1,5 +1,7 @@
 # Bộ sơ đồ hệ thống
 
+**Phiên bản baseline:** Mermaid/SVG/gallery xuất sẵn chưa bao phủ quyết định mới về Organization, review, layout, Google/OTP và CheckIn riêng. Xem [model hiện hành](../23-organization-review-seatmap.md); cần đồng bộ DDL/ERD và xuất lại trước dùng các ảnh này làm thiết kế triển khai. Các chỉ dẫn dưới đây mô tả bộ baseline.
+
 Mở [trang xem sơ đồ offline](index.html), hoặc xem các ảnh SVG dưới đây. Nguồn Mermaid là file cùng tên đuôi .mmd; ERD được sinh từ [schema SQL](../../database/schema.sql).
 
 Hướng dẫn, phạm vi và các quyết định còn mở: [19 — Sơ đồ hệ thống](../19-system-diagrams.md).

@@ -1,5 +1,7 @@
 # Thiết kế SQL MySQL
 
+**Baseline cũ:** các SQL trong thư mục này và 26 kiểm tra lịch sử có trước model Organization/review/layout/Google-OTP/CheckIn mới. Xem [checklist đồng bộ](../docs/20-physical-sql-design.md) và [nghiệp vụ hiện hành](../docs/23-organization-review-seatmap.md). Chỉ nạp để đối chiếu baseline, không dùng làm migration model mới.
+
 Đây là bản DDL có thể nạp vào **database rỗng để review và kiểm thử**, chưa phải migration đã duyệt cho production. Schema hiện có **27 bảng**. Không tạo backend/frontend trong phạm vi này.
 
 ## Các file

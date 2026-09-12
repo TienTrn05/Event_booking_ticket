@@ -6,6 +6,7 @@
 - Stack: React/TypeScript/Vite, Node.js/Express/TypeScript, MySQL, REST `/api/v1`, JWT, Modular Monolith.
 - Không tự thêm microservices, Redis, Kafka, RabbitMQ, Kubernetes, Elasticsearch hoặc AI. Mỗi công nghệ mới phải có nhu cầu đo được và ADR.
 - `DECISION REQUIRED` là quyết định chưa chốt. Không biến đề xuất thành nghiệp vụ mặc định; hỏi trước khi triển khai phần phụ thuộc. Công việc độc lập vẫn tiếp tục.
+- Quyết định chủ dự án 2026-09-12 ở [18](docs/18-open-questions.md)/[23](docs/23-organization-review-seatmap.md) đã thay model Organizer cá nhân, tự publish và venue riêng. SQL/ERD cũ là baseline, phải đồng bộ trước implementation; không gọi bản đó là schema hiện hành.
 - Mã tham chiếu: FR = chức năng, NFR = phi chức năng, BR = nghiệp vụ, UC = use case, ADR = quyết định kiến trúc; Q = câu hỏi mở. Không đổi ý nghĩa mã đã dùng.
 
 ## Kiến trúc và dữ liệu
@@ -22,7 +23,7 @@
 ## Bảo mật và chất lượng
 
 - Mặc định từ chối quyền; kiểm tra chủ sở hữu từng tài nguyên; Admin chỉ có quyền cấp rõ ràng, có audit.
-- Hash mật khẩu bằng thuật toán chuyên dụng; refresh token lưu hash trong DB, cookie HttpOnly/Secure; không lưu token vào localStorage.
+- Auth hiện hành dùng Google/OTP điện thoại, Organizer dùng email công ty theo [04](docs/04-authentication-authorization.md); OTP lưu keyed hash có expiry/attempt limit, refresh lưu hash trong DB/cookie HttpOnly/Secure; không lưu credential vào localStorage.
 - Không commit bí mật; không log mật khẩu, hash mật khẩu, token, QR bí mật, dữ liệu thẻ hoặc stack trace trong phản hồi production.
 - Không cho client tự xác nhận đã trả tiền. Payment mock phải được cô lập và không thể bật trên production.
 - Lỗi xử lý tập trung; SQL có tham số; allowlist trường cập nhật và sort. Quyết định thay đổi quyền, tiền, trạng thái phải có audit phù hợp.

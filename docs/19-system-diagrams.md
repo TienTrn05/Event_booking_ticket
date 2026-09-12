@@ -1,5 +1,7 @@
 # 19. Bộ sơ đồ hệ thống
 
+**Phiên bản baseline:** Mermaid/SVG/gallery xuất sẵn chưa bao phủ quyết định mới về Organization, review, layout, Google/OTP và CheckIn riêng. Xem [model hiện hành](23-organization-review-seatmap.md); cần đồng bộ DDL/ERD và xuất lại trước dùng các ảnh này làm thiết kế triển khai. Các chỉ dẫn dưới đây mô tả bộ baseline.
+
 ## Xem sơ đồ
 
 **Mở [index.html](diagrams/index.html)** bằng trình duyệt để xem toàn bộ sơ đồ offline, chọn từng sơ đồ trong mục lục và mở SVG để phóng to/in. Không cần chạy server, CDN hoặc tải dữ liệu dự án lên dịch vụ ngoài. Cũng có thể xem [README có ảnh](diagrams/README.md) trong trình xem Markdown.

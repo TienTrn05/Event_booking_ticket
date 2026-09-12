@@ -4,7 +4,7 @@
 
 | Rủi ro | Biện pháp bắt buộc |
 | --- | --- |
-| Lộ mật khẩu | Argon2id, salt do thư viện quản lý; không mã hóa hai chiều, không log hash |
+| Google/OTP giả hoặc bị dò | Verify Google proof ở backend, OTP HMAC/expiry/attempt limit/consume một lần theo 04; không có mật khẩu nội bộ |
 | JWT giả/hết hạn | Allowlist thuật toán/key; kiểm tra exp/iss/aud; đối chiếu session và authVersion |
 | Đánh cắp refresh | Cookie HttpOnly/Secure, DB chỉ hash, rotation và thu hồi family khi reuse |
 | SQL injection | Query có tham số; allowlist sort/field; tài khoản DB quyền tối thiểu |
@@ -20,13 +20,17 @@
 | Lạm dụng nội bộ | Permission tường minh, audit lý do; không cấp quyền DB trực tiếp cho Organizer |
 | Lỗi cấu hình | Validate env khi startup; production fail nếu mock payment bật hoặc thiếu secret |
 
-Argon2id cấu hình khởi điểm tối thiểu theo OWASP: memory 19 MiB, iterations 2, parallelism 1; benchmark máy triển khai để tăng chi phí phù hợp. Dùng thư viện duy trì tốt và lưu tham số cùng hash để nâng cấp khi đăng nhập. Tham khảo [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html). Chính sách độ dài/mật khẩu bị lộ/MFA cần Q-006; không tự chốt bằng regex bắt ký tự đặc biệt.
+Login Google/OTP và mail công ty theo [04](04-authentication-authorization.md). Không log OTP/token, không auto-link identity từ email giống nhau. Domain email công ty không tự cấp Organizer; membership/Organization phải được Admin duyệt. Admin dùng identity bootstrap có kiểm soát, xác thực lại trước thao tác nhạy cảm.
 
 Helmet cấu hình header phù hợp, không coi mặc định của thư viện là đủ; kiểm thử CSP cho web và HSTS ở HTTPS. Reverse proxy phải có `trust proxy` theo topology thật, nếu sai IP spoof có thể làm rate limit vô dụng. Rate limit memory chỉ chấp nhận dev/single-instance demo; trước nhiều instance phải có shared store hoặc enforcement tại gateway (Q-012), không dùng nó làm khóa tồn kho.
 
-Token reset/verify không chạy mutation trực tiếp khi mở GET trong email; trang nhận link gửi POST để tránh link scanner tiêu thụ token. Referrer-Policy hạn chế lộ link; frontend xóa token khỏi URL sau tiếp nhận. Chiến lược cookie/CSRF phải thử trên topology triển khai thực; nếu cross-site cần SameSite=None + Secure và kiểm soát CSRF đầy đủ.
+Google proof/OTP chỉ nhận qua POST bảo vệ CSRF/nonce theo adapter. Cookie/CSRF phải thử đúng topology; cross-site cần SameSite=None + Secure và kiểm soát CSRF đầy đủ. Không có GET tiêu thụ OTP hoặc login bằng mã trong URL.
 
 Upload poster/object storage thuộc sau MVP: cần giới hạn kích thước/MIME, tên ngẫu nhiên, không thực thi nội dung và tránh fetch URL tùy ý gây SSRF. Không thêm upload trước khi có yêu cầu Q-014.
+
+Mock staging theo đề xuất Q-012 cần đồng thời kiểm tra môi trường, cờ bật, phiên, allowlist tài khoản demo, ownership booking và provider mock theo [09](09-api-design.md). Cờ VITE không là cơ chế bảo vệ. APP_ENV=production luôn không mount mock endpoint, kể cả khi caller có role Admin.
+
+Metadata khôi phục hold trong sessionStorage theo [22](22-frontend-architecture.md) chỉ chứa ID/request/key tối thiểu, không chứa credential hoặc QR. Dữ liệu đó không cấp quyền; server kiểm tra actor hiện tại và target trước replay. Logout/đổi tài khoản phải dọn metadata để không replay thao tác của tài khoản cũ.
 
 ## Application log và audit log
 
@@ -48,3 +52,12 @@ Không bao giờ log mật khẩu, password hash, access/refresh/reset/verify to
 ## Kiểm tra trước phát hành
 
 Chạy kiểm thử IDOR, token hết hạn/thu hồi/reuse, CSRF/CORS, SQL injection, payload thừa, brute force, mock bị tắt và callback sai. Quét bí mật/dependency; phân loại findings dựa khả năng khai thác. Có quy trình thay khóa và thu hồi phiên khi lộ secret; production thật cần chốt Q-006/Q-012/Q-013 trước vận hành.
+
+
+## Bảo vệ model tổ chức/review/layout/check-in
+
+- Admin review bản gửi đúng version; mọi can thiệp ngoài role/event review cần report OPEN/IN_REVIEW đúng tài nguyên, có audit; không để API hỗ trợ trở thành đường đọc mọi booking.
+- Company session phải chứng minh identity công ty đã duyệt; phone session không tự cấp quyền Organization. Domain lookalike hoặc đổi email profile không vượt approval.
+- Reason form render text an toàn, cấm HTML/script; notification chỉ đến đại diện/người nhận được scope cho phép. Không nhân danh Admin tự tạo lý do đã ký.
+- TicketType code không là credential; ticketCode/QR riêng đủ entropy, tên/mã xác thực không fuzzy match; không thu giấy tờ hay thẻ ngân hàng. Online CheckIn không consume vé, admission vẫn recheck VALID.
+- Layout chỉ JSON schema/hình học được phép, giới hạn body/số phần tử, kiểm tra server-side bounds/capacity/collision và ownership/version. Không upload SVG chứa script hoặc tham chiếu URL tùy ý.

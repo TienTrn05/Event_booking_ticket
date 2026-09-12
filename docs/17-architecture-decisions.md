@@ -1,6 +1,16 @@
 # 17. Architecture Decision Records
 
-ADR “đã xác định” phản ánh yêu cầu người dùng; “đề xuất” là phương án kỹ thuật của đặc tả. Chính sách gắn Q vẫn chưa chốt dù kiến trúc đã có hướng giải quyết.
+ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến nghị kèm thay đổi 2026-09-12: trạng thái quyết định hiện hành ở [18](18-open-questions.md), thay đổi tại ADR-013. Các đoạn đề xuất cũ không tự ghi đè quyết định mới; phần auth/ownership/check-in/refund/venue bị thay thế được liệt kê trong ADR-013.
+
+## ADR-012 — Hoàn thiện hợp đồng request và tích hợp UI sau audit
+
+- **Trạng thái:** đặc tả kỹ thuật bổ sung theo yêu cầu cập nhật Markdown; chưa có implementation. Phạm vi refund Q-004/Q-005, mock staging Q-012 và retention Q-013 vẫn cần duyệt.
+- **Bối cảnh:** audit phát hiện hash chưa nêu target route, key hold chỉ ở useRef không sống qua reload, trang duyệt refund thiếu danh sách và mock staging mâu thuẫn giới hạn dev/test.
+- **Quyết định kỹ thuật:** giữ scope actor/operation/key; hash toàn bộ request đã validate gồm target và body. Khôi phục hold chưa rõ kết quả bằng metadata tối thiểu trong sessionStorage và replay đúng request/key; không persist credential. Giữ transaction/state machine/schema hiện tại. Ánh xạ availability phục vụ UI tại service, không thêm state DB.
+- **Hợp đồng đề xuất có điều kiện:** nếu giữ refund, dùng collection API tối thiểu với quyền/phạm vi duyệt; nếu cho staging chạy mock, dùng endpoint hiện có với allowlist backend, phiên/ownership/provider checks và cấm production. Chi tiết ở [09](09-api-design.md), [14](14-environment-deployment.md), [18](18-open-questions.md), [22](22-frontend-architecture.md).
+- **Lý do:** sửa trực tiếp các khoảng trống của luồng đã có, không thêm service, bảng hoặc hạ tầng mới.
+- **Thay thế:** hash chỉ body gây nhập nhằng target; chỉ useRef mất key khi reload; endpoint lookup theo key thêm API không cần thiết khi replay còn hiệu lực; mở mock cho mọi user không phù hợp giới hạn demo; dùng audit log làm hàng đợi refund không có hợp đồng review rõ.
+- **Đánh đổi/hệ quả:** recovery chỉ bảo đảm trong cùng tab khi metadata còn và nằm trong retention; storage không cấp quyền và phải được kiểm tra/xóa theo actor. Chính sách staging/refund chưa duyệt không được tự bật. T-027–T-031 kiểm chứng các hợp đồng khi có ứng dụng.
 
 ## ADR-001 — Modular Monolith theo module và tầng
 
@@ -100,3 +110,18 @@ ADR “đã xác định” phản ánh yêu cầu người dùng; “đề xu�
 - **Lý do:** DB chặn nhầm phạm vi ngay khi ghi; khoản thực nhận luôn lưu được để đối soát; worker có dữ liệu phục hồi và không ack lease đã bị người khác lấy.
 - **Thay thế:** chỉ kiểm tra scope/duplicate ticket trong service; unique mọi receipt thành công theo booking và cách ly khoản thừa ở inbox; inbox chỉ giữ hash; lease chỉ dùng deadline.
 - **Đánh đổi/hệ quả:** thêm cột lặp/index được FK bảo vệ, thêm nhánh reconciliation; DB vẫn không kiểm tra được toàn bộ nghiệp vụ liên bảng hoặc lịch sử state transition. API chỉ xác nhận đơn một lần dưới khóa; nhiều receipt không đồng nghĩa cấp nhiều vé. Thay đổi chi tiết ở [20](20-physical-sql-design.md); dữ liệu/chính sách thật cần review trước migration.
+
+
+## ADR-013 — Tổ chức, Google/OTP, review có hạn và layout tự thiết kế
+
+- **Trạng thái:** yêu cầu nghiệp vụ đã xác nhận bởi chủ dự án ngày 2026-09-12, gồm câu trả lời làm rõ trong cùng hội thoại. Thiết kế kỹ thuật Markdown đã cập nhật; SQL/ERD/app chưa triển khai tương ứng.
+- **Bối cảnh:** Organizer phải là tổ chức, Admin duyệt role và event, không vận hành thay Organizer; khách dùng Google/OTP và check-in kiểu sân bay; venue có catalog/giới hạn nhưng layout do Organizer tạo.
+- **Quyết định:** User đại diện Organization bằng membership được Admin duyệt và email công ty xác minh; Customer Google/phone OTP, công ty Google Workspace hoặc email OTP, session đa thiết bị. Organization sở hữu event/layout, venue là catalog chung.
+- **Review:** gửi ít nhất một tháng lịch trước session sớm nhất; EventReview 15 ngày; chỉ Admin approve đúng bản còn hạn mới PUBLISHED. Expiry hủy hồ sơ, gửi notification tự động và tạo việc soạn phiếu; Admin dùng form để soạn/gửi lý do thật. Không tự approve, không biến hủy hồ sơ thành hủy vé đã bán.
+- **Vé:** TicketType code riêng và mã từng Ticket riêng; attendee snapshot mỗi BookingItem. Self check-in mở 24h trước startsAt hoặc xác nhận tại quầy tạo CheckIn, Ticket vẫn VALID; admission mới USED. Không thu số thẻ ngân hàng/giấy tờ.
+- **Editor:** React/SVG 2D, hình học có schema, ghế quan hệ ID ổn định, kiểm tra bounds/capacity/collision ở server; frozen layout version đúng event/venue trước review/bán. Không cần SaaS, 3D hoặc infrastructure mới.
+- **Quyền vận hành:** Organizer xử lý refund thường xuyên; Admin cần report đúng scope cho can thiệp khác ngoài duyệt role/event. Audit không thay ownership/report validation.
+- **Thay thế:** ADR-003 bỏ login mật khẩu nhưng giữ app JWT/refresh/session; ADR-007 tách CheckIn khỏi admission; ADR-011/DDL/ERD là baseline cần mở rộng scope mới; ADR-012 giữ canonical request/recovery nhưng danh sách refund thường xuyên chuyển Organizer. Đề xuất venue riêng và tự publish trong các Q cũ đã bị thay.
+- **Giữ nguyên:** modular monolith, MySQL, transactions, row locks, idempotency, atomic ticket issuance, outbox và failure recovery. QR vẫn opaque; code nhập tay có thể là cùng secret ở dạng biểu diễn khác.
+- **Đánh đổi:** thêm bảng/flow vì yêu cầu cụ thể của chủ dự án; editor/review/OTP/notification là MVP có thêm công việc, không giữ kết luận scope cũ để bỏ chúng. Không cần chuyển microservices hoặc thêm broker.
+- **Kiểm chứng:** T-032–T-041 và baseline tests còn liên quan; đồng bộ DDL/ERD/seed/query theo [20](20-physical-sql-design.md) trước implementation. Thông số chưa có giá trị cụ thể ở Q-003/Q-004/Q-009/Q-012/... vẫn không tự suy diễn.

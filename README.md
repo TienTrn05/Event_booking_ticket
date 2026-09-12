@@ -2,7 +2,7 @@
 
 Dự án cá nhân xây dựng nền tảng đặt vé sự kiện, hướng đến tính đúng đắn, bảo mật và khả năng vận hành thực tế.
 
-**Trạng thái:** đặc tả và thiết kế kỹ thuật trước triển khai ứng dụng. Đã có sơ đồ SVG/Mermaid, schema SQL và kiểm tra schema trên MySQL tạm; chưa có backend/frontend hoặc database production. Các đề xuất nghiệp vụ chưa được duyệt được đánh dấu `DECISION REQUIRED`.
+**Trạng thái:** đặc tả và thiết kế kỹ thuật trước triển khai ứng dụng. Đã có sơ đồ SVG/Mermaid, schema SQL và kiểm tra schema trên MySQL tạm; chưa có backend/frontend hoặc database production. Quyết định nghiệp vụ đã cập nhật theo chủ dự án; phần còn mở ghi ở docs/18. SQL/ERD/SVG hiện có là baseline trước model Organization/review/layout/Google-OTP/CheckIn mới, cần đồng bộ trước implementation.
 
 Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScript; MySQL; REST API; JWT; Modular Monolith.
 
@@ -13,7 +13,7 @@ Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScri
 1. [Quy tắc dự án](PROJECT_RULES.md).
 2. [Tổng quan](docs/01-project-overview.md) và [yêu cầu](docs/02-requirements.md).
 3. [Nghiệp vụ](docs/07-business-rules.md), [dữ liệu](docs/08-database-design.md), [đặt vé đồng thời](docs/11-booking-concurrency.md).
-4. [Quyết định còn mở](docs/18-open-questions.md) trước khi triển khai phần liên quan.
+4. [Nghiệp vụ mới và editor](docs/23-organization-review-seatmap.md), [quyết định đã chốt/phần còn mở](docs/18-open-questions.md) trước khi triển khai phần liên quan.
 
 ## Bộ tài liệu
 
@@ -40,5 +40,7 @@ Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScri
 | [19](docs/19-system-diagrams.md) | Bộ sơ đồ kiến trúc, ERD, sequence, state và cách xuất lại |
 | [20](docs/20-physical-sql-design.md) | Thiết kế SQL vật lý và ranh giới bảo vệ của DB |
 | [21](docs/21-sql-transactions.md) | Mẫu SQL và ranh giới transaction cho service |
+| [22](docs/22-frontend-architecture.md) | Frontend, editor layout, form duyệt/lý do, phục hồi hold, payment/check-in |
+| [23](docs/23-organization-review-seatmap.md) | Quyết định tổ chức, Admin review 15 ngày, Google/OTP, check-in và công cụ thiết kế ghế |
 
 Tài liệu tiếng Việt; tên kỹ thuật, API và mã trạng thái giữ bằng tiếng Anh để sử dụng nhất quán trong triển khai. Schema có thể nạp vào database thử rỗng theo hướng dẫn; các ví dụ API/transaction vẫn là thiết kế, chưa phải ứng dụng có thể chạy.

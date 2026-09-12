@@ -1,20 +1,34 @@
 # 16. Lộ trình MVP và mở rộng
 
-Các phase là thứ tự phụ thuộc, chưa phải cam kết ngày hoàn thành. Thời gian/nguồn lực cần Q-018. Bảo mật, logging và kiểm thử được làm từ đầu theo module, không dồn cuối.
+Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-questions.md)/[23](23-organization-review-seatmap.md). Là lộ trình thực hiện, chưa có app hoặc cam kết ngày. Không xin duyệt lại quy tắc đã RESOLVED.
 
-| Phase | Sản phẩm bàn giao | Điều kiện bắt đầu | Điều kiện hoàn thành |
-| --- | --- | --- | --- |
-| 0 — Đặc tả và thiết kế | README, PROJECT_RULES, 21 docs, 18 sơ đồ, DDL review và kiểm tra schema, Git local | Yêu cầu đặc tả, sơ đồ và SQL | Tài liệu/DDL/ERD nhất quán; câu hỏi mở có owner; chưa viết ứng dụng |
-| 1 — Nền tảng và tài khoản | Workspace web/API, config, MySQL migrations, error/logging, auth/session/permission | Q-005/Q-006/Q-016; người dùng yêu cầu triển khai | Register/login/rotation/logout/reset hoạt động; test quyền/token pass; không lộ secret |
-| 2 — Quản lý sự kiện | Event/category, venue/section/row/seat, session, giá, publish, discovery UI | Q-003/Q-009/Q-010/Q-014 | Organizer không sửa tài nguyên khác; dữ liệu ghế duy nhất; tìm kiếm đúng session |
-| 3 — Giữ ghế và booking | MySQL row lock, hold, checkout, expiry worker, idempotency, UI countdown | Q-001/Q-002/Q-007 | T-001–T-005/T-012 pass; restart không mất tồn kho; không giữ một phần |
-| 4 — Payment mock và vé | Adapter mock, inbox/outbox, confirm nguyên tử, QR, check-in, refund mock theo policy | Q-004/Q-008 | T-006–T-018 pass; callback muộn/duplicate được xử lý; E2E mua/quét/hoàn |
-| 5 — Ổn định MVP và staging | CI/CD, backup/restore, health/metric, load test, tài liệu chạy, Docker nếu có ích | Q-011/Q-012/Q-013/Q-017 | Security test, restore/smoke/tải đạt mục tiêu đã chốt; demo ghi rõ payment mô phỏng |
-| 6 — Sau MVP: thanh toán/vận hành thật | Provider thật, webhook/đối soát/refund, email giao dịch, quy trình vận hành | Chính sách/nhà cung cấp được duyệt | Sandbox và failure/reconciliation tests pass trước production thật |
-| 7 — Sau MVP: realtime/quy mô | Websocket, tối ưu truy vấn; Redis/object storage/broker chỉ khi đo được nhu cầu | Số liệu tải, ADR mới, Q-014 | Có đo cải thiện; tồn kho vẫn đúng khi realtime/cache lỗi |
-| 8 — AI tùy chọn | Chọn một tính năng có baseline, dữ liệu và eval | Q-015, consent/chi phí/metric rõ | Backend giữ quyền kiểm soát; đánh giá hallucination/quyền/chi phí đạt mục tiêu |
+| Phase | Bàn giao | Phụ thuộc / nghiệm thu |
+| --- | --- | --- |
+| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; đồng bộ DDL/seed/query/ERD baseline sang Organization/review/layout/Google-OTP/CheckIn | Markdown đã cập nhật; DDL/ERD mới và test migration **chưa làm**; checklist 20. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
+| 1 — Tài khoản và tổ chức | Google, OTP PHONE/COMPANY_EMAIL, sessions đa thiết bị, Organization/membership và Admin duyệt role | Chọn công cụ Q-016 và adapter test; T-019/T-020/T-032/T-033, không auto-link sai identity |
+| 2 — Venue/editor và review event | Catalog có capacity/bounds, editor React/SVG, layout frozen, session/TicketType/giá, review queue, lead time 1 tháng, expiry 15 ngày, notification và form phiếu | T-034–T-037, quyền Organization/report, không tự publish hoặc approve quá hạn; app notifications là MVP |
+| 3 — Hold/booking | Quota 6 ghế/1 phân bổ, TTL 5 phút, row locking, attendee snapshot, recovery request/key qua reload | T-001–T-005/T-012/T-027/T-028/T-031/T-038/T-041 trên MySQL thật |
+| 4 — Tiền/vé/check-in/report | Mock adapter/inbox/outbox, confirm nguyên tử, code vé/QR, online 24h/quầy, admission một lần, Organizer refund và Admin hỗ trợ report | T-006–T-018 theo semantics admission mới, T-030/T-039/T-040; chốt deadline refund và window quầy/vào cửa |
+| 5 — Staging và ổn định MVP | CI, backup/restore, security, health/metric/load tests, mock staging allowlist, Google/SMS/email cấu hình nếu thử live | T-029, restore/smoke/E2E model mới, cấu hình máy ghi rõ; cần đích hosting/danh tính demo thực, không dùng secret trong frontend |
+| 6 — Sau MVP | Provider thanh toán thật, email bán vé/nhắc lịch, vận hành thật | Chính sách và nhà cung cấp được chốt; sandbox/reconciliation/security pass |
+| 7 — Mở rộng có nhu cầu | Realtime/upload/object storage, tối ưu search/rate limit/scale | Chỉ thêm công nghệ theo đo lường/ADR |
+| 8 — AI tùy chọn | Chọn một tính năng sau baseline/eval | Hoãn theo Q-015 |
 
-MVP kỹ thuật kết thúc ở phase 5. Refund nghiệp vụ có thể bị loại khỏi MVP nếu Q-004 quyết định như vậy, nhưng phát hiện tiền thành công muộn và lưu đối soát vẫn bắt buộc. Không được che khoản tiền chưa cấp vé chỉ vì chưa có refund tự động.
+## Ranh giới MVP đã cập nhật
+
+MVP gồm auth/authorization; Organization và role approval; event review; venue catalog + editor; session/loại vé/giá; hold/booking/attendee; mock payment/refund; mã vé/QR; online/quầy/admission; report; notification review + form Admin; sales/audit/test/vận hành cơ bản. Editor, review và notification không còn là mở rộng tùy chọn vì chủ dự án yêu cầu trực tiếp.
+
+Ngoài MVP: thanh toán thật, email giao dịch bán vé nâng cao, websocket, upload, partial refund, vé tự do, chuyển nhượng, offline admission, phân cấp staff phức tạp, AI. Không thêm microservices/Kafka/Kubernetes/dynamic pricing.
+
+## Kết quả audit và thay đổi tiếp theo
+
+Audit trước quyết định tổ chức/editor kết luận GO cho kiến trúc monolith; không dùng kết quả đó để khẳng định DDL/ERD cũ đã bao phủ yêu cầu mới.
+
+- M-01: chính sách mock staging đã được duyệt; cần cấu hình allowlist thực và T-029.
+- M-02: danh sách refund thường xuyên thuộc Organizer; Admin chỉ theo report, T-030/T-040.
+- M-03: canonical hash gồm target/payload; checkout thêm attendee snapshot, T-027/T-038.
+- M-04: giữ metadata hold để replay sau reload, retention 24h đã duyệt; T-028.
+- ADR-013: model mới theo 23; đồng bộ SQL/ERD và chạy test trước implementation, không chỉ sửa Markdown rồi đánh dấu DB đúng.
 
 ## Khi nào thêm công nghệ
 

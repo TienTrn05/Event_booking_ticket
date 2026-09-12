@@ -14,7 +14,7 @@ Vấn đề cốt lõi là cùng một ghế có thể được nhiều người
 | --- | --- |
 | Nền tảng đã xác định | React + TypeScript + Vite; Express + TypeScript trên Node.js; MySQL; JWT; REST; Modular Monolith |
 | MVP kỹ thuật | Tài khoản, phiên đăng nhập, quyền/ownership; sự kiện, địa điểm, suất diễn, ghế đánh số; giữ ghế; booking; thanh toán mock; QR và check-in online; audit và kiểm thử đồng thời |
-| Nghiệp vụ đề xuất, cần chốt | Mỗi booking thuộc một suất; giữ ghế có thời hạn; Organizer được duyệt; chỉ hoàn toàn bộ; một người sở hữu toàn bộ vé trong đơn. Xem Q-001 đến Q-010 |
+| Nghiệp vụ đã chốt | Organizer là tổ chức dùng mail công ty, Admin duyệt role/event; đăng nhập Google/OTP trước mua, đa thiết bị; một session/booking, hold 5 phút, tối đa 6 ghế; tên/mã từng vé; self check-in từ 24h trước diễn hoặc tại quầy; venue catalog và editor layout. Xem [23](23-organization-review-seatmap.md) |
 | Mở rộng | Cổng thanh toán thật, email giao dịch, websocket, object storage, Redis khi có số liệu, vé tự do, hoàn một phần, nhân viên check-in, AI có kiểm chứng |
 | Ngoài phạm vi hiện tại | Bán lại/chuyển nhượng vé, dynamic pricing, marketplace thanh toán cho Organizer, thuế/hóa đơn pháp lý, multi-region, microservices, Kafka, Kubernetes |
 
@@ -26,17 +26,21 @@ Nhóm người dùng: Guest, Customer, Organizer, Admin; System là tác nhân t
 | --- | --- |
 | Event | Nội dung sự kiện, thuộc một Organizer |
 | EventSession | Một lần tổ chức cụ thể, có địa điểm và thời gian |
-| Seat | Ghế vật lý trong địa điểm |
+| Seat | Vị trí ghế trong một layout của event tại venue, có ID/nhãn/hình học ổn định |
+| Organization | Tổ chức sở hữu event; User đại diện qua membership được Admin duyệt |
+| SeatLayout | Bản thiết kế sân khấu/khu/hàng/ghế trong giới hạn venue |
+| TicketType | Loại vé có code trong session, khác mã riêng của từng Ticket |
+| CheckIn | Xác nhận trước sự kiện online hoặc tại quầy, không phải trạng thái USED vào cửa |
 | SessionSeat | Bản ghi ghế của một suất, giữ giá và trạng thái tồn kho |
 | SeatHold | Quyền giữ tạm một nhóm ghế cho một khách, có hạn dùng |
 | Booking | Đơn mua, lưu giá và danh sách ghế tại thời điểm checkout |
 | Payment | Một lần thử thanh toán; một đơn có thể có nhiều lần thử |
 | Refund | Một yêu cầu hoàn tiền độc lập, có trạng thái riêng |
-| Ticket | Quyền vào cửa, phát sau thanh toán hợp lệ |
+| Ticket | Quyền vào cửa có mã riêng và tên attendee, phát sau thanh toán hợp lệ |
 | Idempotency | Gửi lại cùng thao tác không tạo thêm hiệu ứng nghiệp vụ |
 
 ## Cách đọc trạng thái quyết định
 
 “Đã xác định” bắt nguồn trực tiếp từ yêu cầu. “Đề xuất kỹ thuật” là lựa chọn thiết kế được giải thích bằng ADR. `DECISION REQUIRED (Q-xxx)` chỉ ra nghiệp vụ hoặc thông số chưa được xác nhận. Các phần phụ thuộc mô tả thiết kế dự kiến để review, không tự coi là đã duyệt.
 
-FR/BR/UC là bộ đặc tả dự kiến; quy tắc có liên kết Q chỉ có thể dùng làm tiêu chí triển khai sau khi Q được chốt. Mâu thuẫn phải được sửa trong cùng thay đổi; [18](18-open-questions.md) là nơi quản lý quyết định mở.
+FR/BR/UC là hợp đồng hiện hành; trạng thái từng Q ở [18](18-open-questions.md) phân biệt đã chốt với phần còn mở. SQL/ERD cũ là baseline chưa đồng bộ model tổ chức/layout, xem [20](20-physical-sql-design.md). Mâu thuẫn phải được sửa trong cùng thay đổi; [18](18-open-questions.md) là nơi quản lý quyết định mở.

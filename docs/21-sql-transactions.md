@@ -1,11 +1,13 @@
 # 21. SQL và ranh giới transaction
 
+**Lưu ý phiên bản:** các SQL minh họa bên dưới dùng tên cột baseline; model Organization/layout/CheckIn mới ở 08/23 chưa có DDL đồng bộ. Khi chuyển thành code phải bổ sung scope/quota theo 11 và đổi tickets.checked_in_at/by thành admitted_at/by cho thao tác USED.
+
 Các đoạn bên dưới là **mẫu prepared SQL cho service**, ký hiệu `:name` cần driver/query builder bind. Không chạy nguyên tài liệu như batch SQL. Bước “kiểm tra” là nhánh bắt buộc ở service; không COMMIT nếu assertion thất bại. Không đặt nghiệp vụ vào stored procedure/trigger.
 
 ## 1. Giữ nhóm ghế
 
 1. Schema/permission/quota theo chính sách đã chốt; sắp danh sách PK, bỏ trùng bằng lỗi validation.
-2. BEGIN và claim idempotency record; trùng key thì so request hash/đọc tài nguyên cũ.
+2. BEGIN và claim idempotency record; trùng key thì so request hash/đọc tài nguyên cũ sau kiểm tra quyền. Hash gồm route target và payload chuẩn hóa theo [09](09-api-design.md), không chỉ body. Khác target/payload với cùng actor/operation/key trả 409, không thực hiện mutation mới.
 3. Khóa Event SHARE, EventSession SHARE; đọc lại cờ và quan hệ. Tạo hold trong transaction với expiry dự kiến, sau khi lấy ghế dùng giờ DB mới để cập nhật expiry chính thức.
 4. Lặp từng ID tăng dần bằng query dưới; bất kỳ ghế thiếu/khác session/không AVAILABLE thì rollback toàn bộ. Hold quá hạn cần rollback rồi cleanup aggregate theo giao thức [11](11-booking-concurrency.md), không nâng ngược thứ tự khóa.
 
@@ -65,9 +67,9 @@ Query ứng viên chỉ đọc `seat_holds(status,expires_at)` hoặc `bookings(
 
 Không chạy UPDATE toàn session dựa timestamp và không nhả SOLD. Callback và expiry dùng cùng thứ tự khóa nên một nhánh thắng rồi nhánh sau đọc lại kết quả.
 
-## 5. Check-in và hoàn tiền
+## 5. Vào cửa (admission) và hoàn tiền
 
-Check-in khóa đủ scope trước ticket; validate permission/event/session/window rồi:
+Admission khóa đủ scope trước ticket; validate Organization/permission/event/session/window và CheckIn đã có rồi (SQL baseline, tên cột phải đổi như lưu ý đầu file):
 
 ```sql
 UPDATE tickets
@@ -92,3 +94,12 @@ affectedRows=0 nghĩa đã mất ownership; không ack hoặc ghi đè retry c�
 ## 7. Retry và lỗi
 
 Mọi exception → rollback toàn transaction và trả connection trong finally. Deadlock/lock timeout retry toàn operation có giới hạn, cùng key; không retry lỗi nghiệp vụ và không giữ transaction khi chờ người dùng/mạng. Không trả thành công khi COMMIT chưa xác nhận; nếu mất kết nối tại COMMIT, coi kết quả chưa rõ và tra lại bằng key trước tạo mới.
+
+
+## 8. Khác biệt transaction của model mới
+
+- Checkout insert attendee snapshot đúng từng ghế; UQ hold không cho cập nhật tên bằng replay payload khác.
+- Self/counter check-in INSERT CheckIn dưới khóa ticket, UQ ticket_id; không UPDATE USED. Admission mới consume vé.
+- Hold/checkout/release/expiry/cancel/confirm lấy ReservationQuota trước Event theo 11, tính cả booking chờ để chống né quota.
+- Event submission/review/expiry/phiếu lý do theo 23; notification/outbox cùng transaction, không gọi mạng trong khóa.
+- Google/OTP consume challenge hoặc exchange proof rồi tạo app session; không dùng transaction password-reset baseline.
