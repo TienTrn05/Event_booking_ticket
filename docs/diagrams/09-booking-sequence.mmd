@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+    actor C as Customer
+    participant UI as React
+    participant B as Booking service
+    participant DB as MySQL
+    participant P as Payment adapter
+    participant W as Inbox processor
+    C->>UI: Chọn session và ghế
+    UI->>B: POST hold + Idempotency-Key
+    B->>DB: BEGIN ? khóa cha, ghế ? kiểm tra lại
+    alt Tất cả ghế khả dụng
+      B->>DB: Tạo hold/items ? HELD ? COMMIT
+      B-->>UI: holdId, giá snapshot, expiresAt, serverTime
+    else Một ghế không còn khả dụng
+      B->>DB: ROLLBACK toàn bộ nhóm
+      B-->>UI: 409 ? tải lại ghế
+    end
+    UI->>B: POST bookings với holdId + key
+    B->>DB: BEGIN ? kiểm tra chủ/expiry ? booking + items
+    B->>DB: Hold CONVERTED ? gán booking vào ghế ? COMMIT
+    B-->>UI: AWAITING_PAYMENT ? giữ deadline cũ
+    UI->>B: POST payment + key
+    B->>DB: BEGIN ? tạo attempt PENDING ? COMMIT
+    B->>P: Gửi payment với provider key ổn định
+    Note over B,P: Gọi mạng ngoài transaction
+    P->>W: Kết quả đã xác minh
+    W->>DB: Ghi inbox bền vững ? dedupe event ID
+    W->>DB: BEGIN ? khóa đúng thứ tự ? kiểm tra giờ DB
+    alt Còn hạn và vẫn sở hữu ghế
+      W->>DB: Payment SUCCESS ? Booking CONFIRMED ? ghế SOLD ? Ticket VALID ? COMMIT
+    else Hết hạn / Đã hủy / Mất ghế
+      W->>DB: Ghi nhận tiền ? reconciliation REQUIRED ? không cấp vé ? COMMIT
+    end
+    UI->>B: GET booking để biết kết quả thật
+    B-->>UI: Trạng thái hiện tại và vé nếu có

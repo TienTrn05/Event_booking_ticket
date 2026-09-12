@@ -1,0 +1,20 @@
+{
+  "01-system-context.mmd": "01 · Bối cảnh hệ thống",
+  "02-backend-components.mmd": "02 · Thành phần backend",
+  "03-deployment.mmd": "03 · Mô hình triển khai",
+  "04-use-cases.mmd": "04 · Use case theo vai trò",
+  "05-erd-identity.mmd": "05 · ERD tài khoản và phân quyền",
+  "06-erd-events.mmd": "06 · ERD sự kiện và địa điểm",
+  "07-erd-booking.mmd": "07 · ERD đặt vé và thanh toán",
+  "08-erd-operations.mmd": "08 · ERD vận hành và đối soát",
+  "09-booking-sequence.mmd": "09 · Luồng đặt vé hoàn chỉnh",
+  "10-seat-race.mmd": "10 · Hai khách tranh cùng ghế",
+  "11-late-payment.mmd": "11 · Thanh toán thành công đến muộn",
+  "12-auth-refresh.mmd": "12 · Đăng nhập và luân chuyển token",
+  "13-refund-checkin.mmd": "13 · Hoàn tiền và check-in đồng thời",
+  "14-booking-states.mmd": "14 · Vòng đời booking",
+  "15-payment-refund-states.mmd": "15 · Vòng đời payment và refund",
+  "16-ticket-seat-states.mmd": "16 · Vòng đời vé, ghế và hold",
+  "17-outbox-worker.mmd": "17 · Outbox, lease và phục hồi worker",
+  "18-authorization.mmd": "18 · Kiểm tra quyền và ownership"
+}

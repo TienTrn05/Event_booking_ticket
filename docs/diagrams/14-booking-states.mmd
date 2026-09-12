@@ -1,0 +1,18 @@
+stateDiagram-v2
+    [*] --> AWAITING_PAYMENT: Checkout hold còn hạn
+    AWAITING_PAYMENT --> CONFIRMED: Payment hợp lệ và còn sở hữu ghế
+    AWAITING_PAYMENT --> EXPIRED: DB_NOW đạt deadline
+    AWAITING_PAYMENT --> CANCELLED: Hủy trước xác nhận
+    CONFIRMED --> REFUNDED: Full refund thành công theo Q-004
+    EXPIRED --> [*]
+    CANCELLED --> [*]
+    REFUNDED --> [*]
+    note right of CONFIRMED
+      Payment SUCCESS, ghế SOLD,
+      Ticket VALID cùng transaction.
+      Refund đang xử lý nằm ở Refund.
+    end note
+    note left of EXPIRED
+      SUCCESS muộn không hồi sinh đơn.
+      Tiền được ghi nhận và đối soát riêng.
+    end note

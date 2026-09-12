@@ -53,13 +53,15 @@ Deadline booking bằng hold expiry, không cộng thêm thời gian (Q-001). UQ
 
 **Nhận kết quả:** xác minh chữ ký/cấu trúc ngoài transaction; lưu inbox bền vững bằng unique provider event ID. Processor BEGIN và khóa inbox trước, sau đó event/session/hold/booking/ghế/payment/vé theo thứ tự; kiểm tra amount/currency/reference và trạng thái hiện tại.
 
-- Nếu SUCCESS hợp lệ, đơn AWAITING_PAYMENT, `DB_NOW < expires_at`, event/session cho bán và mọi ghế còn thuộc đơn: ghi Payment SUCCESS, ghế SOLD (xóa hold pointer/expiry), Booking CONFIRMED, mỗi item một Ticket VALID, audit/outbox; đánh dấu inbox xử lý; **COMMIT**.
+- Nếu SUCCESS hợp lệ, đơn AWAITING_PAYMENT, `DB_NOW < expires_at`, event/session cho bán và mọi ghế còn thuộc đơn: ghi Payment SUCCESS, ghế SOLD (xóa hold pointer/expiry), Booking CONFIRMED với confirmed_payment_id của khoản đó, mỗi item một Ticket VALID, audit/outbox; đánh dấu inbox xử lý; **COMMIT**.
 - Nếu cùng SUCCESS đã áp dụng: không phát lại vé; đánh dấu callback đã xử lý và commit.
 - Nếu thất bại chắc chắn: cập nhật Payment FAILED; booking còn hạn được thử mới. Hết hạn thì chạy expiry theo cùng giao thức.
 - Nếu SUCCESS muộn/đơn đã hủy/event bị dừng/không còn ghế: ghi nhận Payment SUCCESS và reconciliation REQUIRED; chuyển đơn chưa kết thúc sang EXPIRED hoặc CANCELLED thích hợp, nhả chỉ những ghế còn thuộc nó; tạo tác vụ đối soát/COMPENSATION; không tạo vé, không hồi sinh đơn. Tự refund cần Q-004, tiền được theo dõi dù chưa tự hoàn.
 - Nếu DB lỗi bất kỳ bước: **ROLLBACK** tất cả thay đổi nghiệp vụ; inbox chưa DONE và sẽ retry. Nếu ghi inbox ban đầu cũng thất bại, trả lỗi để provider gửi lại.
 
 Callback một event ID nhưng payload hash khác: cảnh báo, cách ly; không coi là retry bình thường. Callback không có reference đủ tin cậy hoặc trạng thái mâu thuẫn phải đối soát; không “sửa” tiền dựa vào frontend.
+
+Inbox phải lưu normalized payload đã lọc đủ để xử lý lại sau crash, không chỉ hash. Receipt thành công ngoài dự kiến vẫn được lưu để đối soát; không đổi confirmed_payment_id đã chọn, không phát vé thêm (ADR-011). Outbox claim/reclaim có lease token và ack theo token để worker cũ không ghi đè lease mới; xem [21](21-sql-transactions.md).
 
 ## Hết hạn, hủy và race với callback
 

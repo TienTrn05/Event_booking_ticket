@@ -1,0 +1,25 @@
+sequenceDiagram
+    autonumber
+    participant UI as React / Nhiều tab
+    participant API as Auth service
+    participant DB as MySQL
+    UI->>API: Đăng nhập email / mật khẩu
+    API->>API: Rate limit ? kiểm tra hash và user status
+    API->>DB: Tạo AuthSession + hash RefreshToken
+    API-->>UI: Access JWT trong memory ? refresh cookie HttpOnly/Secure
+    UI->>API: Request riêng tư với Bearer JWT
+    API->>DB: Kiểm tra session, authVersion, quyền, trạng thái user
+    API-->>UI: Kết quả trong phạm vi ownership
+    UI->>UI: Phối hợp refresh một lần giữa các tab
+    UI->>API: POST refresh ? cookie + CSRF + Origin
+    API->>DB: BEGIN ? khóa session/token ? kiểm tra hạn
+    alt Refresh token hợp lệ và chưa dùng
+      API->>DB: Token cũ used ? token mới cùng family ? COMMIT
+      API-->>UI: JWT mới và cookie mới ? không kéo dài hạn tuyệt đối
+    else Token cũ đã dùng lại
+      API->>DB: Thu hồi cả family/session ? COMMIT
+      API-->>UI: 401 ? đăng nhập lại
+    end
+    UI->>API: Logout-all
+    API->>DB: Tăng authVersion và thu hồi mọi phiên
+    API-->>UI: 204 ? xóa token phía client

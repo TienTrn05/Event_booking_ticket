@@ -91,3 +91,12 @@ ADR “đã xác định” phản ánh yêu cầu người dùng; “đề xu�
 - **Lý do:** tập trung ngân sách phát triển vào transaction, kiểm thử và vận hành cơ bản.
 - **Thay thế:** thêm Socket.IO/Redis/Elasticsearch/LLM ngay từ đầu.
 - **Đánh đổi/hệ quả:** UI ghế có thể trễ và SQL search hạn chế ngôn ngữ; API phải xử lý 409 tốt. Khi có nhu cầu mới, tạo ADR thay thế dựa trên metric/use case, không dựa trào lưu.
+
+## ADR-011 — Ràng buộc vật lý và khả năng phục hồi giao dịch
+
+- **Trạng thái:** đề xuất kỹ thuật theo yêu cầu thiết kế SQL; không chốt policy Q-004/Q-007/Q-008/Q-009 hoặc phiên bản production Q-016.
+- **Bối cảnh:** chuyển mô hình logic thành DDL phát hiện cần bảo vệ scope liên bảng, ngăn hai vé hiện hành, lưu đủ dữ liệu callback và không mất dấu tiền bất thường.
+- **Quyết định:** thêm composite FK scope session/customer, Ticket.active_seat_guard, Booking.confirmed_payment_id; giữ pending guard nhưng bỏ đề xuất successful_booking_guard. Inbox lưu normalized payload đã lọc; outbox có lease token; QR có key version. DDL riêng cho database thử rỗng, ERD sinh từ SQL.
+- **Lý do:** DB chặn nhầm phạm vi ngay khi ghi; khoản thực nhận luôn lưu được để đối soát; worker có dữ liệu phục hồi và không ack lease đã bị người khác lấy.
+- **Thay thế:** chỉ kiểm tra scope/duplicate ticket trong service; unique mọi receipt thành công theo booking và cách ly khoản thừa ở inbox; inbox chỉ giữ hash; lease chỉ dùng deadline.
+- **Đánh đổi/hệ quả:** thêm cột lặp/index được FK bảo vệ, thêm nhánh reconciliation; DB vẫn không kiểm tra được toàn bộ nghiệp vụ liên bảng hoặc lịch sử state transition. API chỉ xác nhận đơn một lần dưới khóa; nhiều receipt không đồng nghĩa cấp nhiều vé. Thay đổi chi tiết ở [20](20-physical-sql-design.md); dữ liệu/chính sách thật cần review trước migration.

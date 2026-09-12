@@ -1,0 +1,41 @@
+{
+  "checked_at_utc": "2026-09-12T11:24:40.864786+00:00",
+  "schema_sha256": "d6cd1ffafc32eed563bfec5b48ce24b094feb28e6a8f24c50c6b62e6aa99b6ad",
+  "test_script_sha256": "9d026e42b9bbff3037862fe3ad2369760542a21586daa61a96913025ada2980c",
+  "mysql_version": "8.0.46",
+  "isolation": "READ-COMMITTED",
+  "checks_passed": 26,
+  "checks": [
+    "DDL: 27 tables imported with foreign keys and checks enabled",
+    "Reference seed repeatable; no roles granted or permission mappings activated",
+    "Same physical seat can exist independently across two sessions",
+    "Duplicate session-seat rejected",
+    "Negative price rejected",
+    "Invalid currency rejected",
+    "HELD without owner/expiry rejected",
+    "Hold item crossing sessions rejected",
+    "Booking cannot steal another customer hold",
+    "One booking per hold enforced",
+    "Booking item crossing sessions rejected",
+    "Concurrent pending attempts rejected",
+    "Unexpected second successful receipt preserved for reconciliation",
+    "Confirmed payment must belong to same booking",
+    "Two active tickets for one session-seat rejected",
+    "USED ticket requires check-in audit fields",
+    "Duplicate full refund rejected",
+    "Duplicate webhook event rejected",
+    "Referenced user cannot be deleted",
+    "Partial idempotency result with NULL response rejected",
+    "Stale worker cannot acknowledge a newer lease token",
+    "Rollback restores all booking/payment/ticket changes",
+    "Two real connections race for same seat: one HELD, one CONFLICT, no orphan hold",
+    "Read query compiled and fixture result checked: 01-session-inventory.sql",
+    "Read query compiled and fixture result checked: 02-organizer-sales.sql",
+    "Read query compiled and fixture result checked: 03-integrity-audit.sql"
+  ],
+  "limitations": [
+    "Schema and a focused lock race only; not a backend/API/E2E test suite.",
+    "Policy-dependent schema is a proposal, not an approved production migration.",
+    "MySQL 8.4 is a design target; validation version is recorded above."
+  ]
+}

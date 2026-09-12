@@ -31,6 +31,8 @@ Giữ nguyên ID; thêm câu trả lời, người quyết định, ngày và tr
 
 Ưu tiên trước code nền tảng: Q-005, Q-006, Q-016. Trước logic đặt vé: Q-001, Q-002, Q-003, Q-007; trước tiền/vé: Q-004, Q-008, Q-010. Các quyết định hosting, dữ liệu thật và remote cần chốt trước hành động tương ứng.
 
+Đợt thiết kế SQL bổ sung: Q-016 chưa được coi là chốt phiên bản production. DDL dùng cú pháp MySQL 8.0.16+/8.4 và đã kiểm thử bằng MySQL 8.0.46 có sẵn trong môi trường tạm. Các cấu trúc phụ thuộc Q-004/Q-007/Q-008/Q-009 là phương án review; seed chỉ chứa từ điển, không kích hoạt ma trận quyền Q-005. Xem [20](20-physical-sql-design.md).
+
 ## Bản đồ bao phủ yêu cầu gốc
 
 | Mục yêu cầu gốc | Tài liệu |

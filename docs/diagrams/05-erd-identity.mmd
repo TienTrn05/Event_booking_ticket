@@ -1,0 +1,51 @@
+erDiagram
+    users {
+        bigint id PK
+        varchar email_canonical
+        varchar status
+        int auth_version
+    }
+    roles {
+        bigint id PK
+        varchar code
+    }
+    permissions {
+        bigint id PK
+        varchar code
+    }
+    user_roles {
+        bigint user_id PK,FK
+        bigint role_id PK,FK
+        bigint granted_by FK
+    }
+    role_permissions {
+        bigint role_id PK,FK
+        bigint permission_id PK,FK
+    }
+    auth_sessions {
+        bigint id PK
+        bigint user_id FK
+        datetime expires_at
+    }
+    refresh_tokens {
+        bigint id PK
+        bigint session_id FK
+        bigint parent_id FK
+        binary token_hash
+        datetime expires_at
+    }
+    verification_tokens {
+        bigint id PK
+        bigint user_id FK
+        binary token_hash
+        datetime expires_at
+    }
+    users ||--o{ user_roles : "user_id"
+    roles ||--o{ user_roles : "role_id"
+    users |o--o{ user_roles : "granted_by"
+    roles ||--o{ role_permissions : "role_id"
+    permissions ||--o{ role_permissions : "permission_id"
+    users ||--o{ auth_sessions : "user_id"
+    auth_sessions ||--o{ refresh_tokens : "session_id"
+    refresh_tokens |o--o| refresh_tokens : "parent_id"
+    users ||--o{ verification_tokens : "user_id"

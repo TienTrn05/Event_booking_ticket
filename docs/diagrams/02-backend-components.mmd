@@ -1,0 +1,19 @@
+flowchart TB
+    UI["React · TypeScript · Vite"] -->|"HTTPS /api/v1"| ROUTE["Route → Middleware → Controller"]
+    ROUTE --> AUTH["Auth / User service<br/>JWT · Phiên · Quyền"]
+    ROUTE --> EVENT["Event / Venue / Session service"]
+    ROUTE --> BOOK["Booking service<br/>Hold · Checkout · Expiry"]
+    ROUTE --> PAY["Payment service<br/>Kết quả · Đối soát · Refund"]
+    ROUTE --> TICKET["Ticket service<br/>QR · Check-in"]
+    BOOK --> UOW["Unit of Work<br/>Một transaction · Một connection"]
+    PAY --> UOW
+    TICKET --> UOW
+    EVENT --> UOW
+    AUTH --> UOW
+    UOW --> REPO["Repository<br/>SQL có tham số · Khóa hàng"]
+    REPO --> DB[("MySQL / InnoDB")]
+    PAY -->|"Sau commit"| ADAPTER["Payment adapter<br/>Mock / Provider thật"]
+    WORKER["Worker cùng codebase<br/>Expiry · Inbox · Outbox · Đối soát"] --> BOOK
+    WORKER --> PAY
+    WORKER --> DB
+    NOTE["Controller không có nghiệp vụ<br/>Repository không quyết định quyền<br/>Không gọi mạng trong transaction"]

@@ -1,0 +1,112 @@
+erDiagram
+    users {
+        bigint id PK
+        varchar email_canonical
+        varchar status
+        int auth_version
+    }
+    event_sessions {
+        bigint id PK
+        bigint event_id FK
+        bigint venue_id FK
+        datetime starts_at
+        datetime ends_at
+        varchar status
+    }
+    session_seats {
+        bigint id PK
+        bigint session_id FK
+        bigint seat_id FK
+        bigint price_minor
+        char currency
+        varchar status
+        bigint hold_id FK
+        bigint current_booking_id FK
+        datetime hold_expires_at
+    }
+    seat_holds {
+        bigint id PK
+        bigint customer_id FK
+        bigint session_id FK
+        varchar status
+        datetime expires_at
+    }
+    seat_hold_items {
+        bigint id PK
+        bigint hold_id FK
+        bigint session_seat_id FK
+        bigint session_id FK
+        bigint price_minor
+        char currency
+    }
+    bookings {
+        bigint id PK
+        bigint customer_id FK
+        bigint session_id FK
+        bigint hold_id FK
+        varchar status
+        bigint total_minor
+        char currency
+        datetime expires_at
+        bigint confirmed_payment_id FK
+    }
+    booking_items {
+        bigint id PK
+        bigint booking_id FK
+        bigint session_seat_id FK
+        bigint session_id FK
+        bigint price_minor
+        char currency
+    }
+    payments {
+        bigint id PK
+        bigint booking_id FK
+        varchar provider_reference
+        varchar provider_key
+        bigint amount_minor
+        char currency
+        varchar status
+        varchar reconciliation_status
+        bigint pending_booking_guard
+    }
+    tickets {
+        bigint id PK
+        bigint booking_item_id FK
+        bigint session_seat_id FK
+        binary qr_token_hash
+        varchar status
+        bigint checked_in_by FK
+        bigint active_seat_guard
+    }
+    refunds {
+        bigint id PK
+        bigint payment_id FK
+        bigint requested_by FK
+        bigint approved_by FK
+        varchar status
+        bigint amount_minor
+        varchar provider FK
+        varchar provider_key
+        varchar provider_reference
+        bigint full_refund_guard
+    }
+    event_sessions ||--o{ session_seats : "session_id"
+    seat_holds |o--o{ session_seats : "hold_id"
+    bookings |o--o{ session_seats : "current_booking_id"
+    users ||--o{ seat_holds : "customer_id"
+    event_sessions ||--o{ seat_holds : "session_id"
+    seat_holds ||--o{ seat_hold_items : "hold_id"
+    session_seats ||--o{ seat_hold_items : "session_seat_id"
+    seat_holds ||--o| bookings : "hold_id"
+    users ||--o{ bookings : "customer_id"
+    event_sessions ||--o{ bookings : "session_id"
+    payments |o--o| bookings : "confirmed_payment_id"
+    bookings ||--o{ booking_items : "booking_id"
+    session_seats ||--o{ booking_items : "session_seat_id"
+    bookings ||--o{ payments : "booking_id"
+    booking_items ||--o| tickets : "booking_item_id"
+    session_seats ||--o{ tickets : "session_seat_id"
+    users |o--o{ tickets : "checked_in_by"
+    payments ||--o{ refunds : "payment_id"
+    users |o--o{ refunds : "requested_by"
+    users |o--o{ refunds : "approved_by"

@@ -83,6 +83,8 @@ Một hàng là một attempt. Bỏ CREATED vì PENDING được ghi trước l�
 
 Không FAILED → PENDING; retry tạo attempt mới. Nếu nhà cung cấp gửi SUCCESS cho attempt từng xác nhận FAILED, cách ly và đối soát theo hợp đồng provider; không tự phát vé, không bỏ qua khoản tiền. Callback thành công trùng hoặc thất bại đến sau SUCCESS không đảo trạng thái. `reconciliation_status = NONE/REQUIRED/RESOLVED` và lý do lưu riêng với trạng thái tiền.
 
+Bản SQL theo ADR-011 không chặn lưu nhiều khoản SUCCESS bất thường của một booking; `confirmed_payment_id` chỉ định khoản dùng xác nhận đơn. Khoản thừa cần reconciliation, không cấp thêm vé. Khi bù trừ tiền cho booking EXPIRED/CANCELLED, trạng thái booking giữ nguyên; chỉ Payment/Refund phản ánh tiền đã hoàn.
+
 Refund: REQUESTED → REJECTED hoặc PROCESSING (duyệt và thu hồi quyền vé); PROCESSING → SUCCESS hoặc FAILED khi có kết quả chắc chắn; FAILED → PROCESSING khi người có quyền retry cùng refund/provider key. Kết quả chưa rõ giữ PROCESSING. Không tạo refund mới chỉ vì timeout. Hoàn tiền bù trừ do BR-012 có loại COMPENSATION, tự động hóa chỉ sau Q-004; trước đó tạo công việc đối soát.
 
 ## Ticket state machine

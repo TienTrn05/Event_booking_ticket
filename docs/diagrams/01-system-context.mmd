@@ -1,0 +1,11 @@
+flowchart LR
+    G["Khách vãng lai"] -->|"Tìm và xem sự kiện"| P
+    C["Khách mua vé"] -->|"Giữ ghế · Đặt vé · Xem QR"| P
+    O["Nhà tổ chức"] -->|"Sự kiện · Suất diễn · Doanh số · Check-in"| P
+    A["Quản trị viên"] -->|"Phân quyền · Kiểm duyệt · Đối soát"| P
+    P["Event Ticketing Platform<br/>React + Express + MySQL"] --> M["Payment mock<br/>MVP · Không phải tiền thật"]
+    P -.->|"Sau MVP"| R["Cổng thanh toán thật"]
+    R -.->|"Webhook có xác thực"| P
+    P -.->|"Sau MVP / email xác thực theo Q-006"| E["Nhà cung cấp email"]
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#172554
+    class P core

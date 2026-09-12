@@ -1,0 +1,7 @@
+{
+  "name": "event-ticketing-diagrams",
+  "private": true,
+  "description": "Công cụ xuất sơ đồ tài liệu; không phải dependency ứng dụng.",
+  "scripts": { "build": "node build.mjs" },
+  "devDependencies": { "@mermaid-js/mermaid-cli": "11.17.0" }
+}

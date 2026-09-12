@@ -2,11 +2,13 @@
 
 Dự án cá nhân xây dựng nền tảng đặt vé sự kiện, hướng đến tính đúng đắn, bảo mật và khả năng vận hành thực tế.
 
-**Trạng thái:** đặc tả trước triển khai. Chưa có mã ứng dụng, cơ sở dữ liệu, kiểm thử hay cấu hình chạy. Các đề xuất nghiệp vụ chưa được duyệt được đánh dấu `DECISION REQUIRED`.
+**Trạng thái:** đặc tả và thiết kế kỹ thuật trước triển khai ứng dụng. Đã có sơ đồ SVG/Mermaid, schema SQL và kiểm tra schema trên MySQL tạm; chưa có backend/frontend hoặc database production. Các đề xuất nghiệp vụ chưa được duyệt được đánh dấu `DECISION REQUIRED`.
 
 Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScript; MySQL; REST API; JWT; Modular Monolith.
 
 ## Bắt đầu đọc
+
+**Xem nhanh:** [Bộ 18 sơ đồ mở offline](docs/diagrams/index.html) · [Schema MySQL](database/schema.sql) · [Hướng dẫn SQL và kiểm thử](database/README.md).
 
 1. [Quy tắc dự án](PROJECT_RULES.md).
 2. [Tổng quan](docs/01-project-overview.md) và [yêu cầu](docs/02-requirements.md).
@@ -35,5 +37,8 @@ Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScri
 | [16](docs/16-roadmap.md) | Lộ trình và điều kiện hoàn thành |
 | [17](docs/17-architecture-decisions.md) | ADR và đánh đổi |
 | [18](docs/18-open-questions.md) | Quyết định cần xác nhận |
+| [19](docs/19-system-diagrams.md) | Bộ sơ đồ kiến trúc, ERD, sequence, state và cách xuất lại |
+| [20](docs/20-physical-sql-design.md) | Thiết kế SQL vật lý và ranh giới bảo vệ của DB |
+| [21](docs/21-sql-transactions.md) | Mẫu SQL và ranh giới transaction cho service |
 
-Tài liệu tiếng Việt; tên kỹ thuật, API và mã trạng thái giữ bằng tiếng Anh để sử dụng nhất quán trong triển khai. Các ví dụ chỉ là hợp đồng/thiết kế, chưa phải chức năng có thể chạy.
+Tài liệu tiếng Việt; tên kỹ thuật, API và mã trạng thái giữ bằng tiếng Anh để sử dụng nhất quán trong triển khai. Schema có thể nạp vào database thử rỗng theo hướng dẫn; các ví dụ API/transaction vẫn là thiết kế, chưa phải ứng dụng có thể chạy.

@@ -1,0 +1,45 @@
+erDiagram
+    users {
+        bigint id PK
+        varchar email_canonical
+        varchar status
+        int auth_version
+    }
+    payments {
+        bigint id PK
+        bigint booking_id FK
+        varchar provider_reference
+        varchar provider_key
+        bigint amount_minor
+        char currency
+        varchar status
+        varchar reconciliation_status
+        bigint pending_booking_guard
+    }
+    payment_webhooks {
+        bigint id PK
+        varchar provider FK
+        varchar provider_event_id
+        bigint payment_id FK
+        varchar status
+    }
+    idempotency_records {
+        bigint id PK
+        varchar actor_scope
+        varchar operation
+        varchar idempotency_key
+        datetime expires_at
+    }
+    outbox_messages {
+        bigint id PK
+        varchar dedupe_key
+        varchar status
+        datetime lease_until
+        binary lease_token
+    }
+    audit_logs {
+        bigint id PK
+        bigint actor_id FK
+    }
+    payments |o--o{ payment_webhooks : "payment_id"
+    users |o--o{ audit_logs : "actor_id"

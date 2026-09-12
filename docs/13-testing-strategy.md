@@ -1,6 +1,6 @@
 # 13. Chiến lược kiểm thử
 
-Hiện tại chưa có code hoặc test runner; đây là kế hoạch kiểm thử phải triển khai theo từng phase. Không coi tài liệu này là bằng chứng các test đã pass.
+Chưa có code ứng dụng hoặc test runner backend/frontend; đây là kế hoạch kiểm thử theo phase. Riêng DDL đã có [runner MySQL độc lập](../database/tests/validate_mysql.py) và [kết quả 26 kiểm tra](../database/tests/validation-result.json) trên MySQL 8.0.46, gồm ràng buộc, truy vấn mẫu và race hai connection. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
 
 ## Các lớp kiểm thử
 

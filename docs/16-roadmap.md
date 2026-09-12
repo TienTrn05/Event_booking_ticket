@@ -4,7 +4,7 @@ Các phase là thứ tự phụ thuộc, chưa phải cam kết ngày hoàn thà
 
 | Phase | Sản phẩm bàn giao | Điều kiện bắt đầu | Điều kiện hoàn thành |
 | --- | --- | --- | --- |
-| 0 — Đặc tả | README, PROJECT_RULES, 18 docs, Git local | Yêu cầu ban đầu | Tài liệu nhất quán; câu hỏi còn mở có owner; chưa viết ứng dụng |
+| 0 — Đặc tả và thiết kế | README, PROJECT_RULES, 21 docs, 18 sơ đồ, DDL review và kiểm tra schema, Git local | Yêu cầu đặc tả, sơ đồ và SQL | Tài liệu/DDL/ERD nhất quán; câu hỏi mở có owner; chưa viết ứng dụng |
 | 1 — Nền tảng và tài khoản | Workspace web/API, config, MySQL migrations, error/logging, auth/session/permission | Q-005/Q-006/Q-016; người dùng yêu cầu triển khai | Register/login/rotation/logout/reset hoạt động; test quyền/token pass; không lộ secret |
 | 2 — Quản lý sự kiện | Event/category, venue/section/row/seat, session, giá, publish, discovery UI | Q-003/Q-009/Q-010/Q-014 | Organizer không sửa tài nguyên khác; dữ liệu ghế duy nhất; tìm kiếm đúng session |
 | 3 — Giữ ghế và booking | MySQL row lock, hold, checkout, expiry worker, idempotency, UI countdown | Q-001/Q-002/Q-007 | T-001–T-005/T-012 pass; restart không mất tồn kho; không giữ một phần |

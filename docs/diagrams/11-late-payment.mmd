@@ -1,0 +1,13 @@
+flowchart TD
+    IN["Webhook đã xác minh<br/>Lưu inbox bền vững"] --> LOCK["BEGIN → Inbox → Event → Session<br/>Hold → Booking → Ghế → Payment"]
+    LOCK --> DUP{"Kết quả đã áp dụng?"}
+    DUP -->|"Có"| ACK["Không lặp hiệu ứng<br/>COMMIT và ack"]
+    DUP -->|"Chưa"| CHECK{"Số tiền / Currency / Reference đúng?"}
+    CHECK -->|"Không"| Q["QUARANTINED<br/>Đối soát; không cấp vé"]
+    CHECK -->|"Đúng"| VALID{"Đơn còn hạn, đang chờ<br/>Event cho bán, vẫn sở hữu mọi ghế?"}
+    VALID -->|"Có"| OK["Ghi tiền SUCCESS<br/>CONFIRMED + SOLD + Ticket VALID<br/>Audit / Outbox → COMMIT"]
+    VALID -->|"Không"| LATE["Ghi tiền SUCCESS<br/>reconciliation REQUIRED<br/>Không hồi sinh đơn / Không lấy ghế khách B"]
+    LATE --> TRACK["Tạo công việc COMPENSATION<br/>COMMIT trước gọi provider"]
+    TRACK --> POLICY{"Chính sách hoàn đã duyệt Q-004?"}
+    POLICY -->|"Chưa"| MANUAL["Theo dõi và xử lý có thẩm quyền"]
+    POLICY -->|"Rồi"| REFUND["Hoàn bằng key ổn định<br/>Đối soát đến khi có kết quả cuối"]

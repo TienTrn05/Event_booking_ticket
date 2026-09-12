@@ -1,0 +1,64 @@
+erDiagram
+    users {
+        bigint id PK
+        varchar email_canonical
+        varchar status
+        int auth_version
+    }
+    event_categories {
+        bigint id PK
+    }
+    events {
+        bigint id PK
+        bigint organizer_id FK
+        bigint category_id FK
+        varchar status
+    }
+    venues {
+        bigint id PK
+        bigint owner_id FK
+        varchar status
+    }
+    venue_sections {
+        bigint id PK
+        bigint venue_id FK
+        varchar code
+    }
+    venue_rows {
+        bigint id PK
+        bigint section_id FK
+        varchar code
+    }
+    seats {
+        bigint id PK
+        bigint row_id FK
+    }
+    event_sessions {
+        bigint id PK
+        bigint event_id FK
+        bigint venue_id FK
+        datetime starts_at
+        datetime ends_at
+        varchar status
+    }
+    session_seats {
+        bigint id PK
+        bigint session_id FK
+        bigint seat_id FK
+        bigint price_minor
+        char currency
+        varchar status
+        bigint hold_id FK
+        bigint current_booking_id FK
+        datetime hold_expires_at
+    }
+    users ||--o{ events : "organizer_id"
+    event_categories ||--o{ events : "category_id"
+    users ||--o{ venues : "owner_id"
+    venues ||--o{ venue_sections : "venue_id"
+    venue_sections ||--o{ venue_rows : "section_id"
+    venue_rows ||--o{ seats : "row_id"
+    events ||--o{ event_sessions : "event_id"
+    venues ||--o{ event_sessions : "venue_id"
+    event_sessions ||--o{ session_seats : "session_id"
+    seats ||--o{ session_seats : "seat_id"

@@ -1,0 +1,20 @@
+flowchart LR
+    G["Guest"] --> UC1(["UC-001 Đăng ký / Xác minh"])
+    G --> UC3(["UC-003 Tìm và xem sự kiện"])
+    C["Customer"] --> UC2(["UC-002 Đăng nhập / Quản lý phiên"])
+    C --> UC3
+    C --> UC5(["UC-005 Giữ ghế"])
+    C --> UC6(["UC-006 Checkout"])
+    C --> UC7(["UC-007 Thanh toán"])
+    C --> UC9(["UC-009 Xem vé"])
+    C --> UC11(["UC-011 Yêu cầu refund · Q-004"])
+    O["Organizer"] --> UC2
+    O --> UC4(["UC-004 Quản lý và publish sự kiện"])
+    O --> SCAN(["UC-009 Check-in vé sở hữu · Q-008"])
+    O --> UC12(["UC-012 Doanh số sở hữu"])
+    A["Admin"] --> UC2
+    A --> UC13(["UC-013 Quản trị tài khoản / Sự kiện"])
+    A --> APPROVE(["UC-011 Duyệt refund · Q-004"])
+    S["System"] --> UC8(["UC-008 Xác nhận / Phát vé"])
+    S --> UC10(["UC-010 Hết hạn giữ ghế / Đơn"])
+    S --> UC15(["UC-015 Thông báo sau commit"])

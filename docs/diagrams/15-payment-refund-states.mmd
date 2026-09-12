@@ -1,0 +1,28 @@
+stateDiagram-v2
+    state "Payment — một lần thử" as Payment {
+      [*] --> PENDING
+      PENDING --> SUCCESS: Kết quả hợp lệ
+      PENDING --> FAILED: Thất bại cuối cùng
+      SUCCESS --> REFUNDED: Hoàn toàn bộ thành công
+      FAILED --> [*]
+      REFUNDED --> [*]
+    }
+    state "Refund — đề xuất full refund Q-004" as Refund {
+      [*] --> REQUESTED
+      REQUESTED --> REJECTED: Không đạt policy
+      REQUESTED --> PROCESSING: Duyệt và vô hiệu vé
+      PROCESSING --> R_SUCCESS: Kết quả hoàn thành công
+      PROCESSING --> R_FAILED: Thất bại cuối cùng
+      R_FAILED --> PROCESSING: Retry cùng khoản và key
+      REJECTED --> [*]
+      R_SUCCESS --> [*]
+    }
+    note right of PENDING
+      Timeout mạng vẫn PENDING.
+      Không tạo attempt chờ chồng nhau.
+    end note
+    note right of SUCCESS
+      Nhiều khoản tiền bất thường vẫn lưu được.
+      Booking chỉ trỏ một khoản xác nhận.
+      Khoản thừa được đối soát.
+    end note

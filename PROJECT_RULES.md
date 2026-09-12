@@ -2,7 +2,7 @@
 
 ## Phạm vi và nguồn yêu cầu
 
-- Đọc [README](README.md) và tài liệu của module trước khi sửa. Hiện tại chỉ soạn đặc tả; chỉ triển khai ứng dụng khi người dùng yêu cầu tiếp.
+- Đọc [README](README.md) và tài liệu của module trước khi sửa. Phạm vi hiện tại gồm đặc tả, sơ đồ, thiết kế SQL và kiểm tra schema; chỉ triển khai ứng dụng khi người dùng yêu cầu tiếp.
 - Stack: React/TypeScript/Vite, Node.js/Express/TypeScript, MySQL, REST `/api/v1`, JWT, Modular Monolith.
 - Không tự thêm microservices, Redis, Kafka, RabbitMQ, Kubernetes, Elasticsearch hoặc AI. Mỗi công nghệ mới phải có nhu cầu đo được và ADR.
 - `DECISION REQUIRED` là quyết định chưa chốt. Không biến đề xuất thành nghiệp vụ mặc định; hỏi trước khi triển khai phần phụ thuộc. Công việc độc lập vẫn tiếp tục.
@@ -17,6 +17,7 @@
 - Thanh toán, callback, hoàn tiền, phát vé phải idempotent. Callback đến muộn không được chiếm lại ghế đã cấp cho đơn khác.
 - Giá được chụp vào booking item; tiền dùng đơn vị nhỏ nhất và currency, không dùng số thực. Timestamp lưu UTC; thời gian nghiệp vụ dựa vào DB.
 - Không xóa lịch sử giao dịch. Migration phải được review, có cách khôi phục và không sửa migration đã áp dụng.
+- [database/schema.sql](database/schema.sql) là bản DDL để review, chưa là migration production. ERD được sinh từ SQL; thay schema phải cập nhật [20](docs/20-physical-sql-design.md), ADR và kiểm tra liên quan.
 
 ## Bảo mật và chất lượng
 

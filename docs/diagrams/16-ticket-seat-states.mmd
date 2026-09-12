@@ -1,0 +1,27 @@
+stateDiagram-v2
+    state "Ticket" as Ticket {
+      [*] --> VALID: Xác nhận đơn
+      VALID --> USED: Check-in nguyên tử
+      VALID --> CANCELLED: Thu hồi quyền
+      VALID --> EXPIRED: Hết cửa sổ check-in
+      CANCELLED --> REFUNDED: Hoàn thành công
+      USED --> [*]
+      EXPIRED --> [*]
+      REFUNDED --> [*]
+    }
+    state "SessionSeat" as Seat {
+      [*] --> AVAILABLE
+      AVAILABLE --> HELD: Giữ nhóm ghế
+      HELD --> SOLD: Xác nhận đơn
+      HELD --> AVAILABLE: Nhả hoặc hết hạn
+    }
+    state "SeatHold" as Hold {
+      [*] --> ACTIVE
+      ACTIVE --> CONVERTED: Checkout
+      ACTIVE --> RELEASED: Chủ nhả
+      ACTIVE --> H_EXPIRED: Hết hạn
+    }
+    note right of SOLD
+      Chưa có chuyển SOLD về AVAILABLE.
+      Chính sách bán lại thuộc Q-004.
+    end note
