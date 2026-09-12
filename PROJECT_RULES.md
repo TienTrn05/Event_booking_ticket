@@ -17,7 +17,7 @@
 - Thanh toán, callback, hoàn tiền, phát vé phải idempotent. Callback đến muộn không được chiếm lại ghế đã cấp cho đơn khác.
 - Giá được chụp vào booking item; tiền dùng đơn vị nhỏ nhất và currency, không dùng số thực. Timestamp lưu UTC; thời gian nghiệp vụ dựa vào DB.
 - Không xóa lịch sử giao dịch. Migration phải được review, có cách khôi phục và không sửa migration đã áp dụng.
-- [database/schema.sql](database/schema.sql) là bản DDL để review, chưa là migration production. ERD được sinh từ SQL; thay schema phải cập nhật [20](docs/20-physical-sql-design.md), ADR và kiểm tra liên quan.
+- [database/schema.sql](database/schema.sql) là bản DDL để review, chưa là migration production. ERD phải khớp SQL; thay schema phải cập nhật sơ đồ, [20](docs/20-physical-sql-design.md), ADR và kiểm tra liên quan.
 
 ## Bảo mật và chất lượng
 
@@ -33,7 +33,7 @@
 
 - Trước khi báo hoàn tất, dừng process/server tạm do mình khởi chạy và xóa file/thư mục dư thừa do mình tạo để kiểm thử: database tạm, log tạm, ảnh chụp kiểm tra, cấu hình tạm và dependency chỉ cài phục vụ lần kiểm tra đó.
 - Chỉ xóa dữ liệu xác định là do mình tạo và không còn cần thiết. Kiểm tra đường dẫn tuyệt đối nằm trong phạm vi dự kiến trước khi xóa đệ quy; không xóa dữ liệu có sẵn của người dùng hoặc process không thuộc công việc.
-- Giữ mã kiểm thử có thể tái sử dụng, báo cáo kiểm chứng cần bàn giao, source, SQL, tài liệu và sơ đồ đầu ra. `.gitignore` không thay thế việc dọn file tạm trên ổ đĩa.
+- Chỉ giữ sản phẩm người dùng yêu cầu: source ứng dụng nếu thuộc phạm vi, SQL, tài liệu và sơ đồ đầu ra. Xóa cả thư mục công cụ tự tạo, script kiểm thử phụ trợ, manifest/lockfile và báo cáo máy sinh chỉ phục vụ kiểm tra trong lúc làm việc; không giữ chỉ vì có thể tái sử dụng. Bộ test chính thức của ứng dụng chỉ giữ khi thuộc phạm vi được yêu cầu. `.gitignore` không thay thế việc dọn file trên ổ đĩa.
 - Kiểm tra lại file còn lại và Git diff/status sau khi dọn. Nếu còn file không thể xóa hoặc process chưa dừng, nói rõ trong kết quả; không báo đã dọn sạch.
 - Theo yêu cầu người dùng, mặc định chỉ gửi phản hồi cuối cùng ngắn gọn khi đã hoàn tất; không gửi cập nhật tiến độ trừ khi hướng dẫn cấp cao hơn bắt buộc hoặc cần thông tin để tiếp tục.
 

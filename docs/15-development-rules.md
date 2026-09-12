@@ -44,7 +44,7 @@ Trước merge khi có code: mô tả hành vi, FR/BR/UC liên quan, migration v
 
 ## Definition of Done
 
-Trước khi kết thúc, dừng process tạm của công việc và dọn file phát sinh chỉ để kiểm tra: datadir/log MySQL tạm, screenshot kiểm tra, cấu hình browser tạm, dependency tạm có thể cài lại. Xác minh nguồn gốc và đường dẫn trước khi xóa; giữ mã test, báo cáo cần bàn giao và sơ đồ/SQL/tài liệu đầu ra. Không coi Git sạch hoặc file đã được ignore là đã dọn ổ đĩa. Kiểm tra lại sau cleanup; nếu chưa dọn được phải báo rõ.
+Trước khi kết thúc, dừng process tạm và dọn cả công cụ/script kiểm thử phụ trợ, manifest/lockfile của công cụ, báo cáo máy sinh, datadir/log MySQL, screenshot, cấu hình browser và dependency chỉ phục vụ lần làm việc. Không giữ các thư mục tool/test phụ trợ chỉ vì có thể tái sử dụng. Xác minh nguồn gốc và đường dẫn trước khi xóa; giữ sản phẩm được yêu cầu như sơ đồ/SQL/tài liệu và source/bộ test chính thức nếu thuộc phạm vi triển khai. Không coi Git sạch hoặc file đã được ignore là đã dọn ổ đĩa. Kiểm tra lại sau cleanup; nếu chưa dọn được phải báo rõ.
 
 Người dùng ưu tiên chỉ nhận phản hồi cuối cùng ngắn gọn sau khi hoàn tất, ngoại trừ yêu cầu bắt buộc từ hướng dẫn cấp cao hơn hoặc thông tin cần thiết để tiếp tục.
 

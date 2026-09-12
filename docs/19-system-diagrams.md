@@ -26,16 +26,8 @@ Sơ đồ use case dùng flowchart với các oval biểu diễn use case; đây
 
 ## Chỉnh và xuất lại
 
-Sửa `.mmd` cho luồng/kiến trúc; với ERD, sửa SQL rồi chạy generator. Bộ công cụ chỉ dùng để soạn tài liệu, không chọn package manager hoặc dependency cho ứng dụng tương lai.
+Sửa nguồn `.mmd` rồi xuất SVG bằng trình hỗ trợ Mermaid khi cần. Với ERD, đối chiếu tên bảng, cột và quan hệ trong SQL; cập nhật nguồn sơ đồ cùng thay đổi schema. SVG, gallery và README ảnh là sản phẩm bàn giao có thể mở ngay, không cần cài công cụ.
 
-```powershell
-python tools/diagrams/generate_erd.py
-$env:PUPPETEER_SKIP_DOWNLOAD = 'true'
-npm ci --prefix tools/diagrams
-$env:DIAGRAM_BROWSER_PATH = 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'
-npm run build --prefix tools/diagrams
-```
-
-Thay đường dẫn browser nếu máy khác. Mermaid CLI và lockfile được pin trong tools/diagrams; SVG, gallery và README ảnh là output được commit để người đọc không phải cài công cụ. Nguồn chuẩn là `.mmd` và SQL; không sửa SVG thủ công.
+Các script sinh/xuất sơ đồ và dependency phụ trợ đã được dọn theo yêu cầu, repo không có build command riêng. Khi thay sơ đồ, xuất lại SVG cùng tên và cập nhật mục lục gallery/README nếu thêm hoặc bỏ sơ đồ; không sửa SVG thủ công.
 
 Cú pháp ERD dựa trên [Mermaid Entity Relationship Diagrams](https://mermaid.js.org/syntax/entityRelationshipDiagram.html). Các nhãn Việt và các bước nghiệp vụ là thiết kế của dự án, không phải nội dung quy phạm từ thư viện.

@@ -11,8 +11,6 @@
 | [01-session-inventory.sql](queries/01-session-inventory.sql) | Đọc sơ đồ ghế, giá, tình trạng khả dụng |
 | [02-organizer-sales.sql](queries/02-organizer-sales.sql) | Doanh số trong phạm vi Organizer, tách hoàn tiền |
 | [03-integrity-audit.sql](queries/03-integrity-audit.sql) | Phát hiện bất biến liên bảng bị vi phạm, chỉ đọc |
-| [validate_mysql.py](tests/validate_mysql.py) | Tạo MySQL tạm và chạy kiểm tra DDL/ràng buộc/khóa |
-| [validation-result.json](tests/validation-result.json) | Kết quả thực chạy và giới hạn kiểm chứng |
 
 Giải thích mô hình: [20 — Thiết kế SQL vật lý](../docs/20-physical-sql-design.md). Giao thức transaction: [21 — SQL và transaction](../docs/21-sql-transactions.md). [Mở bộ sơ đồ](../docs/diagrams/index.html).
 
@@ -32,18 +30,11 @@ SHOW TABLES;
 
 DDL MySQL có implicit commit; transaction bọc ngoài không đảm bảo rollback toàn file. Khi bước vào triển khai, chuyển thiết kế đã duyệt thành migration versioned với checksum và migration runner đã chọn; chưa tạo down migration xóa dữ liệu.
 
-## Chạy kiểm tra độc lập trên máy có MySQL Server binary
+## Kiểm chứng đã thực hiện
 
-PowerShell, từ root repo:
+Schema đã qua 26 kiểm tra trên MySQL 8.0.46 trong database tạm, gồm ràng buộc, truy vấn mẫu và tranh chấp ghế giữa hai connection. Công cụ/script và báo cáo máy sinh dùng trong lần kiểm tra đó đã được dọn theo yêu cầu; repo không kèm runner để chạy lại tự động.
 
-```powershell
-python -m pip install --target .local/python -r database/tests/requirements.txt
-python database/tests/validate_mysql.py --mysqld 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe'
-```
-
-Runner khởi tạo datadir mới dưới `.local/`, cổng loopback tạm, mật khẩu ngẫu nhiên riêng; không kết nối dịch vụ MySQL đang có, không đọc credential người dùng. Process không mở cửa sổ, được shutdown khi kết thúc cả thành công/thất bại. Runner giữ datadir để điều tra trong lúc kiểm thử; người thực hiện phải dọn datadir/log và dependency cài tạm sau khi kiểm tra xong, trước khi báo hoàn tất, theo PROJECT_RULES. File init có secret được xóa sau startup. Giữ validation-result.json làm báo cáo bàn giao. Không chạy test trên dữ liệu thật.
-
-Kết quả không chứng minh API, phân quyền, provider hay policy đã được triển khai. Race test chỉ chứng minh giao thức khóa cơ bản trên hai connection, chưa thay bộ concurrency/E2E đầy đủ ở [13](../docs/13-testing-strategy.md).
+Kết quả này không chứng minh API, phân quyền, provider hay policy đã được triển khai, chưa thay bộ concurrency/E2E dự kiến ở [13](../docs/13-testing-strategy.md).
 
 ## Chính sách còn mở
 

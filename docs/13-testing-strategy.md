@@ -1,6 +1,6 @@
 # 13. Chiến lược kiểm thử
 
-Chưa có code ứng dụng hoặc test runner backend/frontend; đây là kế hoạch kiểm thử theo phase. Riêng DDL đã có [runner MySQL độc lập](../database/tests/validate_mysql.py) và [kết quả 26 kiểm tra](../database/tests/validation-result.json) trên MySQL 8.0.46, gồm ràng buộc, truy vấn mẫu và race hai connection. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
+Chưa có code ứng dụng hoặc bộ test chính thức; đây là kế hoạch kiểm thử theo phase. DDL đã qua 26 kiểm tra trên MySQL 8.0.46, gồm ràng buộc, truy vấn mẫu và race hai connection. Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
 
 ## Các lớp kiểm thử
 
