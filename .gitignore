@@ -1,0 +1,33 @@
+# Dependencies và build
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Cấu hình riêng và bí mật
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+secrets/
+
+# Log, dữ liệu runtime, bản sao cơ sở dữ liệu
+*.log
+logs/
+tmp/
+uploads/
+backups/
+*.sql.gz
+*.dump
+
+# Hệ điều hành, IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
