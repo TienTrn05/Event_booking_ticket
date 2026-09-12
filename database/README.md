@@ -41,7 +41,7 @@ python -m pip install --target .local/python -r database/tests/requirements.txt
 python database/tests/validate_mysql.py --mysqld 'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe'
 ```
 
-Runner khởi tạo datadir mới dưới `.local/`, cổng loopback tạm, mật khẩu ngẫu nhiên riêng; không kết nối dịch vụ MySQL đang có, không đọc credential người dùng. Process không mở cửa sổ, được shutdown khi kết thúc cả thành công/thất bại. Datadir test được giữ trong thư mục Git bỏ qua để điều tra; file init có secret được xóa sau startup. Không chạy test trên dữ liệu thật.
+Runner khởi tạo datadir mới dưới `.local/`, cổng loopback tạm, mật khẩu ngẫu nhiên riêng; không kết nối dịch vụ MySQL đang có, không đọc credential người dùng. Process không mở cửa sổ, được shutdown khi kết thúc cả thành công/thất bại. Runner giữ datadir để điều tra trong lúc kiểm thử; người thực hiện phải dọn datadir/log và dependency cài tạm sau khi kiểm tra xong, trước khi báo hoàn tất, theo PROJECT_RULES. File init có secret được xóa sau startup. Giữ validation-result.json làm báo cáo bàn giao. Không chạy test trên dữ liệu thật.
 
 Kết quả không chứng minh API, phân quyền, provider hay policy đã được triển khai. Race test chỉ chứng minh giao thức khóa cơ bản trên hai connection, chưa thay bộ concurrency/E2E đầy đủ ở [13](../docs/13-testing-strategy.md).
 

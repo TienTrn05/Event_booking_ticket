@@ -29,6 +29,14 @@
 - Kiểm thử tích hợp MySQL thật cho transaction; kiểm thử tranh chấp ghế, callback trùng, hết hạn và IDOR trước khi hoàn thành đặt vé.
 - Cập nhật đặc tả/ADR khi thay đổi hành vi; báo cáo kiểm thử đã chạy và giới hạn thực tế, không tuyên bố đã triển khai khi chỉ có tài liệu.
 
+## Hoàn tất công việc và phản hồi
+
+- Trước khi báo hoàn tất, dừng process/server tạm do mình khởi chạy và xóa file/thư mục dư thừa do mình tạo để kiểm thử: database tạm, log tạm, ảnh chụp kiểm tra, cấu hình tạm và dependency chỉ cài phục vụ lần kiểm tra đó.
+- Chỉ xóa dữ liệu xác định là do mình tạo và không còn cần thiết. Kiểm tra đường dẫn tuyệt đối nằm trong phạm vi dự kiến trước khi xóa đệ quy; không xóa dữ liệu có sẵn của người dùng hoặc process không thuộc công việc.
+- Giữ mã kiểm thử có thể tái sử dụng, báo cáo kiểm chứng cần bàn giao, source, SQL, tài liệu và sơ đồ đầu ra. `.gitignore` không thay thế việc dọn file tạm trên ổ đĩa.
+- Kiểm tra lại file còn lại và Git diff/status sau khi dọn. Nếu còn file không thể xóa hoặc process chưa dừng, nói rõ trong kết quả; không báo đã dọn sạch.
+- Theo yêu cầu người dùng, mặc định chỉ gửi phản hồi cuối cùng ngắn gọn khi đã hoàn tất; không gửi cập nhật tiến độ trừ khi hướng dẫn cấp cao hơn bắt buộc hoặc cần thông tin để tiếp tục.
+
 ## Git
 
 - Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `chore/*`.
