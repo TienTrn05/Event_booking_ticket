@@ -1,0 +1,84 @@
+erDiagram
+    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    event_categories {
+        bigint id PK
+    }
+    event_reviews {
+        bigint id PK
+    }
+    event_sessions {
+        bigint id PK
+        bigint event_id FK
+        bigint venue_id FK
+        bigint layout_id FK
+        varchar status
+    }
+    events {
+        bigint id PK,FK
+        bigint organization_id FK
+        bigint created_by FK
+        bigint category_id FK
+        varchar status
+        bigint approved_review_id FK
+        int approved_event_version FK
+        varchar approval_status FK
+    }
+    layout_rows {
+        bigint id PK
+        bigint section_id FK
+        bigint layout_id FK
+        varchar code
+    }
+    layout_sections {
+        bigint id PK
+        bigint layout_id FK
+        varchar code
+    }
+    organizations {
+        bigint id PK
+    }
+    seat_layouts {
+        bigint id PK
+        bigint organization_id FK
+        bigint event_id FK
+        bigint venue_id FK
+        varchar status
+        decimal canvas_width
+        decimal canvas_height
+        int capacity_snapshot
+    }
+    seats {
+        bigint id PK
+        bigint row_id FK
+        bigint layout_id FK
+    }
+    ticket_types {
+        bigint id PK
+        bigint session_id FK
+        varchar code
+    }
+    users {
+        bigint id PK
+    }
+    venues {
+        bigint id PK
+        decimal canvas_width
+        decimal canvas_height
+        varchar status
+    }
+    seat_layouts ||..o{ event_sessions : "layout_id,event_id,venue_id"
+    events ||..o{ event_sessions : "event_id"
+    venues ||..o{ event_sessions : "venue_id"
+    event_reviews |o..o| events : "approved_review_id,id,approved_event_version,approval_status"
+    event_categories ||..o{ events : "category_id"
+    users ||..o{ events : "created_by"
+    organizations ||..o{ events : "organization_id"
+    seat_layouts ||..o{ layout_rows : "layout_id"
+    layout_sections ||..o{ layout_rows : "section_id,layout_id"
+    seat_layouts ||..o{ layout_sections : "layout_id"
+    events ||..o{ seat_layouts : "event_id,organization_id"
+    organizations ||..o{ seat_layouts : "organization_id"
+    venues ||..o{ seat_layouts : "venue_id"
+    seat_layouts ||..o{ seats : "layout_id"
+    layout_rows ||..o{ seats : "row_id,layout_id"
+    event_sessions ||..o{ ticket_types : "session_id"

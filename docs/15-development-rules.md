@@ -44,4 +44,8 @@ Trước merge khi có code: mô tả hành vi, FR/BR/UC liên quan, migration v
 
 ## Definition of Done
 
+Trước khi kết thúc, dừng process tạm và dọn cả công cụ/script kiểm thử phụ trợ, manifest/lockfile của công cụ, báo cáo máy sinh, datadir/log MySQL, screenshot, cấu hình browser và dependency chỉ phục vụ lần làm việc. Không giữ các thư mục tool/test phụ trợ chỉ vì có thể tái sử dụng. Xác minh nguồn gốc và đường dẫn trước khi xóa; giữ sản phẩm được yêu cầu như sơ đồ/SQL/tài liệu và source/bộ test chính thức nếu thuộc phạm vi triển khai. Không coi Git sạch hoặc file đã được ignore là đã dọn ổ đĩa. Kiểm tra lại sau cleanup; nếu chưa dọn được phải báo rõ.
+
+Người dùng ưu tiên chỉ nhận phản hồi cuối cùng ngắn gọn sau khi hoàn tất, ngoại trừ yêu cầu bắt buộc từ hướng dẫn cấp cao hơn hoặc thông tin cần thiết để tiếp tục.
+
 Hành vi đúng tiêu chí FR/UC, bất biến BR giữ, quyền được kiểm thử, migration/API/docs khớp, kiểm tra liên quan pass, không lộ secret và không có `DECISION REQUIRED` bị âm thầm hardcode. Báo rõ việc đã làm, validation thực chạy và phần chưa triển khai. [PROJECT_RULES](../PROJECT_RULES.md) là bản rút gọn cho mọi người/AI sửa dự án.

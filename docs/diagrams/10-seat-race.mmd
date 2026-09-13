@@ -1,0 +1,16 @@
+sequenceDiagram
+    autonumber
+    participant A as Request A / Connection A
+    participant DB as MySQL InnoDB
+    participant B as Request B / Connection B
+    A->>DB: BEGIN ? Event SHARE ? Session SHARE
+    B->>DB: BEGIN ? Event SHARE ? Session SHARE
+    A->>DB: SELECT ghế A1 FOR UPDATE
+    DB-->>A: AVAILABLE ? A đang giữ khóa
+    B->>DB: SELECT cùng ghế A1 FOR UPDATE
+    Note over B,DB: B đợi khóa, không đọc trống rồi ghi đè
+    A->>DB: Tạo hold/item ? UPDATE HELD ? COMMIT
+    DB-->>B: Nhận khóa ? đọc trạng thái HELD mới nhất
+    B->>DB: ROLLBACK
+    B-->>B: Trả 409 SEAT_UNAVAILABLE
+    Note over A,B: Nếu A rollback thì B có thể thắng<br/>Nhóm nhiều ghế: khóa theo PK ? nguyên tử toàn nhóm

@@ -13,6 +13,8 @@
 
 MVP có thể demo ở staging với mock và nhãn mô phỏng rõ ràng. Muốn vận hành thanh toán thật trên production phải hoàn thành FR-026 và chính sách liên quan; không gắn nhãn production-ready chỉ vì deploy thành công.
 
+**Staging mock — chính sách đã duyệt Q-012:** bật có chủ đích endpoint outcome hiện có cho tài khoản demo trong allowlist backend, bắt buộc phiên hợp lệ, sở hữu booking và payment.provider=mock. Không cho mọi Customer/Admin tự mô phỏng tùy ý. Cấu hình allowlist tài khoản thực trước khi bật; không cần xin duyệt lại chính sách. Chưa có đích hosting và danh tính demo cụ thể thì chưa deploy. Hợp đồng chi tiết ở [09](09-api-design.md). APP_ENV phân biệt đích staging/production; NODE_ENV=production trên staging chỉ là chế độ runtime/build.
+
 ## Biến môi trường đề xuất
 
 Không có secret thật trong tài liệu. Tất cả tên dưới đây là hợp đồng đề xuất, chưa có parser sử dụng.
@@ -34,17 +36,21 @@ Không có secret thật trong tài liệu. Tất cả tên dưới đây là h�
 | `JWT_ISSUER`, `JWT_AUDIENCE` | Giá trị cố định phải khớp token |
 | `ACCESS_TOKEN_TTL_SECONDS` | Đề xuất 600, Q-006 |
 | `REFRESH_TOKEN_TTL_SECONDS` | Đề xuất 604800 tuyệt đối, Q-006 |
-| `PASSWORD_RESET_TTL_SECONDS` | Đề xuất 900, Q-006 |
-| `EMAIL_VERIFY_TTL_SECONDS` | Đề xuất 86400, Q-006 |
+| `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_RESEND_COOLDOWN_SECONDS` | Khởi điểm 300/5/60 theo thiết kế 04, rate limit gửi tổng riêng |
+| `OTP_HMAC_SECRET` | Secret riêng bảo vệ OTP entropy thấp; không gửi frontend |
+| `GOOGLE_CLIENT_ID` | Audience Google ID token, allowlist backend; client ID không bí mật |
+| `VITE_GOOGLE_CLIENT_ID` | Client ID công khai frontend; phải khớp backend |
+| `SMS_PROVIDER`, `SMS_API_KEY` | Adapter SMS và credential backend, test dùng sink kiểm soát |
 | `COOKIE_SECURE`, `COOKIE_SAME_SITE` | Secure bắt buộc ngoài local; SameSite phù hợp topology |
 | `CSRF_SECRET` | Khóa riêng ký CSRF token nếu dùng signed double-submit |
 | `TICKET_ENCRYPTION_KEY` | Khóa mã hóa token QR khi lưu DB; quản lý key version/rotation |
-| `SEAT_HOLD_TTL_SECONDS` | Q-001, không triển khai default nghiệp vụ chưa duyệt |
-| `MAX_SEATS_PER_BOOKING`, `MAX_ACTIVE_HOLDS_PER_USER` | Q-002; validate số nguyên dương |
-| `CHECKIN_OPENS_BEFORE_SECONDS`, `CHECKIN_CLOSES_AFTER_SECONDS` | Q-008; chính sách theo session |
+| `SEAT_HOLD_TTL_SECONDS` | 300 đã duyệt Q-001 |
+| `MAX_SEATS_PER_BOOKING`, `MAX_ACTIVE_HOLDS_PER_USER_SESSION` | 6 và 1 theo Q-002; gồm booking chờ còn hạn trong quota |
+| Self check-in / quầy / vào cửa | Online mở 86400 giây trước startsAt và đóng tại startsAt; window quầy/vào cửa lưu trên session, không gộp vào expiry booking |
 | `DEFAULT_CURRENCY` | Q-003; chỉ một currency/booking |
-| `PAYMENT_PROVIDER` | mock ở dev/test; provider thật ở production |
+| `PAYMENT_PROVIDER` | mock ở dev/test và staging đã duyệt Q-012; provider thật ở production |
 | `MOCK_PAYMENT_ENABLED` | Startup fail nếu true khi APP_ENV=production |
+| `MOCK_PAYMENT_ALLOWED_USER_IDS` | Đề xuất Q-012: allowlist ID chuỗi của tài khoản demo ở backend; staging bật mock phải cấu hình danh sách không rỗng đã duyệt, thiếu thì fail startup |
 | `PAYMENT_API_KEY`, `PAYMENT_WEBHOOK_SECRET` | Chỉ khi adapter thật cần; không gửi frontend |
 | `EMAIL_PROVIDER`, `EMAIL_FROM`, `EMAIL_API_KEY` | Adapter thật/sink; cấu hình theo Q-006 |
 | `WORKER_POLL_INTERVAL_MS`, `OUTBOX_LEASE_SECONDS` | Poll/lease hữu hạn, lease phục hồi crash |
@@ -53,6 +59,7 @@ Không có secret thật trong tài liệu. Tất cả tên dưới đây là h�
 | `LOG_LEVEL`, `LOG_RETENTION_DAYS` | Level/retention theo môi trường, Q-013 |
 | `RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_MAX` | Theo route/IP/user; benchmark và điều chỉnh |
 | `VITE_API_BASE_URL` | Biến frontend công khai, không bí mật |
+| `VITE_MOCK_PAYMENT_VISIBLE` | Cờ UI cho dev/test hoặc staging đã duyệt; không cấp quyền API, không bật cho đích APP_ENV=production |
 | `REDIS_URL`, `OBJECT_STORAGE_BUCKET` | Chỉ thêm sau MVP khi ADR/nhu cầu được duyệt |
 
 Không có `JWT_REFRESH_SECRET` vì refresh token là opaque và DB lưu hash. Nếu đổi thuật toán access token sang bất đối xứng, thay secret bằng keypair/key ID theo ADR; không giữ hai cấu hình hoạt động mơ hồ. Mọi biến `VITE_*` có thể xuất hiện trong bundle nên chỉ dùng dữ liệu công khai.
@@ -76,3 +83,10 @@ Docker có thể thêm để tái lập môi trường trước staging, không 
 - Dashboard: latency p50/p95, 5xx, DB pool, lock wait/deadlock, số hold hết hạn chưa xử lý, outbox backlog, payment PENDING lâu và reconciliation REQUIRED.
 - Runbook: provider timeout → giữ pending/đối soát; DB lỗi → fail request/rollback; worker chết → restart/reclaim; lộ key → xoay key/thu hồi session và audit.
 - Đồng bộ đồng hồ máy; expiry vẫn dựa DB. Retention/ẩn danh theo Q-013, không xóa sổ giao dịch bằng cleanup thông thường.
+
+
+## Cấu hình theo nghiệp vụ đã chốt
+
+Review lead time là một tháng lịch và TTL hồ sơ là 15 ngày theo 23, không phải TTL của booking. Worker review-expiry và Notification trong tài khoản là MVP; gửi email qua adapter ngoài transaction. Bản phiếu lý do DRAFT còn tồn tại sau restart phải hiển thị trên hàng đợi Admin.
+
+Danh mục venue demo cần bounds/capacity/version tường minh và dữ liệu giả; không tải địa điểm thật từ dịch vụ ngoài hoặc bịa giới hạn. Layout renderer/editor không cần dịch vụ SaaS. Runtime Google/SMS/email yêu cầu cấu hình provider trước thử live; không gửi OTP/thông báo thật trong đợt sửa tài liệu này.

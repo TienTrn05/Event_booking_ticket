@@ -1,40 +1,42 @@
 # 05. Luồng người dùng
 
-## Customer — FR-001, FR-013–FR-020
+Nguồn hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md).
 
-1. Đăng ký → xác minh email theo Q-006 → đăng nhập. Sai thông tin: lỗi chung; email chậm: gửi lại có giới hạn.
-2. Duyệt/tìm sự kiện → xem chi tiết → chọn session. Sự kiện bị ẩn/hủy hoặc session hết bán: ngừng checkout, thông báo rõ.
-3. Tải sơ đồ ghế → chọn ghế → gửi yêu cầu giữ. Ghế người khác vừa giữ: 409, tải lại tồn kho, không tự chọn ghế thay khách.
-4. Nhận hold ID và `expiresAt`; đồng hồ đếm ngược chỉ để hiển thị. Mất mạng: truy vấn hold của mình, không giả định giữ thành công.
-5. Checkout tạo booking từ hold còn hạn với idempotency key. Giá do server trả; nếu khác giá đang hiển thị phải cho khách xem trước khi thanh toán, không tự chấp nhận thay đổi giá.
-6. Tạo payment attempt; trong MVP đi qua giao diện mô phỏng có nhãn rõ. Thất bại chắc chắn: được thử attempt mới khi còn hạn; timeout không rõ kết quả: hiển thị đang xác minh, không tạo attempt chồng chéo.
-7. Server xử lý kết quả → xác nhận booking + tạo vé. Frontend poll chi tiết booking, không đổi trạng thái dựa vào redirect.
-8. Xem vé/QR → nhân sự có quyền quét online. Vé đã dùng/hủy/hết cửa sổ: từ chối và hiển thị lý do phù hợp.
-9. Nếu được chính sách cho phép, yêu cầu refund → theo dõi trạng thái; tiền chỉ được ghi đã hoàn khi adapter xác nhận.
+## Customer
 
-Hết hold tại bước 5/6: trả trạng thái EXPIRED, giải phóng ghế; không kéo dài hạn do refresh trang. Thanh toán báo thành công muộn: không phát vé khi ghế đã được nhả; hiển thị cần đối soát/hoàn tiền theo [11](11-booking-concurrency.md).
+1. Duyệt event đã PUBLISHED → chọn session. Đăng nhập Google hoặc OTP điện thoại trước hold/mua; mỗi thiết bị có phiên riêng. Login lỗi không cho bỏ qua.
+2. Xem layout frozen do Organizer thiết kế, chọn tối đa 6 ghế; server quyết định availability dưới khóa.
+3. Lưu metadata hold request/key trước gửi; giữ cả nhóm hoặc 409. Mất response/reload cùng tab replay cùng key để lấy ID rồi GET hold, không tạo key khác khi chưa rõ kết quả.
+4. Checkout trong hạn 5 phút, không gia hạn: nhập tên attendee cho từng ghế, xem giá snapshot/hạng vé; server kiểm tra đủ đúng tập ghế và snapshot tên. Không lấy tên người mua cho mọi vé.
+5. Payment mock → processor xác minh → booking CONFIRMED, Ticket rows cùng transaction. Timeout giữ PENDING, không chồng attempt.
+6. Xem mã loại vé và mã riêng từng vé/QR. Người mua quản lý các vé trong booking; người đi cùng không nhất thiết có tài khoản.
+7. Từ 24 giờ trước starts_at đến trước starts_at, tự check-in bằng tên attendee và mã vé do hệ thống cấp. Server kiểm tra ownership/tên/mã/window rồi tạo CheckIn ONLINE; Ticket vẫn VALID.
+8. Nếu chưa online, đến quầy: Organizer kiểm tra tên/mã và tạo CheckIn COUNTER. Đã online thì quầy đọc bản ghi cũ.
+9. Tại cửa, quét vé kiểm tra CheckIn + VALID/session/window; một lần vào cửa đổi USED. Vé hủy/refund/đã USED bị từ chối dù đã check-in trước.
+10. Nếu policy cho phép, gửi refund đến Organizer. Khi cần hỗ trợ/tranh chấp, gửi report liên quan booking/event; Admin xử lý theo report, không tự can thiệp mọi đơn.
 
-## Organizer — FR-005–FR-012, FR-021
+Hold hết hạn nhả ghế; tiền thành công muộn đối soát, không hồi sinh booking. Tên/mã sai trả lỗi chung phù hợp, không tiết lộ mã đúng. Mã không phải số thẻ ngân hàng/giấy tờ.
 
-1. Đăng nhập → được duyệt Organizer (Q-005). Chưa duyệt/bị khóa: không mở chức năng quản lý.
-2. Tạo event nháp → chọn danh mục, mô tả → tạo/chọn venue thuộc quyền quản lý theo Q-009.
-3. Cấu hình section/row/seat → tạo session với timezone và thời gian → sinh toàn bộ session-seat → đặt giá/mở bán.
-4. Preview → publish. Thiếu giá, lịch không hợp lệ, ghế trùng, venue ngoài quyền: chặn và chỉ rõ trường cần sửa.
-5. Theo dõi số ghế giữ/bán, đơn thành công, tiền hoàn. Báo cáo không lấy đơn chưa trả tiền làm doanh thu.
-6. Thay đổi nháp hoặc trường được phép sau publish; thay venue/sơ đồ/giờ đã bán cần chính sách Q-010, không tự sửa hàng loạt vé.
-7. Quét vé thuộc suất của mình; sai suất hoặc Organizer khác: từ chối. Hủy event: dừng bán trước, sau đó chạy quy trình vé/hoàn tiền.
+## Organizer đại diện tổ chức
 
-Organizer có thêm Customer phải chuyển luồng mua vé bình thường; quyền tổ chức không cho bỏ qua thanh toán.
+1. Dùng email công ty: Google Workspace hợp lệ hoặc email OTP → gửi hồ sơ Organization → Admin duyệt tổ chức/membership/role. Email suffix một mình không cấp quyền.
+2. Tạo event DRAFT của Organization → chọn venue từ danh mục có sẵn, kiểm tra bounds/capacity và timezone.
+3. Mở editor 2D: kéo thả sân khấu, khu/hàng/ghế, tạo ghế theo lưới, gán nhãn; preview như khách. Server từ chối vượt bounds/capacity, đè vùng cấm hoặc sai ownership.
+4. Tạo session/layout frozen đúng venue; tạo TicketType/code, cấu hình giá và cửa sổ bán/quầy/vào cửa. Sinh inventory trước bán.
+5. Submit trước session sớm nhất ít nhất một tháng lịch → PENDING_REVIEW, mỗi hồ sơ 15 ngày. Bản đang chờ không sửa; muốn sửa phải withdraw, sửa DRAFT rồi submit mới.
+6. Nhận approve → PUBLISHED hoặc reject + phiếu lý do. Hết 15 ngày tự nhận thông báo hủy hồ sơ, sau đó nhận phiếu giải thích do Admin soạn. Không tự coi hết hạn là được phép đăng.
+7. Quản lý bán vé, sales, quầy/check-in/vào cửa, refund thuộc Organization. Không đổi nội dung/layout đã đăng qua PATCH nháp; hủy theo policy, không xóa lịch sử.
+8. Report vấn đề cần Admin hỗ trợ. Người đại diện có Customer muốn mua phải qua luồng mua bình thường.
 
-## Admin — FR-005, FR-007, FR-020, FR-022
+## Admin
 
-1. Đăng nhập tài khoản đã được cấp ngoài đăng ký công khai; cơ chế bootstrap/MFA theo Q-005/Q-006.
-2. Duyệt hồ sơ Organizer → ghi lý do chấp nhận/từ chối và audit.
-3. Quản lý user → khóa/mở khóa có lý do. Khóa thu hồi phiên, không xóa booking hay tự động hoàn tiền.
-4. Kiểm duyệt event → block ngừng bán ngay; giữ lịch sử và mở công việc xử lý vé đã bán theo Q-010.
-5. Xem thống kê/đối soát → duyệt refund trong phạm vi quyền. Không có nút ép booking thành công khi chưa nhận tiền.
-6. Xem audit để điều tra. Thiếu quyền: 403; dữ liệu không thuộc phạm vi hỗ trợ: 404; lỗi DB: không báo thành công giả.
+1. Login identity đã được cấp Admin ngoài đăng ký công khai; reauthenticate khi thao tác đặc quyền.
+2. Duyệt Organization và role từ hồ sơ/email công ty đã xác minh; audit quyết định.
+3. Mở hàng đợi review: xem bản event/session/layout theo version, submittedAt/expiresAt; approve hoặc reject trong hạn 15 ngày.
+4. Reject dùng form reasonCode/reasonText/hướng dẫn khắc phục, preview rồi gửi. Bản expired không approve lại; xuất hiện việc bắt buộc hoàn thành phiếu lý do.
+5. Form expired điền sẵn metadata chỉ đọc, Admin soạn nội dung thật và xác nhận gửi; thông báo tự động về expiry đã gửi trước, không chờ form.
+6. Tiếp nhận report còn mở → chỉ đọc/can thiệp tài nguyên liên quan, có lý do và audit → đóng report khi xử lý xong. Không tự sửa giá/layout/event hoặc duyệt mọi refund trong vận hành thường ngày.
 
 ## System
 
-Worker tìm hold/booking quá hạn, xử lý lại theo transaction; payment adapter chuyển thông báo đã xác minh vào service; outbox xử lý sau commit. Job lỗi có retry và cảnh báo. System không tự suy luận chính sách hoàn tiền còn mở.
+Expiry hold/booking theo 11. Expiry EventReview theo Event → Review locks, conditional state/deadline, notification + outbox cùng transaction; email lỗi retry, không rollback quyết định đã commit. Payment/refund adapter không thực hiện mạng trong transaction. Tác vụ expiry không tự soạn lý do nhân danh Admin.

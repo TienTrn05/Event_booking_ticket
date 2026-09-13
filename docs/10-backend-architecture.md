@@ -37,10 +37,21 @@ Service chịu trách nhiệm transaction bằng một Unit of Work mỏng; mọ
 
 ```text
 apps/
-  web/src/
-    app/
-    features/{auth,events,booking,tickets,organizer,admin}/
-    shared/{api,ui}/
+  web/src/                    — chi tiết phân tầng xem [22](22-frontend-architecture.md)
+    app/                      — router root, providers
+    features/                 — {auth,events,booking,tickets,organizer,admin}
+      {feature}/
+        pages/
+        components/
+        hooks/
+        api/
+        types/
+    shared/
+      api/                    — HTTP client, interceptors, idempotency
+      ui/                     — shared components, layouts
+      hooks/
+      utils/
+      constants/
   api/src/
     app.ts
     server.ts
@@ -49,6 +60,10 @@ apps/
     modules/
       auth/
       users/
+      organizations/
+      event-reviews/
+      support-reports/
+      layouts/
       events/
       venues/
       sessions/
@@ -90,3 +105,10 @@ Ví dụ email hợp lệ về cú pháp có thể trùng; precheck không ngăn
 Transaction ghi outbox cùng trạng thái cần hậu xử lý. Worker claim theo lease ngắn rồi commit; gọi mạng ngoài transaction; đánh dấu DONE sau thành công. Crash sau gửi trước DONE có thể gửi lặp: consumer dùng dedupe/provider key, không tuyên bố exactly-once qua mạng. Các job hết hạn/đối soát chạy được nhiều lần, không phụ thuộc timer trong RAM. Worker và API cùng tuân thủ [11](11-booking-concurrency.md).
 
 Phát hành Ticket là ghi DB trong transaction xác nhận MVP; tạo hình QR, render PDF hoặc gửi email có thể làm sau. Nếu sau này chuyển phát vé sang worker, phải thêm trạng thái và cơ chế phục hồi bằng ADR, không âm thầm tạo khoảng trống PAID chưa có vé.
+
+
+## Module phục vụ nghiệp vụ mới
+
+Organization service xử lý application/membership/company identity; EventReview service submit/approve/reject/expiry và reason notice; Layout service validate bounds/capacity/scope/freeze; Ticket service tách CheckIn và admission; SupportReport service kiểm tra ngữ cảnh Admin can thiệp. Notification review và OTP/email adapter thuộc MVP, không còn chỉ là placeholder sau MVP.
+
+Các module vẫn ở cùng monolith/transaction context. Google/OTP proof được xác minh ở auth adapter/service, không trong controller hoặc repository. Không gọi SMS/email trong transaction. Frontend editor chỉ tạo DTO, backend phải validate hình học và scope; repository dùng schema hiện hành theo 20 và tuân thủ các bất biến service chưa được DDL tự thực thi.

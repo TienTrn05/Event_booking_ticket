@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant UI as React / Thiết bị
+    participant API as Auth service
+    participant ID as Google / OTP adapter
+    participant DB as MySQL
+    UI->>API: Google proof hoặc challenge + OTP
+    API->>ID: Xác minh Google hoặc HMAC OTP và binding
+    API->>DB: Consume OTP một lần / lookup provider-subject
+    Note over API,DB: Không tự merge User qua email<br/>Phiên tổ chức cần email công ty đã duyệt
+    API->>DB: Tạo AuthSession theo identity và thiết bị, RefreshToken hash
+    API-->>UI: Access 10 phút, refresh cookie HttpOnly / Secure
+    UI->>API: Request JWT
+    API->>DB: User, session, authVersion, permission và scope
+    API-->>UI: DTO trong phạm vi cho phép
+    UI->>UI: Phối hợp refresh giữa các tab cùng phiên
+    UI->>API: Refresh cookie + CSRF + Origin
+    API->>DB: BEGIN, khóa session/token và đọc giờ DB
+    alt Token chưa dùng và còn hạn
+      API->>DB: Token cũ used, một token con cùng phiên, COMMIT
+      API-->>UI: JWT và cookie mới, giữ hạn tuyệt đối 7 ngày
+    else Token đã dùng lại
+      API->>DB: Revoke family/session, COMMIT
+      API-->>UI: 401, đăng nhập lại
+    end
+    Note over UI,DB: Nhiều thiết bị có các session/family độc lập

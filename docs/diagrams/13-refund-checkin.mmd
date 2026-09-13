@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor U as Khách / Nhân viên quầy
+    participant C as CheckIn service
+    participant DB as MySQL
+    participant R as Refund service
+    actor O as Organizer / Admin có report
+    U->>C: Tên người tham dự + mã hệ thống
+    C->>DB: BEGIN, khóa scope và ticket, kiểm tra VALID và window
+    Note over C,DB: Online từ T-24h tới trước T, quầy theo window cấu hình
+    C->>DB: INSERT CheckIn unique ticket, giữ Ticket VALID, COMMIT
+    O->>R: Duyệt full refund theo policy
+    R->>DB: BEGIN, cùng lock order, kiểm tra quyền / report
+    C->>DB: Admission BEGIN, cùng lock order, kiểm tra CheckIn + VALID
+    alt Refund thắng
+      R->>DB: Refund PROCESSING, Ticket CANCELLED, outbox, COMMIT
+      DB-->>C: Vé không còn VALID, ROLLBACK admission
+      R->>R: Gọi adapter ngoài transaction, key ổn định
+      R->>DB: Kết quả xác minh, cập nhật tiền/đơn/vé trong transaction
+    else Admission thắng
+      C->>DB: Ticket USED + admission_check_in_id + actor/time, COMMIT
+      DB-->>R: Vé USED, từ chối refund theo policy
+    end
+    Note over R,DB: CheckIn trước sự kiện không ngăn refund, USED mới tiêu thụ vé

@@ -1,0 +1,14 @@
+flowchart TD
+    IN["Request /api/v1"] --> SCHEMA["Validate schema, body, query"]
+    SCHEMA --> JWT{"JWT / Session hợp lệ?"}
+    JWT -->|"Không"| E401["401 UNAUTHENTICATED"]
+    JWT -->|"Có"| PERM{"Permission thao tác?"}
+    PERM -->|"Không"| E403["403 FORBIDDEN"]
+    PERM -->|"Có"| CTRL["Controller → Service với actor đáng tin"]
+    CTRL --> OWNER{"Tài nguyên đúng chủ hoặc Organization được duyệt?<br/>Phiên công ty / membership khi quản lý"}
+    OWNER -->|"Không"| E404["404 RESOURCE_NOT_FOUND"]
+    OWNER -->|"Có"| TX["Khóa transaction khi cần<br/>Đọc lại trạng thái và quan hệ"]
+    TX --> RULE{"Đạt policy và bất biến?"}
+    RULE -->|"Không"| ERR["ROLLBACK → 409 hoặc 422"]
+    RULE -->|"Có"| OK["Ghi dữ liệu + audit/outbox<br/>COMMIT → DTO an toàn"]
+    NOTE["Admin can thiệp cần report OPEN / IN_REVIEW liên quan<br/>Admin không bypass bất biến<br/>Frontend không gán giá, chủ sở hữu hoặc payment status"]

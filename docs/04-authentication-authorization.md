@@ -1,63 +1,43 @@
 # 04. Xác thực và phân quyền
 
-Liên quan: FR-001–FR-005, NFR-004/NFR-010, ADR-003, [ma trận quyền](03-user-roles-permissions.md).
+Nguồn hiện hành: Q-006 đã xác nhận Google + OTP SĐT, Organizer dùng email công ty; ADR-003 phần phiên tiếp tục áp dụng, ADR-013 thay phần đăng nhập mật khẩu. Không triển khai OAuth/SSO khác ngoài nhu cầu này.
 
-## Chiến lược đề xuất
+## Đăng nhập và tạo tài khoản
 
-JWT access token ngắn hạn dùng cho `Authorization: Bearer`; refresh token là chuỗi ngẫu nhiên opaque có entropy cao, không cần là JWT. Access token chỉ ở bộ nhớ frontend; refresh token ở cookie `HttpOnly; Secure; SameSite=Lax`, host-only, path `/api/v1/auth`. Ưu tiên web/API cùng origin qua reverse proxy. Không lưu token trong localStorage/sessionStorage hoặc URL.
+Customer chọn Google hoặc nhận OTP điện thoại. Lần xác thực thành công đầu tiên tạo User và role Customer nguyên tử; lần sau mở phiên cho User tương ứng. Không có trường role/owner do client quyết định. Người mua phải có phiên hợp lệ trước hold/checkout.
 
-Đề xuất access TTL 10 phút, refresh có hạn tuyệt đối 7 ngày cho từng thiết bị; rotation không kéo dài hạn tuyệt đối. `DECISION REQUIRED (Q-006)`: TTL, số thiết bị và cách xác minh email. Backend lưu hash refresh token, family/session ID, token cha, thời hạn, thời điểm dùng/thu hồi; giữ bản ghi token đã dùng đến hết thời gian điều tra cấu hình.
+Google: backend xác minh ID token bằng thư viện provider, kiểm tra signature/iss/aud/exp, nonce/CSRF theo luồng GIS đã chọn; dùng Google sub làm định danh ổn định, không dùng email để tự gộp tài khoản. Không nhận userId/email do frontend khai làm bằng chứng. Google token chỉ dùng trao đổi lúc login, không thay JWT của ứng dụng. Workspace cần kiểm tra hd khi dựa vào hosted domain; email_verified không đủ chứng minh quyền mailbox bên thứ ba. [Hướng dẫn chính thức Google](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token).
 
-JWT chứa `sub`, `sid`, `jti`, `iat`, `exp`, `iss`, `aud`, `authVersion`; không chứa PII/bí mật. Allowlist thuật toán và key ID; kiểm tra signature, issuer, audience và expiry. Mỗi request riêng tư đối chiếu user status/authVersion và phiên `sid` trong DB để logout/khóa có hiệu lực tức thời. Đây là đánh đổi truy vấn DB để có revocation rõ ràng; JWT không biến hệ thống thành hoàn toàn stateless.
+OTP điện thoại: chuẩn hóa E.164, request challenge và kiểm tra mã dùng một lần. Thiết kế kỹ thuật khởi điểm: 6 chữ số ngẫu nhiên mật mã, TTL 5 phút, tối đa 5 lần thử/challenge, resend ít nhất 60 giây, rate limit theo IP/đích/purpose và giới hạn gửi tổng. Giá trị cấu hình phải benchmark nhưng không được vô hạn. Lưu keyed hash/HMAC với secret ngoài DB (OTP entropy thấp), challengeId/purpose/target/user binding, expiry, attempts và consumed_at; không lưu/log mã rõ. Gửi SMS ngoài transaction bằng adapter. Mã cũ vô hiệu khi cấp challenge thay thế; giới hạn thử không reset vô hạn bằng resend.
 
-Refresh token rotation giúp hạn chế tái sử dụng; phát hiện token cũ dùng lại thì thu hồi cả family. Cơ chế này tham khảo [RFC 9700, mục 4.14](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14); hệ thống không vì thế được coi là triển khai đầy đủ OAuth.
+Verify khóa challenge, đọc giờ DB, kiểm tra purpose/đích/hạn/số lần/used, tăng attempts thất bại và COMMIT trước trả lỗi; thành công consume và tạo session trong transaction. Hai request cùng mã chỉ một lần consume. Challenge sai/hết hạn/đã dùng trả lỗi chung; request OTP trả 202 chung không lộ tài khoản. Không cho frontend mô phỏng OTP thật ở staging/production.
 
-## Luồng xác thực
+## Email công ty của Organizer
 
-### Đăng ký, email và kích hoạt
+Người đại diện nhập email thuộc domain công ty, xác minh mailbox rồi nộp hồ sơ Organization. Hỗ trợ Google Workspace nếu domain được chứng minh bằng token hợp lệ; với mail công ty không dùng Google Workspace, dùng email OTP cùng cơ chế challenge để không bắt mọi công ty mua Workspace. Đây là lựa chọn kỹ thuật cho yêu cầu mail công ty, không thêm login mật khẩu.
 
-1. Validate email/mật khẩu; chuẩn hóa email theo Q-006, không tự xử lý dấu chấm/alias của nhà cung cấp.
-2. Hash mật khẩu bằng Argon2id; transaction tạo User và role Customer, user PENDING_VERIFICATION nếu áp dụng xác minh.
-3. Tạo VerificationToken dùng một lần, chỉ lưu hash. Gửi link qua adapter email ngoài transaction; môi trường dev dùng hộp thư thử có kiểm soát.
-4. Khi nhận token: khóa bản ghi, kiểm tra loại, hạn và chưa dùng; đánh dấu used và email verified; chuyển ACTIVE nếu không bị khóa bởi quản trị.
-5. Token sai/hết hạn: lỗi chung và cho gửi lại có cooldown. Email trùng: phản hồi không tiết lộ tài khoản; log chỉ thông tin đã giảm nhận dạng.
+Email OTP và SMS OTP có purpose/channel riêng, không dùng chéo. Organizer chỉ được quản lý khi phiên có bằng chứng email công ty đúng membership đã duyệt; Google Gmail hoặc phone login có thể dùng Customer nhưng không tự đáp ứng điều kiện phiên tổ chức. Role và Organization approval luôn do Admin, không suy ra chỉ từ domain. Email domain chuẩn hóa/so khớp chính xác; không tự xử lý dấu chấm/alias nhà cung cấp.
 
-`DECISION REQUIRED (Q-006)`: xác minh email có bắt buộc trước mua vé, TTL đề xuất 24 giờ, nhà cung cấp gửi thư. Không đánh dấu verified giả trên production.
+MVP không tự merge Google/phone/company identities khi email/display name giống nhau. Muốn gắn phương thức mới phải đang đăng nhập, xác thực lại phương thức hiện có và chứng minh phương thức mới; nếu đã thuộc User khác trả conflict, không chuyển booking/role. Identity linking có transaction/UQ, không tạo User mới rồi tự chuyển dữ liệu. Email công ty thay đổi cần xác minh và duyệt lại trước quyền tổ chức, không sửa qua profile thông thường.
 
-### Đăng nhập và bảo vệ thất bại
+## Phiên ứng dụng và nhiều thiết bị
 
-1. Rate limit theo IP và định danh đã hash; validate input; so sánh hash mật khẩu với thời gian xử lý hạn chế khác biệt, dùng dummy hash khi user không tồn tại.
-2. Sai email/mật khẩu hoặc không được đăng nhập: thông báo chung. Theo dõi lỗi; trì hoãn tăng dần có trần, không khóa vĩnh viễn chỉ vì kẻ khác thử sai.
-3. Kiểm tra user status; tạo AuthSession và refresh token trong transaction; commit rồi set cookie và trả access token.
-4. Không trả hash mật khẩu; ghi login success/failure đã lọc. Nếu vượt số thiết bị theo Q-006, áp dụng chính sách được duyệt, không âm thầm xóa phiên.
+Access JWT TTL 10 phút trong memory; refresh opaque cookie HttpOnly/Secure/SameSite=Lax, host-only, path /api/v1/auth. Mỗi thiết bị có AuthSession/family độc lập và refresh hạn tuyệt đối 7 ngày, rotation không kéo dài. Không lưu token ở localStorage/sessionStorage/URL. Số thiết bị đồng thời cụ thể chưa giới hạn bằng một con số chưa được duyệt; có rate limit tạo phiên và danh sách thu hồi.
 
-### Refresh và nhiều tab
+JWT chứa sub/sid/jti/iat/exp/iss/aud/authVersion; allowlist thuật toán/key. Mỗi request riêng tư đọc user.status, authVersion, session và quyền DB. AuthSession lưu phương thức và thời điểm xác thực/company identity để service kiểm tra quyền tổ chức; không tin auth context do client gửi.
 
-1. Client gửi cookie, CSRF token và Origin hợp lệ đến `/auth/refresh`; không dùng access token hết hạn để quyết định quyền refresh.
-2. BEGIN; khóa session rồi refresh token theo hash; kiểm tra user, session, thời hạn và revoked/used.
-3. Nếu token đã dùng: thu hồi family/session, COMMIT thay đổi thu hồi rồi trả 401; không rollback việc thu hồi khi tạo lỗi HTTP.
-4. Nếu hợp lệ: đánh dấu token cũ used, tạo token mới cùng family và hạn tuyệt đối; COMMIT; set cookie mới, trả access token.
-5. Frontend phối hợp refresh một lần giữa các tab, không tự retry vô hạn. Hai refresh dùng cùng token có thể gây thu hồi family; với thiết kế nghiêm ngặt này, mất response sau rotation yêu cầu đăng nhập lại. Nới khoảng dung sai cần ADR về rủi ro replay.
+Refresh: cookie + Origin/CSRF → BEGIN → khóa session/token, kiểm tra user/session/hạn → token cũ used và token mới cùng family → COMMIT. Reuse token cũ thu hồi family rồi COMMIT trước trả 401. Frontend serialize refresh giữa tab, không retry vô hạn; mất response sau rotation có thể cần login lại. Thu hồi một family không khóa thiết bị khác.
 
-### Logout và quản lý phiên
+Logout thu hồi session hiện tại/xóa cookie, lặp 204; logout-all tăng authVersion và thu hồi mọi session. User bị block qua report bị thu hồi phiên; mở khóa không hồi sinh token cũ. Google/OTP provider unavailable không bỏ qua xác thực; trả lỗi tạm thời.
 
-- Logout: thu hồi session/family tương ứng, xóa cookie cùng thuộc tính; lặp lại vẫn 204. Access token cũ bị chặn nhờ kiểm tra session trên request tiếp theo.
-- Logout-all: cập nhật `auth_version` và thu hồi mọi session trong transaction; client xóa access token/cookie.
-- Đổi mật khẩu: yêu cầu mật khẩu hiện tại, hash mật khẩu mới; cập nhật và thu hồi tất cả phiên; người dùng đăng nhập lại.
-- Khóa user: cùng cơ chế thu hồi và authVersion; mở khóa không khôi phục token cũ.
+## Khôi phục truy cập
 
-### Quên/đặt lại mật khẩu
+Không có mật khẩu nội bộ nên bỏ register/login/reset/change-password bằng mật khẩu khỏi MVP. Người dùng đăng nhập lại qua Google hoặc OTP đã liên kết. Mất cả phương thức đăng nhập không được khôi phục chỉ bằng tên/mã vé; quy trình hỗ trợ phải xác minh danh tính trước thay identity, chưa tự cung cấp một đường bypass.
 
-Forgot-password luôn trả 202 chung. Tạo reset token ngẫu nhiên, hash trong DB, TTL đề xuất 15 phút (Q-006), giới hạn gửi và không log link. Reset: validate mật khẩu mới; BEGIN, khóa user và token theo thứ tự thống nhất của module auth; kiểm tra hạn/chưa dùng, cập nhật password hash, đánh dấu token used, thu hồi các reset token khác và session; COMMIT. Token dùng lại bị từ chối; reset không tự đăng nhập, không tự bỏ trạng thái BLOCKED hoặc xác minh email.
+Admin bootstrap bằng liên kết identity đã xác minh qua thao tác vận hành được kiểm soát, không cho đăng ký công khai chọn Admin. Xác thực lại trước cấp role/can thiệp hỗ trợ nhạy cảm; chính sách MFA riêng khi vận hành thật còn Q-006. Không coi SMS OTP mặc nhiên là đa yếu tố.
 
-## Phân quyền theo tầng
+## Phân quyền theo tầng và log
 
-| Tầng | Trách nhiệm |
-| --- | --- |
-| Route | Khai báo middleware và permission yêu cầu của endpoint |
-| Middleware | Xác thực JWT/session; chặn thiếu permission tổng quát; validate schema, CSRF khi cần |
-| Controller | Nhận actor đã xác thực; chuyển DTO; không quyết định ownership |
-| Service | Kiểm tra permission theo ngữ cảnh, ownership, trạng thái tài khoản/tài nguyên; kiểm tra lại điều kiện thay đổi dưới khóa |
-| Repository | Nhận actor scope/điều kiện do service xác định, query có tham số; không tự quyết định cho phép theo role |
+Route khai báo permission; middleware xác thực/validate; controller chuyển DTO/actor; service kiểm tra Organization/membership/ownership/report và revalidate dưới khóa; repository chỉ query theo scope. Google, OTP và công ty đều đi qua cùng cơ chế quyền/session.
 
-Không chỉ dựa vào quyền nhúng JWT vì quyền có thể thay đổi. Dữ liệu role/permission lấy từ DB ở MVP. Job và callback cũng đi qua service với danh tính và phạm vi được xác minh, không bỏ qua bất biến bằng đường gọi nội bộ.
+Không log ID token, OTP, secret HMAC, refresh hoặc Cookie/Authorization. Chuẩn hóa lỗi, giới hạn thử và xử lý reauthentication theo [OWASP Authentication](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Nhà cung cấp SMS/email thật và cấu hình Google client phải có trước demo live; kiểm thử dùng adapter/sink kiểm soát.

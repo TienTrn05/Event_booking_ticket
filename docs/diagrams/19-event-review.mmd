@@ -1,0 +1,16 @@
+flowchart TD
+    D[Organizer: Event DRAFT / REJECTED] --> V[Validate công ty, layout frozen, version và lịch]
+    V --> C{Gửi trước ít nhất một tháng lịch?}
+    C -->|Không| E[Từ chối gửi hồ sơ]
+    C -->|Có| P[Event PENDING_REVIEW + snapshot bất biến<br/>EventReview PENDING, hạn 15 x 24 giờ]
+    P --> L[Khóa Event rồi Review, đọc giờ DB mới]
+    L --> T{Đã đến expires_at?}
+    T -->|Có| X[Review EXPIRED, Event REJECTED<br/>Notification hủy hồ sơ + ReasonNotice DRAFT + outbox]
+    T -->|Chưa| A{Admin quyết định}
+    A -->|Duyệt đúng version| OK[Review APPROVED + Event PUBLISHED<br/>Pointer FK đúng bản duyệt + notification + outbox]
+    A -->|Từ chối| R[Review REJECTED + Event REJECTED<br/>Phiếu lý do + notification + outbox]
+    X --> F[Admin mở form, soạn mã lý do / nội dung / hướng dẫn]
+    F --> S[ReasonNotice SENT + notification + outbox cùng transaction]
+    R --> D
+    S --> D
+    NOTE[Hết hạn hồ sơ không hủy event đã bán vé<br/>Không tự approve, không tự gia hạn đơn]

@@ -5,6 +5,8 @@ build/
 coverage/
 .vite/
 *.tsbuildinfo
+__pycache__/
+*.py[cod]
 
 # Cấu hình riêng và bí mật
 .env
@@ -21,6 +23,7 @@ logs/
 tmp/
 uploads/
 backups/
+.local/
 *.sql.gz
 *.dump
 

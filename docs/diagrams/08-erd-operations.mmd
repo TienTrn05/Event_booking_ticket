@@ -1,0 +1,85 @@
+erDiagram
+    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    audit_logs {
+        bigint id PK
+        bigint actor_id FK
+        bigint organization_id FK
+        bigint support_report_id FK
+    }
+    bookings {
+        bigint id PK,FK
+    }
+    event_reviews {
+        bigint id PK
+        bigint event_id FK
+        int event_version
+        bigint submitted_by FK
+        datetime expires_at
+        varchar status
+        bigint decided_by FK
+        bigint pending_event_guard UK
+    }
+    events {
+        bigint id PK,FK
+    }
+    idempotency_records {
+        bigint id PK
+        datetime expires_at
+    }
+    notifications {
+        bigint id PK
+        bigint recipient_user_id FK
+        bigint review_id FK
+        bigint reason_notice_id FK
+    }
+    organizations {
+        bigint id PK
+    }
+    outbox_messages {
+        bigint id PK
+        varchar status
+    }
+    payment_webhooks {
+        bigint id PK
+        varchar provider FK
+        bigint payment_id FK
+        varchar status
+    }
+    payments {
+        bigint id PK
+    }
+    reason_notices {
+        bigint id PK
+        bigint review_id FK,UK
+        varchar status
+        bigint authored_by FK
+    }
+    support_reports {
+        bigint id PK
+        bigint reporter_id FK
+        bigint event_id FK
+        bigint booking_id FK
+        bigint target_user_id FK
+        varchar status
+        bigint assigned_admin_id FK
+    }
+    users {
+        bigint id PK
+    }
+    users |o..o{ audit_logs : "actor_id"
+    organizations |o..o{ audit_logs : "organization_id"
+    support_reports |o..o{ audit_logs : "support_report_id"
+    users |o..o{ event_reviews : "decided_by"
+    events ||..o{ event_reviews : "event_id"
+    users ||..o{ event_reviews : "submitted_by"
+    reason_notices |o..o{ notifications : "reason_notice_id,review_id"
+    event_reviews ||..o{ notifications : "review_id"
+    users ||..o{ notifications : "recipient_user_id"
+    payments |o..o{ payment_webhooks : "payment_id,provider"
+    users |o..o{ reason_notices : "authored_by"
+    event_reviews ||..o| reason_notices : "review_id"
+    users |o..o{ support_reports : "assigned_admin_id"
+    bookings |o..o{ support_reports : "booking_id,event_id"
+    events ||..o{ support_reports : "event_id"
+    users ||..o{ support_reports : "reporter_id"
+    users |o..o{ support_reports : "target_user_id"

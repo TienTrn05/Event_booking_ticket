@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant S as Service
+    participant DB as MySQL
+    participant W1 as Worker A
+    participant E as External adapter
+    participant W2 as Worker B
+    S->>DB: BEGIN ? ghi nghiệp vụ + outbox dedupe key ? COMMIT
+    W1->>DB: BEGIN ? claim job bằng khóa + lease token ? COMMIT
+    W1->>E: Gọi mạng ngoài transaction, key ổn định
+    alt Worker A sống và lease còn thuộc A
+      E-->>W1: Thành công
+      W1->>DB: UPDATE DONE WHERE lease_token = token_A
+    else Worker A chết hoặc lease đã đổi
+      W2->>DB: Lease hết hạn ? reclaim với token_B
+      W2->>E: Retry cùng provider/dedupe key
+      E-->>W2: Kết quả cũ hoặc thành công
+      W2->>DB: UPDATE DONE WHERE lease_token = token_B
+      Note over W1,DB: A quay lại không thể ack lease của B
+    end
+    Note over W1,E: At-least-once ? adapter phải idempotent<br/>Lease token không tự ngăn lặp hiệu ứng ở provider
