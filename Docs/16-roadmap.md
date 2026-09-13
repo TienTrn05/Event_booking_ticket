@@ -1,10 +1,10 @@
 # 16. Lộ trình MVP và mở rộng
 
-Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-questions.md)/[23](23-organization-review-seatmap.md). Là lộ trình thực hiện, chưa có app hoặc cam kết ngày. Không xin duyệt lại quy tắc đã RESOLVED.
+Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-questions.md)/[23](23-organization-review-seatmap.md). Đã có khung BE/FE và bộ kiểm tra nền tảng; các phase nghiệp vụ vẫn là lộ trình, chưa cam kết ngày. Không xin duyệt lại quy tắc đã RESOLVED.
 
 | Phase | Bàn giao | Phụ thuộc / nghiệm thu |
 | --- | --- | --- |
-| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; DDL/seed/query/ERD cho Organization/review/layout/Google-OTP/CheckIn | Markdown, DDL 38 bảng và ERD/SVG đã đồng bộ; 67 kiểm tra DB tạm đạt, xem 20. Migration production và ứng dụng chưa triển khai. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
+| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; DDL/seed/query/ERD cho Organization/review/layout/Google-OTP/CheckIn | Markdown, DDL 38 bảng và ERD/SVG đã đồng bộ; 67 kiểm tra DB tạm đạt, xem 20. Khung ứng dụng đã có theo ADR-015; migration production và nghiệp vụ chưa triển khai. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
 | 1 — Tài khoản và tổ chức | Google, OTP PHONE/COMPANY_EMAIL, sessions đa thiết bị, Organization/membership và Admin duyệt role | Chọn công cụ Q-016 và adapter test; T-019/T-020/T-032/T-033, không auto-link sai identity |
 | 2 — Venue/editor và review event | Catalog có capacity/bounds, editor React/SVG, layout frozen, session/TicketType/giá, review queue, lead time 1 tháng, expiry 15 ngày, notification và form phiếu | T-034–T-037, quyền Organization/report, không tự publish hoặc approve quá hạn; app notifications là MVP |
 | 3 — Hold/booking | Quota 6 ghế/1 phân bổ, TTL 5 phút, row locking, attendee snapshot, recovery request/key qua reload | T-001–T-005/T-012/T-027/T-028/T-031/T-038/T-041 trên MySQL thật |

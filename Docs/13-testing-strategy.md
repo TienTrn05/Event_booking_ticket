@@ -1,6 +1,6 @@
 # 13. Chiến lược kiểm thử
 
-Đã có khung ứng dụng và 7 test nền tảng chính thức (HTTP/config) theo ADR-015; bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. DDL hiện hành 38 bảng đã qua 67 kiểm tra trên MySQL 8.0.46 ngày 2026-09-13, gồm ràng buộc, seed/query và race hai connection cho ghế/OTP/admission. Chi tiết ở [database README](../database/README.md). Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
+Đã có khung ứng dụng và 20 test nền tảng chính thức (HTTP/config, HTTP client FE, transaction và secret guard) theo ADR-015; bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. DDL hiện hành 38 bảng đã qua 67 kiểm tra trên MySQL 8.0.46 ngày 2026-09-13, gồm ràng buộc, seed/query và race hai connection cho ghế/OTP/admission. Chi tiết ở [database README](../database/README.md). Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
 
 ## Các lớp kiểm thử
 

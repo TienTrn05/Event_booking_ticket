@@ -13,7 +13,14 @@ export default defineConfig({
     fs: {
       strict: true,
       allow: [webRoot, fileURLToPath(new URL('../node_modules', import.meta.url))],
-      deny: ['**/.env', '**/.env.*', '**/*.pem', '**/*.key', '**/.git/**'],
+      deny: [
+        '**/.env',
+        '**/.env.*',
+        '**/*.pem',
+        '**/*.key',
+        '**/.git/**',
+        '**/node_modules/@event-ticketing/api/**',
+      ],
     },
   },
   build: { sourcemap: false },
