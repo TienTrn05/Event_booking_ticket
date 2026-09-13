@@ -37,6 +37,17 @@
 | FR-029 | MVP | Khách/Organizer gửi report đúng tài nguyên; Admin chỉ can thiệp trong report còn mở, có lý do và audit |
 | FR-030 | MVP | Form phiếu lý do Admin: metadata chỉ đọc, reasonCode/reasonText, lưu nháp/xem trước/gửi; hồ sơ expired có nhiệm vụ bắt buộc, thông báo không gửi trùng |
 | FR-031 | MVP | Organization-owned TicketType có code; từng Ticket có code riêng và attendee snapshot, code type không dùng check-in |
+| FR-032 | Đã yêu cầu / chi tiết cần chốt | Hồ sơ mở bán lại/thay đổi theo nhiều nguyên nhân của Organizer; tăng sức chứa chỉ là ví dụ; bảo toàn quyền người mua theo [23, phần 9](23-organization-review-seatmap.md) |
+| FR-033 | Đã yêu cầu / chi tiết cần chốt | Organizer hủy sự kiện với lý do, ảnh hưởng đơn/vé, thông báo và theo dõi xử lý; không đồng nhất hủy với hoàn tiền thành công |
+| FR-034 | Đã yêu cầu / chi tiết cần chốt | Feedback có sao về hệ thống và sự kiện/tổ chức; phân biệt đối tượng, xác thực/kiểm duyệt và quyền phản hồi theo chính sách cần chốt |
+| FR-035 | Đã yêu cầu / chi tiết cần chốt | Điểm uy tín Organization có tăng/giảm và lịch sử nguồn điểm, hỗ trợ Admin xét duyệt; công thức/hệ số/ngưỡng chưa chốt, không tự quyết định thay Admin |
+
+Phần mở rộng merchandise đã được yêu cầu (chi tiết ở [23, phần 10](23-organization-review-seatmap.md)):
+
+| ID | Phạm vi | Yêu cầu và điều kiện nghiệm thu |
+| --- | --- | --- |
+| FR-036 | Đã yêu cầu / chi tiết cần chốt | Organization tạo/quản lý merchandise thuộc sự kiện; khách thanh toán trên web, giao tới địa chỉ người nhận; Organizer chọn mua độc lập hoặc yêu cầu vé; tồn kho hàng tách vé, phí giao/đổi trả và xác minh vé chi tiết cần chốt |
+| FR-037 | Đã yêu cầu | Tag/tên hiển thị nghệ sĩ/chương trình có thể khác tên công ty; vẫn giữ Organization làm chủ sở hữu và đối tượng uy tín, không thay catalog hoặc cấp quyền bằng tag |
 
 ## Yêu cầu phi chức năng
 
