@@ -12,10 +12,12 @@ export class ApiError extends Error {
 export async function apiRequest(path: string, options: RequestInit = {}): Promise<unknown> {
   if (!path.startsWith('/') || path.startsWith('//') || path.includes('\\'))
     throw new Error('Invalid API path');
+  const headers = new Headers(options.headers);
+  if (!headers.has('Accept')) headers.set('Accept', 'application/json');
   const response = await fetch(`${baseUrl.replace(/\/$/, '')}${path}`, {
     ...options,
     credentials: 'same-origin',
-    headers: { Accept: 'application/json', ...options.headers },
+    headers,
   });
   if (!response.ok) throw new ApiError(response.status);
   if (response.status === 204) return undefined;

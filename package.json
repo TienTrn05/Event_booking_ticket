@@ -21,8 +21,8 @@
     "build": "npm run build --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint --config BE/tooling/eslint.config.mjs BE Fe --max-warnings 0",
-    "format": "prettier --write \"{BE,Fe}/src/**/*.{ts,tsx,css}\" \"BE/tests/**/*.ts\" \"BE/tooling/*.{ts,mjs,json}\" \"{BE,Fe}/*.{json,html,ts,md}\" package.json .github/workflows/*.yml",
-    "format:check": "prettier --check \"{BE,Fe}/src/**/*.{ts,tsx,css}\" \"BE/tests/**/*.ts\" \"BE/tooling/*.{ts,mjs,json}\" \"{BE,Fe}/*.{json,html,ts,md}\" package.json .github/workflows/*.yml",
+    "format": "prettier --write \"{BE,Fe}/src/**/*.{ts,tsx,css}\" \"{BE,Fe}/tests/**/*.ts\" \"BE/tooling/*.{ts,mjs,json}\" \"{BE,Fe}/*.{json,html,ts,md}\" package.json .github/workflows/*.yml",
+    "format:check": "prettier --check \"{BE,Fe}/src/**/*.{ts,tsx,css}\" \"{BE,Fe}/tests/**/*.ts\" \"BE/tooling/*.{ts,mjs,json}\" \"{BE,Fe}/*.{json,html,ts,md}\" package.json .github/workflows/*.yml",
     "test": "vitest run --config BE/tooling/vitest.config.ts",
     "check:secrets": "node BE/tooling/check-secrets.mjs",
     "check": "npm run check:secrets && npm run lint && npm run typecheck && npm test && npm run build && npm run format:check"
@@ -54,5 +54,8 @@
     "trailingComma": "all",
     "printWidth": 100,
     "endOfLine": "lf"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

@@ -40,5 +40,5 @@
 
 ## Git
 
-- Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `Docs/*`, `refactor/*`, `chore/*`.
+- Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `chore/*`.
 - Conventional Commits; commit nhỏ, có mục đích. Không ghi đè thay đổi của người dùng hoặc tự push/triển khai ngoài phạm vi được giao.
