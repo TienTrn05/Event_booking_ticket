@@ -5,13 +5,16 @@
 -- CHECK/UQ/FK bảo vệ cấu trúc; quyền, geometry, calendar cutoff, quota và transition cần service/transaction.
 -- Không có password nội bộ. Google/phone/company email dùng external_identities và otp_challenges.
 -- ticket_code là một credential dùng chung cho mã nhập tay và QR; không lưu dữ liệu thẻ ngân hàng/giấy tờ.
+
+
+USE event_ticketing;
 SET NAMES utf8mb4 COLLATE utf8mb4_0900_as_cs;
 SET time_zone = '+00:00';
 
 CREATE TABLE users (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     display_name VARCHAR(120) NOT NULL,
-    status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'ACTIVE',
+    status VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'ACTIVE', 
     auth_version INT UNSIGNED NOT NULL DEFAULT 0,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),

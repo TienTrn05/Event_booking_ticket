@@ -1,6 +1,6 @@
 # Thiết kế SQL MySQL
 
-Schema hiện hành có **38 bảng**, đồng bộ Organization, Google/OTP, venue/layout, duyệt sự kiện và check-in tách admission theo [23](../docs/23-organization-review-seatmap.md). DDL dành cho **database rỗng để review**, chưa phải migration nâng cấp DB cũ hoặc database production đã triển khai. Không có backend/frontend trong phạm vi này.
+Schema hiện hành có **38 bảng**, đồng bộ Organization, Google/OTP, venue/layout, duyệt sự kiện và check-in tách admission theo [23](../Docs/23-organization-review-seatmap.md). DDL dành cho **database rỗng để review**, chưa phải migration nâng cấp DB cũ hoặc database production đã triển khai. Không có backend/frontend trong phạm vi này.
 
 ## Các file
 
@@ -14,7 +14,7 @@ Schema hiện hành có **38 bảng**, đồng bộ Organization, Google/OTP, ve
 | [03-integrity-audit.sql](queries/03-integrity-audit.sql) | Kiểm tra liên bảng chỉ đọc, không tự sửa lịch sử |
 | [04-review-work-queue.sql](queries/04-review-work-queue.sql) | Hồ sơ chờ duyệt/hết hạn và phiếu lý do DRAFT |
 
-Chi tiết [20 — SQL vật lý](../docs/20-physical-sql-design.md), [21 — Transaction](../docs/21-sql-transactions.md), [bộ sơ đồ](../docs/diagrams/index.html).
+Chi tiết [20 — SQL vật lý](../Docs/20-physical-sql-design.md), [21 — Transaction](../Docs/21-sql-transactions.md), [bộ sơ đồ](../Docs/diagrams/index.html).
 
 ## Nạp bằng MySQL client hoặc Workbench
 

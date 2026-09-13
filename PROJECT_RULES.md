@@ -2,28 +2,28 @@
 
 ## Phạm vi và nguồn yêu cầu
 
-- Đọc [README](README.md) và tài liệu của module trước khi sửa. Phạm vi hiện tại gồm đặc tả, sơ đồ, thiết kế SQL và kiểm tra schema; chỉ triển khai ứng dụng khi người dùng yêu cầu tiếp.
+- Đọc [README](README.md) và tài liệu của module trước khi sửa. Phạm vi đã mở rộng theo yêu cầu chủ dự án: đặc tả, SQL và khung BE/FE với môi trường local, công cụ chất lượng và test nền tảng. Cấu trúc chính BE/, Fe/, Docs/, database/; nghiệp vụ ứng dụng triển khai theo yêu cầu tiếp theo.
 - Stack: React/TypeScript/Vite, Node.js/Express/TypeScript, MySQL, REST `/api/v1`, JWT, Modular Monolith.
 - Không tự thêm microservices, Redis, Kafka, RabbitMQ, Kubernetes, Elasticsearch hoặc AI. Mỗi công nghệ mới phải có nhu cầu đo được và ADR.
 - `DECISION REQUIRED` là quyết định chưa chốt. Không biến đề xuất thành nghiệp vụ mặc định; hỏi trước khi triển khai phần phụ thuộc. Công việc độc lập vẫn tiếp tục.
-- Quyết định chủ dự án 2026-09-12 ở [18](docs/18-open-questions.md)/[23](docs/23-organization-review-seatmap.md) đã thay model Organizer cá nhân, tự publish và venue riêng. SQL/ERD đã đồng bộ theo ADR-014 ngày 2026-09-13; tiếp tục giữ DDL, seed/query, Mermaid/SVG và tài liệu khớp nhau khi thay model. DDL hiện hành dành cho database rỗng, không phải migration nâng cấp DB cũ.
+- Quyết định chủ dự án 2026-09-12 ở [18](Docs/18-open-questions.md)/[23](Docs/23-organization-review-seatmap.md) đã thay model Organizer cá nhân, tự publish và venue riêng. SQL/ERD đã đồng bộ theo ADR-014 ngày 2026-09-13; tiếp tục giữ DDL, seed/query, Mermaid/SVG và tài liệu khớp nhau khi thay model. DDL hiện hành dành cho database rỗng, không phải migration nâng cấp DB cũ.
 - Mã tham chiếu: FR = chức năng, NFR = phi chức năng, BR = nghiệp vụ, UC = use case, ADR = quyết định kiến trúc; Q = câu hỏi mở. Không đổi ý nghĩa mã đã dùng.
 
 ## Kiến trúc và dữ liệu
 
 - Controller chuyển đổi HTTP; service giữ nghiệp vụ, kiểm tra ownership và điều phối transaction; repository chỉ truy cập dữ liệu bằng cùng transaction context.
 - TypeScript strict; không dùng `any` tùy tiện; kiểm tra mọi đầu vào ngoài hệ thống. Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.
-- MySQL/InnoDB là nguồn sự thật của ghế. Mọi thay đổi tồn kho tuân thủ [giao thức khóa](docs/11-booking-concurrency.md), không giữ transaction trong lúc người dùng thanh toán hoặc gọi mạng.
+- MySQL/InnoDB là nguồn sự thật của ghế. Mọi thay đổi tồn kho tuân thủ [giao thức khóa](Docs/11-booking-concurrency.md), không giữ transaction trong lúc người dùng thanh toán hoặc gọi mạng.
 - Chống bán trùng bằng khóa hàng, kiểm tra trạng thái dưới khóa và ràng buộc unique. Không dùng riêng cache, websocket hoặc kiểm tra ở frontend.
 - Thanh toán, callback, hoàn tiền, phát vé phải idempotent. Callback đến muộn không được chiếm lại ghế đã cấp cho đơn khác.
 - Giá được chụp vào booking item; tiền dùng đơn vị nhỏ nhất và currency, không dùng số thực. Timestamp lưu UTC; thời gian nghiệp vụ dựa vào DB.
 - Không xóa lịch sử giao dịch. Migration phải được review, có cách khôi phục và không sửa migration đã áp dụng.
-- [database/schema.sql](database/schema.sql) là bản DDL để review, chưa là migration production. ERD phải khớp SQL; thay schema phải cập nhật sơ đồ, [20](docs/20-physical-sql-design.md), ADR và kiểm tra liên quan.
+- [database/schema.sql](database/schema.sql) là bản DDL để review, chưa là migration production. ERD phải khớp SQL; thay schema phải cập nhật sơ đồ, [20](Docs/20-physical-sql-design.md), ADR và kiểm tra liên quan.
 
 ## Bảo mật và chất lượng
 
 - Mặc định từ chối quyền; kiểm tra chủ sở hữu từng tài nguyên; Admin chỉ có quyền cấp rõ ràng, có audit.
-- Auth hiện hành dùng Google/OTP điện thoại, Organizer dùng email công ty theo [04](docs/04-authentication-authorization.md); OTP lưu keyed hash có expiry/attempt limit, refresh lưu hash trong DB/cookie HttpOnly/Secure; không lưu credential vào localStorage.
+- Auth hiện hành dùng Google/OTP điện thoại, Organizer dùng email công ty theo [04](Docs/04-authentication-authorization.md); OTP lưu keyed hash có expiry/attempt limit, refresh lưu hash trong DB/cookie HttpOnly/Secure; không lưu credential vào localStorage.
 - Không commit bí mật; không log mật khẩu, hash mật khẩu, token, QR bí mật, dữ liệu thẻ hoặc stack trace trong phản hồi production.
 - Không cho client tự xác nhận đã trả tiền. Payment mock phải được cô lập và không thể bật trên production.
 - Lỗi xử lý tập trung; SQL có tham số; allowlist trường cập nhật và sort. Quyết định thay đổi quyền, tiền, trạng thái phải có audit phù hợp.
@@ -40,5 +40,5 @@
 
 ## Git
 
-- Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `chore/*`.
+- Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `Docs/*`, `refactor/*`, `chore/*`.
 - Conventional Commits; commit nhỏ, có mục đích. Không ghi đè thay đổi của người dùng hoặc tự push/triển khai ngoài phạm vi được giao.

@@ -2,6 +2,7 @@
 -- Permission không thay kiểm tra membership/company session hoặc report tại service.
 -- Admin event.cancel_own/refund.approve chỉ trong report liên quan OPEN/IN_REVIEW.
 -- Nạp lại không ghi đè mô tả hay xóa cấu hình đã có; thay policy cần migration riêng.
+USE event_ticketing;
 SET NAMES utf8mb4;
 START TRANSACTION;
 INSERT INTO roles (code,name) VALUES
