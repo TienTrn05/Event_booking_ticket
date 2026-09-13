@@ -43,4 +43,4 @@ Nhóm người dùng: Guest, Customer, Organizer, Admin; System là tác nhân t
 
 “Đã xác định” bắt nguồn trực tiếp từ yêu cầu. “Đề xuất kỹ thuật” là lựa chọn thiết kế được giải thích bằng ADR. `DECISION REQUIRED (Q-xxx)` chỉ ra nghiệp vụ hoặc thông số chưa được xác nhận. Các phần phụ thuộc mô tả thiết kế dự kiến để review, không tự coi là đã duyệt.
 
-FR/BR/UC là hợp đồng hiện hành; trạng thái từng Q ở [18](18-open-questions.md) phân biệt đã chốt với phần còn mở. SQL/ERD cũ là baseline chưa đồng bộ model tổ chức/layout, xem [20](20-physical-sql-design.md). Mâu thuẫn phải được sửa trong cùng thay đổi; [18](18-open-questions.md) là nơi quản lý quyết định mở.
+FR/BR/UC là hợp đồng hiện hành; trạng thái từng Q ở [18](18-open-questions.md) phân biệt đã chốt với phần còn mở. SQL/ERD đã đồng bộ model tổ chức/layout theo ADR-014, xem [20](20-physical-sql-design.md). Mâu thuẫn phải được sửa trong cùng thay đổi; [18](18-open-questions.md) là nơi quản lý quyết định mở.

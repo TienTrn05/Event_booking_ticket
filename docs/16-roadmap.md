@@ -4,7 +4,7 @@ Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-q
 
 | Phase | Bàn giao | Phụ thuộc / nghiệm thu |
 | --- | --- | --- |
-| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; đồng bộ DDL/seed/query/ERD baseline sang Organization/review/layout/Google-OTP/CheckIn | Markdown đã cập nhật; DDL/ERD mới và test migration **chưa làm**; checklist 20. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
+| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; DDL/seed/query/ERD cho Organization/review/layout/Google-OTP/CheckIn | Markdown, DDL 38 bảng và ERD/SVG đã đồng bộ; 67 kiểm tra DB tạm đạt, xem 20. Migration production và ứng dụng chưa triển khai. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
 | 1 — Tài khoản và tổ chức | Google, OTP PHONE/COMPANY_EMAIL, sessions đa thiết bị, Organization/membership và Admin duyệt role | Chọn công cụ Q-016 và adapter test; T-019/T-020/T-032/T-033, không auto-link sai identity |
 | 2 — Venue/editor và review event | Catalog có capacity/bounds, editor React/SVG, layout frozen, session/TicketType/giá, review queue, lead time 1 tháng, expiry 15 ngày, notification và form phiếu | T-034–T-037, quyền Organization/report, không tự publish hoặc approve quá hạn; app notifications là MVP |
 | 3 — Hold/booking | Quota 6 ghế/1 phân bổ, TTL 5 phút, row locking, attendee snapshot, recovery request/key qua reload | T-001–T-005/T-012/T-027/T-028/T-031/T-038/T-041 trên MySQL thật |
@@ -28,7 +28,7 @@ Audit trước quyết định tổ chức/editor kết luận GO cho kiến tr�
 - M-02: danh sách refund thường xuyên thuộc Organizer; Admin chỉ theo report, T-030/T-040.
 - M-03: canonical hash gồm target/payload; checkout thêm attendee snapshot, T-027/T-038.
 - M-04: giữ metadata hold để replay sau reload, retention 24h đã duyệt; T-028.
-- ADR-013: model mới theo 23; đồng bộ SQL/ERD và chạy test trước implementation, không chỉ sửa Markdown rồi đánh dấu DB đúng.
+- ADR-013/014: model mới theo 23 đã có SQL/ERD và kiểm tra DB; implementation vẫn cần validator và transaction/service tests.
 
 ## Khi nào thêm công nghệ
 

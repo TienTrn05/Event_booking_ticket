@@ -1,6 +1,6 @@
 # 13. Chiến lược kiểm thử
 
-Chưa có code ứng dụng hoặc bộ test chính thức; đây là kế hoạch kiểm thử theo phase. DDL baseline trước Organization/review/layout mới đã qua 26 kiểm tra trên MySQL 8.0.46, gồm ràng buộc, truy vấn mẫu và race hai connection. Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
+Chưa có code ứng dụng hoặc bộ test chính thức; đây là kế hoạch kiểm thử theo phase. DDL hiện hành 38 bảng đã qua 67 kiểm tra trên MySQL 8.0.46 ngày 2026-09-13, gồm ràng buộc, seed/query và race hai connection cho ghế/OTP/admission. Chi tiết ở [database README](../database/README.md). Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
 
 ## Các lớp kiểm thử
 
@@ -83,4 +83,4 @@ Các ca T-027–T-031 là bổ sung đặc tả sau audit, **chưa được tri�
 | T-040 | Admin can thiệp không report/report đóng/sai tài nguyên bị từ chối; review role/event không cần report; Organizer xử lý refund của mình; audit actor và Organization/report đúng | FR-029, BR-041 |
 | T-041 | Hai request cùng user/session giữ nhóm khác, hoặc checkout rồi hold tiếp: không vượt quota 1; tối đa 6 ghế, callback/expiry nhả quota nguyên tử; không giữ khóa User ngược protocol | Q-002, 11 |
 
-T-032–T-041 là tiêu chí mới, chưa chạy. Phải kiểm thử DDL/ERD đã đồng bộ model mới trước kết luận DB đúng; kết quả baseline không chứng minh các ca này pass.
+T-032–T-041 chưa chạy đầy đủ ở tầng API/E2E. 67 kiểm tra SQL hiện hành xác minh phần FK/UQ/CHECK và một số tranh chấp DB tương ứng; không chứng minh validator domain/hình học/tháng lịch, quyền, job hay UI/form đã được triển khai.

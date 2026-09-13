@@ -1,51 +1,80 @@
 erDiagram
-    users {
+    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    auth_sessions {
         bigint id PK
-        varchar email_canonical
-        varchar status
-        int auth_version
+        bigint user_id FK
+        bigint identity_id FK
+        datetime expires_at
     }
-    roles {
+    external_identities {
         bigint id PK
-        varchar code
+        bigint user_id FK
+    }
+    organization_memberships {
+        bigint id PK
+        bigint organization_id FK
+        bigint user_id FK
+        bigint company_identity_id FK
+        varchar company_identity_provider FK
+        varchar status
+        bigint approved_by FK
+    }
+    organizations {
+        bigint id PK
+        varchar company_domain
+        bigint applicant_user_id FK
+        bigint company_identity_id FK
+        varchar company_identity_provider FK
+        varchar status
+        bigint reviewed_by FK
+    }
+    otp_challenges {
+        bigint id PK
+        bigint user_id FK
+        datetime expires_at
     }
     permissions {
         bigint id PK
-        varchar code
+        varchar code UK
+    }
+    refresh_tokens {
+        bigint id PK
+        bigint session_id FK
+        bigint parent_id FK,UK
+        datetime expires_at
+    }
+    role_permissions {
+        bigint role_id PK,FK
+        bigint permission_id PK,FK
+    }
+    roles {
+        bigint id PK
+        varchar code UK
     }
     user_roles {
         bigint user_id PK,FK
         bigint role_id PK,FK
         bigint granted_by FK
     }
-    role_permissions {
-        bigint role_id PK,FK
-        bigint permission_id PK,FK
-    }
-    auth_sessions {
+    users {
         bigint id PK
-        bigint user_id FK
-        datetime expires_at
+        varchar status
     }
-    refresh_tokens {
-        bigint id PK
-        bigint session_id FK
-        bigint parent_id FK
-        binary token_hash
-        datetime expires_at
-    }
-    verification_tokens {
-        bigint id PK
-        bigint user_id FK
-        binary token_hash
-        datetime expires_at
-    }
-    users ||--o{ user_roles : "user_id"
-    roles ||--o{ user_roles : "role_id"
-    users |o--o{ user_roles : "granted_by"
-    roles ||--o{ role_permissions : "role_id"
-    permissions ||--o{ role_permissions : "permission_id"
-    users ||--o{ auth_sessions : "user_id"
-    auth_sessions ||--o{ refresh_tokens : "session_id"
-    refresh_tokens |o--o| refresh_tokens : "parent_id"
-    users ||--o{ verification_tokens : "user_id"
+    external_identities ||..o{ auth_sessions : "identity_id,user_id"
+    users ||..o{ auth_sessions : "user_id"
+    users ||..o{ external_identities : "user_id"
+    users ||..o{ organization_memberships : "approved_by"
+    external_identities ||..o{ organization_memberships : "company_identity_id,user_id,company_identity_provider"
+    organizations ||..o{ organization_memberships : "organization_id"
+    users ||..o{ organization_memberships : "user_id"
+    users ||..o{ organizations : "applicant_user_id"
+    external_identities ||..o{ organizations : "company_identity_id,applicant_user_id,company_identity_provider"
+    users |o..o{ organizations : "reviewed_by"
+    users |o..o{ otp_challenges : "user_id"
+    refresh_tokens |o..o| refresh_tokens : "parent_id,session_id"
+    auth_sessions ||..o{ refresh_tokens : "session_id"
+    permissions ||..o{ role_permissions : "permission_id"
+    roles ||..o{ role_permissions : "role_id"
+    users |o..o{ user_roles : "granted_by"
+    roles ||..o{ user_roles : "role_id"
+    users ||..o{ user_roles : "user_id"

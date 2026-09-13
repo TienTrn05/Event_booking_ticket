@@ -1,4 +1,5 @@
--- @organizer_id lấy từ actor đã xác thực; service kiểm tra sales.read_own.
+-- @organization_id/@actor_user_id/@identity_id lấy từ phiên công ty đã xác thực.
+-- Service kiểm tra sales.read_own, domain công ty và scope; SQL không tự xác thực JWT.
 -- @from_utc, @to_utc lọc thời điểm xác nhận booking, khoảng [from,to).
 -- Báo cáo cohort booking; không phải báo cáo dòng tiền theo ngày hoàn.
 -- Chỉ khoản được booking chọn để xác nhận là doanh thu bán vé.
@@ -16,7 +17,16 @@ LEFT JOIN (
     SELECT payment_id, SUM(amount_minor) AS refunded_minor
     FROM refunds WHERE status = 'SUCCESS' GROUP BY payment_id
 ) AS r ON r.payment_id = p.id
-WHERE e.organizer_id = @organizer_id
+WHERE e.organization_id = @organization_id
+  AND EXISTS (
+      SELECT 1 FROM organization_memberships m
+      JOIN organizations o ON o.id=m.organization_id AND o.status='APPROVED'
+      JOIN external_identities i ON i.id=m.company_identity_id AND i.user_id=m.user_id
+      JOIN users u ON u.id=m.user_id AND u.status='ACTIVE'
+      WHERE m.organization_id=e.organization_id AND m.user_id=@actor_user_id
+        AND m.status='ACTIVE' AND i.id=@identity_id AND i.revoked_at IS NULL
+        AND i.email_verified_at IS NOT NULL
+  )
   AND b.status IN ('CONFIRMED','REFUNDED')
   AND b.confirmed_at >= @from_utc AND b.confirmed_at < @to_utc
 GROUP BY e.id, e.title, b.currency

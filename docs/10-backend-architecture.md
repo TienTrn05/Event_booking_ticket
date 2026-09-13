@@ -111,4 +111,4 @@ Phát hành Ticket là ghi DB trong transaction xác nhận MVP; tạo hình QR,
 
 Organization service xử lý application/membership/company identity; EventReview service submit/approve/reject/expiry và reason notice; Layout service validate bounds/capacity/scope/freeze; Ticket service tách CheckIn và admission; SupportReport service kiểm tra ngữ cảnh Admin can thiệp. Notification review và OTP/email adapter thuộc MVP, không còn chỉ là placeholder sau MVP.
 
-Các module vẫn ở cùng monolith/transaction context. Google/OTP proof được xác minh ở auth adapter/service, không trong controller hoặc repository. Không gọi SMS/email trong transaction. Frontend editor chỉ tạo DTO, backend phải validate hình học và scope; schema baseline cần cập nhật theo 20 trước viết repository mới.
+Các module vẫn ở cùng monolith/transaction context. Google/OTP proof được xác minh ở auth adapter/service, không trong controller hoặc repository. Không gọi SMS/email trong transaction. Frontend editor chỉ tạo DTO, backend phải validate hình học và scope; repository dùng schema hiện hành theo 20 và tuân thủ các bất biến service chưa được DDL tự thực thi.

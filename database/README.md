@@ -1,43 +1,46 @@
 # Thiết kế SQL MySQL
 
-**Baseline cũ:** các SQL trong thư mục này và 26 kiểm tra lịch sử có trước model Organization/review/layout/Google-OTP/CheckIn mới. Xem [checklist đồng bộ](../docs/20-physical-sql-design.md) và [nghiệp vụ hiện hành](../docs/23-organization-review-seatmap.md). Chỉ nạp để đối chiếu baseline, không dùng làm migration model mới.
-
-Đây là bản DDL có thể nạp vào **database rỗng để review và kiểm thử**, chưa phải migration đã duyệt cho production. Schema hiện có **27 bảng**. Không tạo backend/frontend trong phạm vi này.
+Schema hiện hành có **38 bảng**, đồng bộ Organization, Google/OTP, venue/layout, duyệt sự kiện và check-in tách admission theo [23](../docs/23-organization-review-seatmap.md). DDL dành cho **database rỗng để review**, chưa phải migration nâng cấp DB cũ hoặc database production đã triển khai. Không có backend/frontend trong phạm vi này.
 
 ## Các file
 
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | Bảng, PK/FK/UQ/CHECK, chỉ mục, generated guard |
-| [001-reference-data.sql](seeds/001-reference-data.sql) | Từ điển 3 role và 24 permission; không tạo user/cấp quyền |
-| [01-session-inventory.sql](queries/01-session-inventory.sql) | Đọc sơ đồ ghế, giá, tình trạng khả dụng |
-| [02-organizer-sales.sql](queries/02-organizer-sales.sql) | Doanh số trong phạm vi Organizer, tách hoàn tiền |
-| [03-integrity-audit.sql](queries/03-integrity-audit.sql) | Phát hiện bất biến liên bảng bị vi phạm, chỉ đọc |
+| [schema.sql](schema.sql) | PK/FK/UQ/CHECK, index và generated guard |
+| [001-reference-data.sql](seeds/001-reference-data.sql) | 3 role, 29 permission và ánh xạ; không tạo user/cấp UserRole |
+| [002-demo-venues.sql](seeds/002-demo-venues.sql) | Catalog giả tùy chọn cho demo editor, có bounds/capacity |
+| [01-session-inventory.sql](queries/01-session-inventory.sql) | Ghế theo layout, loại vé, giá và khả dụng |
+| [02-organizer-sales.sql](queries/02-organizer-sales.sql) | Sales theo tổ chức/đại diện, tách refund trước aggregate |
+| [03-integrity-audit.sql](queries/03-integrity-audit.sql) | Kiểm tra liên bảng chỉ đọc, không tự sửa lịch sử |
+| [04-review-work-queue.sql](queries/04-review-work-queue.sql) | Hồ sơ chờ duyệt/hết hạn và phiếu lý do DRAFT |
 
-Giải thích mô hình: [20 — Thiết kế SQL vật lý](../docs/20-physical-sql-design.md). Giao thức transaction: [21 — SQL và transaction](../docs/21-sql-transactions.md). [Mở bộ sơ đồ](../docs/diagrams/index.html).
+Chi tiết [20 — SQL vật lý](../docs/20-physical-sql-design.md), [21 — Transaction](../docs/21-sql-transactions.md), [bộ sơ đồ](../docs/diagrams/index.html).
 
 ## Nạp bằng MySQL client hoặc Workbench
 
-Yêu cầu cú pháp: MySQL 8.0.16 trở lên với CHECK được thực thi; nhánh đích đề xuất 8.4, chưa chốt phiên bản production Q-016. Không kết luận tương thích MariaDB từ kết quả MySQL.
-
-Trong MySQL client, kết nối database thử rỗng do bạn tự tạo/chọn; đặt charset UTF-8 và timezone UTC, rồi SOURCE theo thứ tự:
+Cú pháp yêu cầu MySQL 8.0.16+ có CHECK được thực thi. Đã kiểm tra trên 8.0.46; chưa xác nhận MariaDB hoặc môi trường production 8.4. Kết nối database thử **rỗng do bạn tự tạo/chọn**, UTF-8 và UTC:
 
 ```sql
 SOURCE database/schema.sql;
 SOURCE database/seeds/001-reference-data.sql;
+-- Tùy chọn, chỉ dữ liệu giả:
+SOURCE database/seeds/002-demo-venues.sql;
 SHOW TABLES;
 ```
 
-`SOURCE` là lệnh client, không phải SQL gửi qua API. Với Workbench: chọn schema thử rỗng làm default, mở và chạy `schema.sql`, sau đó seed. File không có `USE` cố định, không DROP/TRUNCATE, không tắt foreign key checks. Không dùng `--force` để bỏ qua lỗi. Nếu DDL lỗi giữa chừng, không chạy lại mù quáng trong schema đã tạo một phần; xem lỗi và dùng schema thử rỗng khác.
+SOURCE là lệnh MySQL client. Workbench: chọn schema thử rỗng làm default, chạy schema rồi seed. Không có USE cố định, DROP/TRUNCATE hoặc tắt FK checks; không dùng --force để bỏ qua lỗi. Nếu DDL lỗi giữa chừng, kiểm tra lỗi và dùng database thử rỗng khác. MySQL DDL có implicit commit; không thể rollback toàn file bằng transaction bọc ngoài. Khi triển khai cần migration versioned, runner/checksum và kế hoạch dữ liệu cũ riêng.
 
-DDL MySQL có implicit commit; transaction bọc ngoài không đảm bảo rollback toàn file. Khi bước vào triển khai, chuyển thiết kế đã duyệt thành migration versioned với checksum và migration runner đã chọn; chưa tạo down migration xóa dữ liệu.
+## Kiểm chứng ngày 2026-09-13
 
-## Kiểm chứng đã thực hiện
+**67 kiểm tra đạt trên MySQL 8.0.46**, InnoDB trong datadir riêng, chỉ dữ liệu tổng hợp:
 
-Schema đã qua 26 kiểm tra trên MySQL 8.0.46 trong database tạm, gồm ràng buộc, truy vấn mẫu và tranh chấp ghế giữa hai connection. Công cụ/script và báo cáo máy sinh dùng trong lần kiểm tra đó đã được dọn theo yêu cầu; repo không kèm runner để chạy lại tự động.
+- Nạp đủ 38 bảng vào database rỗng; seed chạy hai lần, 29 quyền, không cấp UserRole, không FK cascade xóa lịch sử.
+- Identity/company/user/session scope, OTP attempts/purpose, nhiều thiết bị và refresh parent cùng phiên.
+- Organization, layout/row/seat/session/type scope, capacity/dimensions, allocation, booking/hold owner, attendee, tiền, UQ payment/ticket.
+- Review pending/version guard, hạn 15 ngày, reject approve đúng điểm expiry, publish theo bản được duyệt; phiếu lý do, notification dedupe, report đúng event và rollback review/phiếu.
+- Hai connection cạnh tranh cùng ghế, consume OTP và admission: mỗi ca chỉ một thao tác thắng.
+- Bốn query chạy được; inventory trả ghế/type, sales đúng receipt và loại actor ngoài scope; audit sạch với fixture hợp lệ và phát hiện ghế vượt canvas.
 
-Kết quả này không chứng minh API, phân quyền, provider hay policy đã được triển khai, chưa thay bộ concurrency/E2E dự kiến ở [13](../docs/13-testing-strategy.md).
+Đây không phải kiểm thử ứng dụng, Google/SMS/email thật, validator hình học, tính tháng lịch ở backend hoặc bộ T-032–T-041 đầy đủ. Quyền Admin theo report, layout frozen bất biến, quota và đồng bộ notification/outbox vẫn cần service/transaction theo 20/21. Dữ liệu dùng VND trong fixture chỉ để kiểm tra định dạng/tính tổng, không chốt currency kinh doanh.
 
-## Chính sách còn mở
-
-TTL/quota không được seed hay hardcode trong schema. Currency không có default; service phải truyền currency đã duyệt. Các cấu trúc một suất/booking, ownership venue, full refund và check-in một lần là **phương án thiết kế** theo Q-004/Q-007/Q-008/Q-009; việc cung cấp DDL không có nghĩa đã duyệt các chính sách đó. Seed không cấp quyền khi Q-005 còn mở.
+Công cụ/script kiểm thử, dependencies, datadir/log và process tạm được dọn sau kiểm tra theo PROJECT_RULES; không kèm runner phụ trợ trong repo. Sản phẩm giữ lại là SQL, tài liệu và Mermaid/SVG/gallery.

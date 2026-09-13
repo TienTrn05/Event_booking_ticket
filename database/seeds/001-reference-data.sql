@@ -1,35 +1,53 @@
--- Chỉ từ điển vai trò/quyền; không tạo user, không cấp role hoặc map role_permissions.
--- Q-005 còn mở. Chạy lại an toàn nhưng không tự ghi đè mô tả đã chỉnh.
+-- Theo ma trận docs/03; chỉ từ điển và ánh xạ role, KHÔNG tạo user/cấp UserRole.
+-- Permission không thay kiểm tra membership/company session hoặc report tại service.
+-- Admin event.cancel_own/refund.approve chỉ trong report liên quan OPEN/IN_REVIEW.
+-- Nạp lại không ghi đè mô tả hay xóa cấu hình đã có; thay policy cần migration riêng.
 SET NAMES utf8mb4;
 START TRANSACTION;
-INSERT INTO roles (code, name) VALUES
-('CUSTOMER','Khách mua vé'), ('ORGANIZER','Nhà tổ chức'), ('ADMIN','Quản trị viên')
-ON DUPLICATE KEY UPDATE code = roles.code;
-
-INSERT INTO permissions (code, description) VALUES
-('event.read_public','Xem sự kiện công khai'),
-('profile.update_self','Cập nhật hồ sơ của mình'),
-('seat.hold','Giữ ghế cho mình'),
-('booking.create','Tạo đơn của mình'),
-('booking.read_self','Xem đơn của mình'),
-('ticket.read_self','Xem vé của mình'),
-('refund.request_self','Yêu cầu hoàn tiền theo chính sách'),
-('event.create','Tạo sự kiện'),
-('event.update_own','Sửa sự kiện sở hữu'),
-('event.publish_own','Publish sự kiện sở hữu'),
-('event.cancel_own','Hủy sự kiện sở hữu theo chính sách'),
-('venue.manage_own','Quản lý địa điểm thuộc quyền'),
-('sales.read_own','Xem doanh số sở hữu'),
-('ticket.checkin_own','Check-in vé của sự kiện sở hữu'),
-('organizer.approve','Duyệt nhà tổ chức'),
-('user.block','Khóa và mở khóa tài khoản'),
-('role.assign','Cấp hoặc thu hồi vai trò'),
-('user.manage','Quản lý danh sách người dùng'),
-('category.manage','Quản lý danh mục'),
-('event.block_any','Chặn sự kiện với lý do'),
-('refund.approve','Duyệt, từ chối, thử lại khoản hoàn'),
-('booking.read_support','Xem đơn trong phạm vi hỗ trợ có audit'),
-('audit.read','Đọc lịch sử audit'),
-('statistics.read_system','Xem thống kê toàn hệ thống')
-ON DUPLICATE KEY UPDATE code = permissions.code;
+INSERT INTO roles (code,name) VALUES
+('CUSTOMER','Khách mua vé'),('ORGANIZER','Đại diện tổ chức'),('ADMIN','Quản trị viên')
+ON DUPLICATE KEY UPDATE code=roles.code;
+INSERT INTO permissions (code,description) VALUES
+('audit.read','audit.read — phạm vi theo docs/03'),
+('booking.create','booking.create — phạm vi theo docs/03'),
+('booking.read_self','booking.read_self — phạm vi theo docs/03'),
+('booking.read_support','booking.read_support — phạm vi theo docs/03'),
+('event.block_any','event.block_any — phạm vi theo docs/03'),
+('event.cancel_own','event.cancel_own — phạm vi theo docs/03'),
+('event.create','event.create — phạm vi theo docs/03'),
+('event.read_public','event.read_public — phạm vi theo docs/03'),
+('event.review','event.review — phạm vi theo docs/03'),
+('event.submit_own','event.submit_own — phạm vi theo docs/03'),
+('event.update_own','event.update_own — phạm vi theo docs/03'),
+('layout.manage_own','layout.manage_own — phạm vi theo docs/03'),
+('organization.apply','organization.apply — phạm vi theo docs/03'),
+('organizer.approve','organizer.approve — phạm vi theo docs/03'),
+('profile.update_self','profile.update_self — phạm vi theo docs/03'),
+('refund.approve','refund.approve — phạm vi theo docs/03'),
+('refund.request_self','refund.request_self — phạm vi theo docs/03'),
+('report.create','report.create — phạm vi theo docs/03'),
+('report.handle','report.handle — phạm vi theo docs/03'),
+('role.assign','role.assign — phạm vi theo docs/03'),
+('sales.read_own','sales.read_own — phạm vi theo docs/03'),
+('seat.hold','seat.hold — phạm vi theo docs/03'),
+('statistics.read_system','statistics.read_system — phạm vi theo docs/03'),
+('ticket.checkin_own','ticket.checkin_own — phạm vi theo docs/03'),
+('ticket.checkin_self','ticket.checkin_self — phạm vi theo docs/03'),
+('ticket.read_self','ticket.read_self — phạm vi theo docs/03'),
+('ticket_type.manage_own','ticket_type.manage_own — phạm vi theo docs/03'),
+('user.block','user.block — phạm vi theo docs/03'),
+('venue.read_catalog','venue.read_catalog — phạm vi theo docs/03')
+ON DUPLICATE KEY UPDATE code=permissions.code;
+INSERT INTO role_permissions (role_id,permission_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code='CUSTOMER' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','seat.hold','booking.create','booking.read_self','ticket.read_self','ticket.checkin_self','refund.request_self','report.create','organization.apply')
+ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
+INSERT INTO role_permissions (role_id,permission_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code='ORGANIZER' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','event.create','event.update_own','event.submit_own','event.cancel_own','layout.manage_own','ticket_type.manage_own','sales.read_own','ticket.checkin_own','refund.approve','report.create','report.handle')
+ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
+INSERT INTO role_permissions (role_id,permission_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
+WHERE r.code='ADMIN' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
+ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
 COMMIT;

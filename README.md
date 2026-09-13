@@ -2,13 +2,13 @@
 
 Dự án cá nhân xây dựng nền tảng đặt vé sự kiện, hướng đến tính đúng đắn, bảo mật và khả năng vận hành thực tế.
 
-**Trạng thái:** đặc tả và thiết kế kỹ thuật trước triển khai ứng dụng. Đã có sơ đồ SVG/Mermaid, schema SQL và kiểm tra schema trên MySQL tạm; chưa có backend/frontend hoặc database production. Quyết định nghiệp vụ đã cập nhật theo chủ dự án; phần còn mở ghi ở docs/18. SQL/ERD/SVG hiện có là baseline trước model Organization/review/layout/Google-OTP/CheckIn mới, cần đồng bộ trước implementation.
+**Trạng thái:** đặc tả và thiết kế kỹ thuật trước triển khai ứng dụng. Đã có sơ đồ SVG/Mermaid, schema SQL và kiểm tra schema trên MySQL tạm; chưa có backend/frontend hoặc database production. Quyết định nghiệp vụ đã cập nhật theo chủ dự án; phần còn mở ghi ở docs/18. SQL 38 bảng, seed/query và Mermaid/SVG đã đồng bộ model hiện hành; 67 kiểm tra DB đạt trên MySQL 8.0.46, xem database/README.md.
 
 Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScript; MySQL; REST API; JWT; Modular Monolith.
 
 ## Bắt đầu đọc
 
-**Xem nhanh:** [Bộ 18 sơ đồ mở offline](docs/diagrams/index.html) · [Schema MySQL](database/schema.sql) · [Hướng dẫn SQL và kiểm thử](database/README.md).
+**Xem nhanh:** [Bộ 19 sơ đồ mở offline](docs/diagrams/index.html) · [Schema MySQL](database/schema.sql) · [Hướng dẫn SQL và kiểm thử](database/README.md).
 
 1. [Quy tắc dự án](PROJECT_RULES.md).
 2. [Tổng quan](docs/01-project-overview.md) và [yêu cầu](docs/02-requirements.md).

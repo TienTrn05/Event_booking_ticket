@@ -1,28 +1,58 @@
 erDiagram
-    users {
+    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    booking_items {
         bigint id PK
-        varchar email_canonical
+        bigint booking_id FK
+        bigint session_seat_id FK
+        bigint session_id FK
+    }
+    bookings {
+        bigint id PK,FK
+        bigint customer_id FK
+        bigint session_id FK
+        bigint event_id FK
+        bigint hold_id FK,UK
         varchar status
-        int auth_version
+        datetime expires_at
+        bigint confirmed_payment_id FK
+    }
+    check_ins {
+        bigint id PK
+        bigint ticket_id FK,UK
+        bigint actor_id FK
+        datetime checked_in_at
     }
     event_sessions {
         bigint id PK
-        bigint event_id FK
-        bigint venue_id FK
-        datetime starts_at
-        datetime ends_at
-        varchar status
     }
-    session_seats {
+    events {
+        bigint id PK,FK
+    }
+    payments {
         bigint id PK
-        bigint session_id FK
-        bigint seat_id FK
-        bigint price_minor
-        char currency
+        bigint booking_id FK
         varchar status
+        bigint pending_booking_guard UK
+    }
+    refunds {
+        bigint id PK
+        bigint payment_id FK
+        bigint requested_by FK
+        bigint approved_by FK
+        bigint support_report_id FK
+        varchar status
+        varchar provider FK
+        bigint full_refund_guard UK
+    }
+    reservation_quotas {
+        bigint customer_id PK,FK
+        bigint session_id PK,FK
+    }
+    seat_hold_items {
+        bigint id PK
         bigint hold_id FK
-        bigint current_booking_id FK
-        datetime hold_expires_at
+        bigint session_seat_id FK
+        bigint session_id FK
     }
     seat_holds {
         bigint id PK
@@ -31,82 +61,69 @@ erDiagram
         varchar status
         datetime expires_at
     }
-    seat_hold_items {
+    seats {
         bigint id PK
-        bigint hold_id FK
-        bigint session_seat_id FK
-        bigint session_id FK
-        bigint price_minor
-        char currency
     }
-    bookings {
+    session_seats {
         bigint id PK
-        bigint customer_id FK
         bigint session_id FK
-        bigint hold_id FK
+        bigint seat_id FK
+        bigint layout_id FK
+        bigint ticket_type_id FK
         varchar status
-        bigint total_minor
-        char currency
-        datetime expires_at
-        bigint confirmed_payment_id FK
+        bigint hold_id FK
+        bigint current_booking_id FK
     }
-    booking_items {
+    support_reports {
         bigint id PK
-        bigint booking_id FK
-        bigint session_seat_id FK
-        bigint session_id FK
-        bigint price_minor
-        char currency
     }
-    payments {
+    ticket_types {
         bigint id PK
-        bigint booking_id FK
-        varchar provider_reference
-        varchar provider_key
-        bigint amount_minor
-        char currency
-        varchar status
-        varchar reconciliation_status
-        bigint pending_booking_guard
     }
     tickets {
-        bigint id PK
-        bigint booking_item_id FK
+        bigint id PK,FK
+        bigint booking_item_id FK,UK
         bigint session_seat_id FK
-        binary qr_token_hash
+        binary ticket_code_hash UK
         varchar status
-        bigint checked_in_by FK
-        bigint active_seat_guard
+        bigint admission_check_in_id FK
+        datetime admitted_at
+        bigint admitted_by FK
+        bigint active_seat_guard UK
     }
-    refunds {
+    users {
         bigint id PK
-        bigint payment_id FK
-        bigint requested_by FK
-        bigint approved_by FK
-        varchar status
-        bigint amount_minor
-        varchar provider FK
-        varchar provider_key
-        varchar provider_reference
-        bigint full_refund_guard
     }
-    event_sessions ||--o{ session_seats : "session_id"
-    seat_holds |o--o{ session_seats : "hold_id"
-    bookings |o--o{ session_seats : "current_booking_id"
-    users ||--o{ seat_holds : "customer_id"
-    event_sessions ||--o{ seat_holds : "session_id"
-    seat_holds ||--o{ seat_hold_items : "hold_id"
-    session_seats ||--o{ seat_hold_items : "session_seat_id"
-    seat_holds ||--o| bookings : "hold_id"
-    users ||--o{ bookings : "customer_id"
-    event_sessions ||--o{ bookings : "session_id"
-    payments |o--o| bookings : "confirmed_payment_id"
-    bookings ||--o{ booking_items : "booking_id"
-    session_seats ||--o{ booking_items : "session_seat_id"
-    bookings ||--o{ payments : "booking_id"
-    booking_items ||--o| tickets : "booking_item_id"
-    session_seats ||--o{ tickets : "session_seat_id"
-    users |o--o{ tickets : "checked_in_by"
-    payments ||--o{ refunds : "payment_id"
-    users |o--o{ refunds : "requested_by"
-    users |o--o{ refunds : "approved_by"
+    bookings ||..o{ booking_items : "booking_id,session_id"
+    session_seats ||..o{ booking_items : "session_seat_id,session_id"
+    events ||..o{ bookings : "event_id"
+    event_sessions ||..o{ bookings : "session_id,event_id"
+    payments |o..o| bookings : "confirmed_payment_id,id"
+    users ||..o{ bookings : "customer_id"
+    seat_holds ||..o| bookings : "hold_id,customer_id,session_id"
+    event_sessions ||..o{ bookings : "session_id"
+    users ||..o{ check_ins : "actor_id"
+    tickets ||..o| check_ins : "ticket_id"
+    bookings ||..o{ payments : "booking_id"
+    support_reports |o..o{ refunds : "support_report_id"
+    users |o..o{ refunds : "approved_by"
+    payments ||..o{ refunds : "payment_id,provider"
+    users |o..o{ refunds : "requested_by"
+    users ||..o{ reservation_quotas : "customer_id"
+    event_sessions ||..o{ reservation_quotas : "session_id"
+    seat_holds ||..o{ seat_hold_items : "hold_id,session_id"
+    session_seats ||..o{ seat_hold_items : "session_seat_id,session_id"
+    users ||..o{ seat_holds : "customer_id"
+    event_sessions ||..o{ seat_holds : "session_id"
+    bookings |o..o{ session_seats : "current_booking_id,session_id"
+    seat_holds |o..o{ session_seats : "hold_id,session_id"
+    seats ||..o{ session_seats : "seat_id"
+    event_sessions ||..o{ session_seats : "session_id"
+    bookings |o..o{ session_seats : "current_booking_id,hold_id,session_id"
+    seats ||..o{ session_seats : "seat_id,layout_id"
+    event_sessions ||..o{ session_seats : "session_id,layout_id"
+    ticket_types ||..o{ session_seats : "ticket_type_id,session_id"
+    check_ins |o..o| tickets : "admission_check_in_id,id"
+    users |o..o{ tickets : "admitted_by"
+    booking_items ||..o| tickets : "booking_item_id,session_seat_id"
+    session_seats ||..o{ tickets : "session_seat_id"

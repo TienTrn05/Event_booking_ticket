@@ -114,7 +114,7 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 
 ## ADR-013 — Tổ chức, Google/OTP, review có hạn và layout tự thiết kế
 
-- **Trạng thái:** yêu cầu nghiệp vụ đã xác nhận bởi chủ dự án ngày 2026-09-12, gồm câu trả lời làm rõ trong cùng hội thoại. Thiết kế kỹ thuật Markdown đã cập nhật; SQL/ERD/app chưa triển khai tương ứng.
+- **Trạng thái:** yêu cầu nghiệp vụ đã xác nhận bởi chủ dự án ngày 2026-09-12, gồm câu trả lời làm rõ trong cùng hội thoại. Thiết kế kỹ thuật Markdown đã cập nhật. SQL/ERD được hoàn tất tiếp tại ADR-014; app chưa triển khai.
 - **Bối cảnh:** Organizer phải là tổ chức, Admin duyệt role và event, không vận hành thay Organizer; khách dùng Google/OTP và check-in kiểu sân bay; venue có catalog/giới hạn nhưng layout do Organizer tạo.
 - **Quyết định:** User đại diện Organization bằng membership được Admin duyệt và email công ty xác minh; Customer Google/phone OTP, công ty Google Workspace hoặc email OTP, session đa thiết bị. Organization sở hữu event/layout, venue là catalog chung.
 - **Review:** gửi ít nhất một tháng lịch trước session sớm nhất; EventReview 15 ngày; chỉ Admin approve đúng bản còn hạn mới PUBLISHED. Expiry hủy hồ sơ, gửi notification tự động và tạo việc soạn phiếu; Admin dùng form để soạn/gửi lý do thật. Không tự approve, không biến hủy hồ sơ thành hủy vé đã bán.
@@ -125,3 +125,15 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Giữ nguyên:** modular monolith, MySQL, transactions, row locks, idempotency, atomic ticket issuance, outbox và failure recovery. QR vẫn opaque; code nhập tay có thể là cùng secret ở dạng biểu diễn khác.
 - **Đánh đổi:** thêm bảng/flow vì yêu cầu cụ thể của chủ dự án; editor/review/OTP/notification là MVP có thêm công việc, không giữ kết luận scope cũ để bỏ chúng. Không cần chuyển microservices hoặc thêm broker.
 - **Kiểm chứng:** T-032–T-041 và baseline tests còn liên quan; đồng bộ DDL/ERD/seed/query theo [20](20-physical-sql-design.md) trước implementation. Thông số chưa có giá trị cụ thể ở Q-003/Q-004/Q-009/Q-012/... vẫn không tự suy diễn.
+
+## ADR-014 — Đồng bộ SQL vật lý theo quyết định chủ dự án
+
+- **Trạng thái:** chấp nhận thiết kế; DDL/seed/query/ERD/SVG hoàn tất ngày 2026-09-13, chưa phải migration production hay ứng dụng chạy được.
+- **Vấn đề:** baseline 27 bảng còn Organizer cá nhân, venue sở hữu riêng, password và check-in đồng nghĩa vào cửa, trái ADR-013.
+- **Quyết định:** 38 bảng theo [20](20-physical-sql-design.md). Identity provider/subject, OTP MAC/binding, Organization/Membership với company identity, EventReview/ReasonNotice/Notification/SupportReport, layout catalog snapshots, TicketType, ReservationQuota, CheckIn riêng. Seed 29 permission theo ma trận 03, không cấp UserRole.
+- **Scope FK:** identity đúng người/provider; layout đúng tổ chức/event/venue; ghế và type đúng session/layout; booking đúng hold/customer/session/event; report booking đúng event. Event published trỏ bản APPROVED bằng composite FK, USED trỏ CheckIn của chính vé. Các snapshot/version hiện hành và quyền người thao tác vẫn cần service kiểm tra dưới khóa.
+- **Credential:** một secret vé dùng chung mã nhập tay và QR, hash/ciphertext/key-version; bỏ hai tập QR/ticket credential trùng chức năng. Không lưu dữ liệu thẻ ngân hàng hay giấy tờ.
+- **Thời gian:** CHECK review hạn đúng 15×24h và quyết định trước expiry; cutoff một tháng lịch có timezone/clamp do service tính, không tin client. Online check-in T-24h và các window do service áp dụng. Counter đóng không sau admission đóng; admission đóng không sau ends_at.
+- **Giữ nguyên:** generated guard tiền/vé, một confirmed_payment_id, ghi nhận mọi receipt và reconciliation, outbox fencing, lịch sử không cascade xóa. Không triggers tự publish/expire hoặc gửi mạng từ DB.
+- **Kiểm chứng:** nạp schema rỗng MySQL 8.0.46 và 67 kiểm tra đạt: seed/query, FK/UQ/CHECK và ba race hai connection (seat/OTP/admission). Không đánh dấu API/E2E T-032–T-041 pass. 38 bảng/FK đối chiếu ERD và xuất lại SVG/gallery; công cụ/datadir tạm được dọn theo quy tắc dự án.
+- **Hệ quả:** backend cần triển khai scope, immutable snapshots, quota, geometry, calendar cutoff, form Admin, notification/expiry transactions theo 21/23; lựa chọn currency/hạ tầng còn mở theo 18. DDL chỉ cho database rỗng, dữ liệu cũ cần migration riêng.

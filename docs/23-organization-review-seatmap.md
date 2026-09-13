@@ -82,9 +82,9 @@ Một bản frozen không bị PATCH/DELETE; nếu cần sửa khi event còn nh
 
 ## 7. Ảnh hưởng dữ liệu và giới hạn bàn giao
 
-Cần bổ sung Organization/membership, ExternalIdentity/OTP challenge, EventReview/ReasonNotice/Notification, SupportReport, SeatLayout, TicketType và CheckIn; đổi ownership Event từ User sang Organization, thêm tên attendee và mã vé. Chi tiết logic ở [08](08-database-design.md); hợp đồng API ở [09](09-api-design.md).
+DDL đã bổ sung Organization/membership, ExternalIdentity/OTP challenge, EventReview/ReasonNotice/Notification, SupportReport, SeatLayout, TicketType và CheckIn; đổi ownership Event từ User sang Organization, thêm tên attendee và mã vé. Chi tiết logic ở [08](08-database-design.md); hợp đồng API ở [09](09-api-design.md).
 
-`database/schema.sql`, các query/seed SQL và ERD/SVG hiện có là **baseline trước quyết định này**, không phải DDL hiện hành để triển khai model mới. [20](20-physical-sql-design.md) liệt kê thay đổi cần thực hiện; không chạy baseline làm migration mới. Đợt này cập nhật Markdown, chưa sửa SQL hoặc giả tuyên bố kiểm thử model mới. Auth/check-in/deadline đã được làm rõ trong hội thoại và cập nhật ở đây. Đồng bộ DDL/ERD và kiểm thử mới theo hợp đồng này trước triển khai ứng dụng.
+`database/schema.sql` hiện có 38 bảng; seed/query và ERD/SVG đã đồng bộ theo ADR-014 ngày 2026-09-13. [20](20-physical-sql-design.md) phân biệt ràng buộc DB với policy cần backend. 67 kiểm tra DB đã đạt trên MySQL 8.0.46; chưa có ứng dụng, validator editor hoặc form web chạy thực tế. DDL dùng cho database rỗng, không phải migration nâng cấp dữ liệu cũ.
 
 
 ## 8. Mẫu phiếu để dựng form Admin

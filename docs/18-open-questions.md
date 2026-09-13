@@ -38,6 +38,6 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 
 [23](23-organization-review-seatmap.md) là mô tả chi tiết, [03](03-user-roles-permissions.md)/[04](04-authentication-authorization.md)/[07](07-business-rules.md)/[08](08-database-design.md)/[09](09-api-design.md)/[22](22-frontend-architecture.md) là hợp đồng hiện hành. ADR-013 ghi thay đổi nguồn yêu cầu.
 
-SQL/ERD hiện có là baseline trước quyết định mới; chưa dùng làm migration model mới. Checklist đồng bộ tại [20](20-physical-sql-design.md), kiểm thử cần bổ sung ở [13](13-testing-strategy.md). Chấp thuận nghiệp vụ không có nghĩa đã deploy, gửi OTP/email thật hoặc cấp tài khoản ngoài hệ thống.
+SQL/ERD đã đồng bộ theo ADR-014 và kiểm tra DB tạm; chưa phải migration production. Phạm vi và bất biến service tại [20](20-physical-sql-design.md), kiểm thử cần bổ sung ở [13](13-testing-strategy.md). Chấp thuận nghiệp vụ không có nghĩa đã deploy, gửi OTP/email thật hoặc cấp tài khoản ngoài hệ thống.
 
 Khi chốt phần còn mở, giữ Q ID, ghi người/ngày/đáp án và cập nhật tài liệu phụ thuộc; không xin duyệt lại các phần RESOLVED.

@@ -16,7 +16,7 @@ UserRole có nhiều role tường minh; Organizer/Admin muốn mua cần Custom
 
 ## Ma trận quyền
 
-Các permission mới là hợp đồng logic; seed/DDL baseline phải cập nhật trước implementation.
+Seed hiện hành có 29 permission và ánh xạ theo ma trận này. Seed không cấp UserRole; membership, phiên công ty và report vẫn phải kiểm tra tại service.
 
 | Permission / hành động | Customer | Organizer | Admin |
 | --- | --- | --- | --- |

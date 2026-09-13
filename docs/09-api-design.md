@@ -1,6 +1,6 @@
 # 09. Thiết kế REST API
 
-Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract mới; SQL/ERD baseline chưa đồng bộ.
+Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014. API chưa được triển khai.
 
 ## Quy ước chung
 

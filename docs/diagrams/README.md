@@ -1,6 +1,6 @@
 # Bộ sơ đồ hệ thống
 
-**Phiên bản baseline:** Mermaid/SVG/gallery xuất sẵn chưa bao phủ quyết định mới về Organization, review, layout, Google/OTP và CheckIn riêng. Xem [model hiện hành](../23-organization-review-seatmap.md); cần đồng bộ DDL/ERD và xuất lại trước dùng các ảnh này làm thiết kế triển khai. Các chỉ dẫn dưới đây mô tả bộ baseline.
+**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014 ngày 2026-09-13, gồm Organization, review, layout, Google/OTP và CheckIn riêng. Bốn ERD đối chiếu 38 bảng và các FK vật lý của schema.sql. Chưa phải ứng dụng đã triển khai.
 
 Mở [trang xem sơ đồ offline](index.html), hoặc xem các ảnh SVG dưới đây. Nguồn Mermaid là file cùng tên đuôi .mmd; ERD được sinh từ [schema SQL](../../database/schema.sql).
 
@@ -78,11 +78,11 @@ Hướng dẫn, phạm vi và các quyết định còn mở: [19 — Sơ đồ 
 
 ![12 · Đăng nhập và luân chuyển token](svg/12-auth-refresh.svg)
 
-## 13 · Hoàn tiền và check-in đồng thời
+## 13 · Hoàn tiền và admission đồng thời
 
 [Nguồn Mermaid](13-refund-checkin.mmd) · [SVG](svg/13-refund-checkin.svg)
 
-![13 · Hoàn tiền và check-in đồng thời](svg/13-refund-checkin.svg)
+![13 · Hoàn tiền và admission đồng thời](svg/13-refund-checkin.svg)
 
 ## 14 · Vòng đời booking
 
@@ -113,3 +113,9 @@ Hướng dẫn, phạm vi và các quyết định còn mở: [19 — Sơ đồ 
 [Nguồn Mermaid](18-authorization.mmd) · [SVG](svg/18-authorization.svg)
 
 ![18 · Kiểm tra quyền và ownership](svg/18-authorization.svg)
+
+## 19 · Duyệt sự kiện và phiếu lý do
+
+[Nguồn Mermaid](19-event-review.mmd) · [SVG](svg/19-event-review.svg)
+
+![19 · Duyệt sự kiện và phiếu lý do](svg/19-event-review.svg)

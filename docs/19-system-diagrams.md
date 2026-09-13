@@ -1,6 +1,6 @@
 # 19. Bộ sơ đồ hệ thống
 
-**Phiên bản baseline:** Mermaid/SVG/gallery xuất sẵn chưa bao phủ quyết định mới về Organization, review, layout, Google/OTP và CheckIn riêng. Xem [model hiện hành](23-organization-review-seatmap.md); cần đồng bộ DDL/ERD và xuất lại trước dùng các ảnh này làm thiết kế triển khai. Các chỉ dẫn dưới đây mô tả bộ baseline.
+**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014 ngày 2026-09-13, gồm Organization, review, layout, Google/OTP và CheckIn riêng. Bốn ERD đối chiếu 38 bảng và các FK vật lý của schema.sql. Chưa phải ứng dụng đã triển khai.
 
 ## Xem sơ đồ
 
@@ -13,18 +13,20 @@
 | Trình tự giao dịch | 09 Booking, 10 Seat race, 11 Late payment | FR-013–FR-023, BR-001–BR-019; [11](11-booking-concurrency.md) |
 | Bảo mật và tiền/vé | 12 Auth refresh, 13 Refund/check-in, 18 Authorization | FR-002/FR-015/FR-018/FR-020, [04](04-authentication-authorization.md) |
 | Vòng đời | 14 Booking, 15 Payment/refund, 16 Ticket/seat/hold | [07](07-business-rules.md) |
+| Duyệt sự kiện | 19 Event review, expiry và phiếu lý do | [23](23-organization-review-seatmap.md), [21](21-sql-transactions.md) |
 | Phục hồi | 17 Outbox worker | NFR-002/NFR-011; ADR-006/ADR-011 |
 
-Sơ đồ use case dùng flowchart với các oval biểu diễn use case; đây không phải tuyên bố UML đầy đủ. Context/components/deployment là các góc nhìn kiến trúc, không tự thêm service triển khai độc lập.
+Sơ đồ use case dùng flowchart biểu diễn tác nhân và hành động; đây không phải tuyên bố UML đầy đủ. Context/components/deployment là các góc nhìn kiến trúc, không tự thêm service triển khai độc lập.
 
 ## Quy ước đọc
 
 - Nét liền là quan hệ/luồng đang được thiết kế cho MVP; nét đứt trong context/deployment là tích hợp sau MVP hoặc còn quyết định.
 - ERD dùng đúng tên bảng/cột snake_case trong SQL, chỉ hiển thị cột trọng yếu để đọc được. Danh sách cột đầy đủ ở schema, không sửa SQL dựa vào việc một cột không được vẽ.
-- PK = khóa chính, FK = khóa ngoại; crow's foot là nhiều, vòng tròn là có thể không có. Một số bảng xuất hiện ở nhiều ERD vì là điểm nối giữa module.
+- Nét đứt trong ERD là đường quan hệ vật lý để dễ phân biệt với luồng; không biểu diễn trạng thái triển khai. Nhãn liệt kê nhóm cột composite FK. Bảng tham chiếu ngoài miền chỉ hiện PK.
+- PK = khóa chính, FK = khóa ngoại, UK = unique đơn cột; crow's foot là nhiều, vòng tròn là có thể không có. Một số bảng xuất hiện ở nhiều ERD vì là điểm nối giữa module.
 - ERD chỉ vẽ FK vật lý. `aggregate_type/id`, `resource_type/id` ở outbox/audit/idempotency là tham chiếu đa hình do service quản lý, không giả vẽ thành FK DB.
 - Unique trên generated guards không thể diễn đạt đầy đủ bằng cardinality; xem [20](20-physical-sql-design.md). State diagram thể hiện chuyển hợp lệ ở service; CHECK trong DDL không tự kiểm tra trạng thái trước đó.
-- Chính sách gắn Q-xxx vẫn `DECISION REQUIRED`. Sơ đồ mô tả phương án review, không chứng minh đã có ứng dụng chạy.
+- Q-xxx có phần đã chốt và phần còn mở theo 18, không mặc định mọi Q đều chưa chốt. Sơ đồ mô tả phương án review, không chứng minh đã có ứng dụng chạy.
 
 ## Chỉnh và xuất lại
 

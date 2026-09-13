@@ -6,7 +6,7 @@
 - Stack: React/TypeScript/Vite, Node.js/Express/TypeScript, MySQL, REST `/api/v1`, JWT, Modular Monolith.
 - Không tự thêm microservices, Redis, Kafka, RabbitMQ, Kubernetes, Elasticsearch hoặc AI. Mỗi công nghệ mới phải có nhu cầu đo được và ADR.
 - `DECISION REQUIRED` là quyết định chưa chốt. Không biến đề xuất thành nghiệp vụ mặc định; hỏi trước khi triển khai phần phụ thuộc. Công việc độc lập vẫn tiếp tục.
-- Quyết định chủ dự án 2026-09-12 ở [18](docs/18-open-questions.md)/[23](docs/23-organization-review-seatmap.md) đã thay model Organizer cá nhân, tự publish và venue riêng. SQL/ERD cũ là baseline, phải đồng bộ trước implementation; không gọi bản đó là schema hiện hành.
+- Quyết định chủ dự án 2026-09-12 ở [18](docs/18-open-questions.md)/[23](docs/23-organization-review-seatmap.md) đã thay model Organizer cá nhân, tự publish và venue riêng. SQL/ERD đã đồng bộ theo ADR-014 ngày 2026-09-13; tiếp tục giữ DDL, seed/query, Mermaid/SVG và tài liệu khớp nhau khi thay model. DDL hiện hành dành cho database rỗng, không phải migration nâng cấp DB cũ.
 - Mã tham chiếu: FR = chức năng, NFR = phi chức năng, BR = nghiệp vụ, UC = use case, ADR = quyết định kiến trúc; Q = câu hỏi mở. Không đổi ý nghĩa mã đã dùng.
 
 ## Kiến trúc và dữ liệu

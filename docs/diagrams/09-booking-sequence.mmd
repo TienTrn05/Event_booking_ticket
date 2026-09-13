@@ -6,9 +6,9 @@ sequenceDiagram
     participant DB as MySQL
     participant P as Payment adapter
     participant W as Inbox processor
-    C->>UI: Chọn session và ghế
+    C->>UI: Đăng nhập, chọn session và ghế
     UI->>B: POST hold + Idempotency-Key
-    B->>DB: BEGIN ? khóa cha, ghế ? kiểm tra lại
+    B->>DB: BEGIN ? khóa quota trước cha, ghế ? kiểm tra lại
     alt Tất cả ghế khả dụng
       B->>DB: Tạo hold/items ? HELD ? COMMIT
       B-->>UI: holdId, giá snapshot, expiresAt, serverTime
@@ -16,7 +16,7 @@ sequenceDiagram
       B->>DB: ROLLBACK toàn bộ nhóm
       B-->>UI: 409 ? tải lại ghế
     end
-    UI->>B: POST bookings với holdId + key
+    UI->>B: POST bookings với holdId + tên từng người + key
     B->>DB: BEGIN ? kiểm tra chủ/expiry ? booking + items
     B->>DB: Hold CONVERTED ? gán booking vào ghế ? COMMIT
     B-->>UI: AWAITING_PAYMENT ? giữ deadline cũ

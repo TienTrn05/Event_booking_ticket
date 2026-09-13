@@ -1,9 +1,9 @@
 stateDiagram-v2
     state "Ticket" as Ticket {
       [*] --> VALID: Xác nhận đơn
-      VALID --> USED: Check-in nguyên tử
+      VALID --> USED: Admission sau CheckIn, nguyên tử
       VALID --> CANCELLED: Thu hồi quyền
-      VALID --> EXPIRED: Hết cửa sổ check-in
+      VALID --> EXPIRED: Hết cửa sổ admission
       CANCELLED --> REFUNDED: Hoàn thành công
       USED --> [*]
       EXPIRED --> [*]
@@ -22,6 +22,11 @@ stateDiagram-v2
       ACTIVE --> H_EXPIRED: Hết hạn
     }
     note right of SOLD
-      Chưa có chuyển SOLD về AVAILABLE.
-      Chính sách bán lại thuộc Q-004.
+      MVP không chuyển SOLD về AVAILABLE.
+      Refund không tự bán lại ghế.
+    end note
+
+    note right of VALID
+      CheckIn ONLINE / COUNTER giữ VALID.
+      Admission mới chuyển USED.
     end note
