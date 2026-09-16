@@ -1,10 +1,14 @@
 # 22. Kiến trúc Frontend
 
-Liên quan: ADR-001/ADR-008, FR-001–FR-031, NFR-012, [05-user-flows](05-user-flows.md), [09-api-design](09-api-design.md), [04-authentication-authorization](04-authentication-authorization.md).
+## Home và hệ theme đã dựng trong repo
 
-Stack đã xác định: **React + TypeScript + Vite**. Khung dùng React Router và fetch theo ADR-015; chưa thêm state/form/query library khi chưa có use case triển khai. Doc này đặc tả **phân tầng, ranh giới trách nhiệm và ràng buộc bắt buộc** độc lập với lựa chọn thư viện.
+Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Giữ fixture và thứ tự nghiệp vụ hiện có; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này chỉ thuộc giao diện, không thay đổi quyền hoặc quy trình giao dịch.
 
----
+### Đồng bộ giao diện trực tiếp với project/
+
+Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, fixture, Tailwind CSS và Lucide từ project/, được chuyển vào cấu trúc app/features/shared của Fe. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
+
+Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đổi hợp đồng nghiệp vụ hoặc xác nhận đối tác/tài khoản/giao dịch thật. Bộ lọc trang chủ dùng state theo mẫu; /reopening giữ lọc URL từ trước. Xem [Fe/README.md](../Fe/README.md) cho phạm vi triển khai hiện tại.
 
 ## Nguyên tắc bắt buộc
 

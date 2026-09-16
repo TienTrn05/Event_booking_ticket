@@ -1,5 +1,7 @@
 # 25. Brief và prompt thiết kế UI
 
+**Hướng màu mới theo chủ dự án:** Light gợi biển xanh, Dark gợi vũ trụ, dùng cùng semantic tokens/component. Phương án xanh ngọc A bên dưới là đề xuất cũ; bản FE hiện dùng xanh biển ở light và nền navy/cyan với tím ở dark. Hệ theme và giới hạn triển khai ghi ở [22](22-frontend-architecture.md). Tham khảo cấu trúc Home public của chủ dự án tại https://event-ticketing-plat-d2vs.bolt.host; không giữ các mô tả bán lại giữa khách, nghệ sĩ đồng nhất Organizer hoặc số liệu quảng cáo chưa có căn cứ trong bản dựng.
+
 Phần 10 bổ sung prompt merchandise và tên hiển thị nghệ sĩ/chương trình. Gửi cả phần này cùng prompt tổng, không chỉ dùng luồng mua vé cũ để thiết kế hàng hóa.
 
 > **Cập nhật:** nghiệp vụ thay đổi/mở bán lại, hủy sự kiện, feedback có sao và điểm uy tín nằm trong [23, phần 9](23-organization-review-seatmap.md#9-thay-đổi-sự-kiện-feedback-và-uy-tín-tổ-chức). Tăng sức chứa chỉ là một ví dụ. Dùng phần 9 của brief này cùng prompt tổng khi giao thiết kế.

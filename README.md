@@ -2,7 +2,7 @@
 
 Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn vị tổ chức. Dự án hướng tới quy trình chọn ghế, thanh toán, nhận vé, check-in và quản lý sự kiện có kiểm soát.
 
-**Giai đoạn hiện tại:** đã có đặc tả nghiệp vụ, thiết kế SQL và khung backend/frontend chạy được. Chức năng đăng nhập, mua vé, thiết kế sơ đồ ghế và duyệt sự kiện đang chờ triển khai. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
+**Giai đoạn hiện tại:** đã có đặc tả, thiết kế SQL, backend nền tảng và FE khám phá sự kiện với theme Biển xanh/Vũ trụ. FE dùng dữ liệu minh họa, có lọc/tìm kiếm và các trang nội dung; đăng nhập, mua vé, giao dịch merchandise, editor và duyệt sự kiện chưa được tích hợp. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
 
 ## Phạm vi sản phẩm
 
@@ -10,7 +10,7 @@ Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn v�
 - **Tổ chức:** đăng ký bằng email công ty, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
 - **Admin:** duyệt tổ chức/vai trò, duyệt hồ sơ sự kiện và xử lý yêu cầu hỗ trợ theo report.
 
-Đây là phạm vi đã đặc tả; khung hiện tại mới cung cấp trang FE khởi đầu, API health và cấu hình nền tảng. Chi tiết tại [nghiệp vụ tổ chức, duyệt sự kiện và seat map](Docs/23-organization-review-seatmap.md).
+Đây là phạm vi sản phẩm đã đặc tả, chưa triển khai đầy đủ. Phần FE đã dựng và giới hạn tại [hướng dẫn frontend](Fe/README.md); hợp đồng nghiệp vụ tại [tổ chức, duyệt, feedback và merchandise](Docs/23-organization-review-seatmap.md).
 
 ## Công nghệ
 
@@ -78,6 +78,24 @@ npm.cmd run dev
 FE gọi API qua đường dẫn cùng origin /api/v1 và proxy của Vite. Nhấn Ctrl+C để dừng hai app. Những lần mở PowerShell mới, chạy lại use-node.ps1 trước các lệnh npm.
 
 ## Các lệnh thường dùng
+
+Có thể chạy riêng **ngay trong mỗi folder**, không bắt buộc đứng ở gốc. Mở hai terminal:
+
+```powershell
+# Terminal FE, bắt đầu tại gốc repository
+cd Fe
+. ..\BE\tooling\use-node.ps1
+npm.cmd run dev
+```
+
+```powershell
+# Terminal BE, bắt đầu tại gốc repository
+cd BE
+. .\tooling\use-node.ps1
+npm.cmd run dev
+```
+
+FE dùng **5173**, BE dùng **3000**, không trùng nhau. `npm run dev` ở gốc là lựa chọn chạy cả hai thay cho hai terminal, không phải bước chạy thêm. Folder `project/` là bản export tham khảo; app phát triển và chạy chính thức nằm ở `Fe/`, không chạy hai FE cùng lúc trên 5173.
 
 Chạy từ thư mục gốc:
 
