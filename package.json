@@ -13,7 +13,8 @@
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
-    "dev": "concurrently -k -n API,WEB \"npm run dev -w @event-ticketing/api\" \"npm run dev -w @event-ticketing/web\"",
+    "dev": "npm run dev -w @event-ticketing/web",
+    "dev:full": "concurrently -k -n API,WEB \"npm run dev -w @event-ticketing/api\" \"npm run dev -w @event-ticketing/web\"", 
     "dev:api": "npm run dev -w @event-ticketing/api",
     "dev:web": "npm run dev -w @event-ticketing/web",
     "setup:env": "node BE/tooling/setup-env.mjs",
