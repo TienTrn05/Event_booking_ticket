@@ -1,59 +1,124 @@
 # Event Ticketing Platform
 
-Dự án cá nhân xây dựng nền tảng đặt vé sự kiện, hướng đến tính đúng đắn, bảo mật và khả năng vận hành thực tế.
+Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn vị tổ chức. Dự án hướng tới quy trình chọn ghế, thanh toán, nhận vé, check-in và quản lý sự kiện có kiểm soát.
 
-**Trạng thái:** đã có đặc tả, SQL 38 bảng, 19 sơ đồ và khung BE/FE chạy được. Cấu trúc chính: `BE/`, `Fe/`, `Docs/`, `database/`. Đã cấu hình môi trường riêng, chất lượng code và 7 test nền tảng; các tính năng đăng nhập/đặt vé/editor/duyệt sự kiện chưa triển khai. Kết quả 67 kiểm tra schema lịch sử xem database/README.md; cấu hình production và nghiệp vụ còn mở xem Docs/18.
+**Giai đoạn hiện tại:** đã có đặc tả, thiết kế SQL, backend nền tảng và FE khám phá sự kiện với theme Biển xanh/Vũ trụ. FE dùng dữ liệu minh họa, có lọc/tìm kiếm và các trang nội dung; đăng nhập, mua vé, giao dịch merchandise, editor và duyệt sự kiện chưa được tích hợp. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
 
-## Chạy dự án trên Windows
+## Phạm vi sản phẩm
+
+- **Khách hàng:** đăng nhập Google/OTP, chọn ghế, mua vé, khai tên người tham dự và check-in bằng mã vé do hệ thống cấp.
+- **Tổ chức:** đăng ký bằng email công ty, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
+- **Admin:** duyệt tổ chức/vai trò, duyệt hồ sơ sự kiện và xử lý yêu cầu hỗ trợ theo report.
+
+Đây là phạm vi sản phẩm đã đặc tả, chưa triển khai đầy đủ. Phần FE đã dựng và giới hạn tại [hướng dẫn frontend](Fe/README.md); hợp đồng nghiệp vụ tại [tổ chức, duyệt, feedback và merchandise](Docs/23-organization-review-seatmap.md).
+
+## Công nghệ
+
+| Thành phần      | Công nghệ                                      |
+| --------------- | ---------------------------------------------- |
+| Frontend        | React, TypeScript, Vite, React Router          |
+| Backend         | Node.js, Express, TypeScript; modular monolith |
+| Database        | MySQL/InnoDB, mysql2, SQL có tham số           |
+| Chất lượng code | ESLint, Prettier, Vitest, Supertest            |
+
+Phiên bản dependency được cố định trong package.json và package-lock.json. Runtime local dùng Node **24.21.0**, npm **11.19.0**; database yêu cầu MySQL **8.0.16+**, đã kiểm tra local trên **8.0.46**.
+
+## Cấu trúc dự án
+
+```text
+BE/                 Backend, test và công cụ phát triển dùng chung
+  src/              Config, module nghiệp vụ và thành phần dùng chung
+  tests/            Test backend và kiểm tra công cụ bảo mật
+  tooling/          Cấu hình lint/test/TypeScript, script setup
+Fe/                 Frontend, tính năng, UI và HTTP client
+Docs/               Đặc tả, kiến trúc, hướng dẫn và sơ đồ
+database/           Schema SQL, seed và truy vấn mẫu
+PROJECT_RULES.md     Quy tắc phát triển bắt buộc
+README.md           Giới thiệu và hướng dẫn bắt đầu
+```
+
+package.json/lockfile ở gốc điều phối hai app qua npm workspaces. node_modules và runtime riêng trong BE/.local là dữ liệu cài đặt trên máy, được Git bỏ qua.
+
+## Bắt đầu phát triển
+
+### 1. Chuẩn bị Node và cài thư viện
+
+Mở PowerShell tại thư mục gốc:
 
 ```powershell
 . .\BE\tooling\use-node.ps1
+npm.cmd ci
+npm.cmd run setup:env
+```
+
+Script Node dành cho Windows x64, cài runtime riêng trong dự án và chỉ đổi PATH của phiên PowerShell hiện tại. setup:env tạo file còn thiếu, giữ nguyên cấu hình đã có. Trên Linux/macOS, cài đúng phiên bản Node ghi ở BE/tooling/.node-version rồi dùng các lệnh npm tương ứng.
+
+### 2. Cấu hình MySQL
+
+Điền thông tin kết nối vào **BE/.env** theo mẫu BE/.env.example. MySQL phải đang chạy và tài khoản phải được phép truy cập database đã chọn.
+
+```powershell
+npm.cmd run db:check
+```
+
+Lệnh này chỉ kiểm tra kết nối bằng SELECT 1, không tạo bảng hoặc thay đổi dữ liệu. Nếu cần khởi tạo một database **rỗng**, làm theo [hướng dẫn SQL](database/README.md). Không dùng schema.sql để nâng cấp database đang có dữ liệu.
+
+### 3. Chạy BE và FE
+
+```powershell
 npm.cmd run dev
 ```
 
-FE: http://127.0.0.1:5173 · BE: http://127.0.0.1:3000. Node và dependencies đã cài riêng cho dự án. [Hướng dẫn setup, cấu trúc và bảo vệ .env](Docs/24-local-development.md). Không commit `BE/.env`; `Fe/.env` chỉ chứa cấu hình công khai.
+| Địa chỉ                                   | Chức năng                 |
+| ----------------------------------------- | ------------------------- |
+| http://127.0.0.1:5173                     | Frontend                  |
+| http://127.0.0.1:3000/api/v1/health/live  | Kiểm tra API đang chạy    |
+| http://127.0.0.1:3000/api/v1/health/ready | Kiểm tra kết nối database |
 
-Kiểm tra: `npm.cmd run check`; kết nối MySQL chỉ đọc: `npm.cmd run db:check`. Máy mới chạy `npm.cmd ci` và `npm.cmd run setup:env` rồi điền thông tin DB riêng.
+FE gọi API qua đường dẫn cùng origin /api/v1 và proxy của Vite. Nhấn Ctrl+C để dừng hai app. Những lần mở PowerShell mới, chạy lại use-node.ps1 trước các lệnh npm.
 
-Stack đã xác định: React + TypeScript + Vite; Node.js + Express + TypeScript; MySQL; REST API; JWT; Modular Monolith.
+## Các lệnh thường dùng
 
-## Bắt đầu đọc
+Có thể chạy riêng **ngay trong mỗi folder**, không bắt buộc đứng ở gốc. Mở hai terminal:
 
-**Xem nhanh:** [Bộ 19 sơ đồ mở offline](Docs/diagrams/index.html) · [Schema MySQL](database/schema.sql) · [Hướng dẫn SQL và kiểm thử](database/README.md).
+```powershell
+# Terminal FE, bắt đầu tại gốc repository
+cd Fe
+. ..\BE\tooling\use-node.ps1
+npm.cmd run dev
+```
 
-1. [Quy tắc dự án](PROJECT_RULES.md).
-2. [Tổng quan](Docs/01-project-overview.md) và [yêu cầu](Docs/02-requirements.md).
-3. [Nghiệp vụ](Docs/07-business-rules.md), [dữ liệu](Docs/08-database-design.md), [đặt vé đồng thời](Docs/11-booking-concurrency.md).
-4. [Nghiệp vụ mới và editor](Docs/23-organization-review-seatmap.md), [quyết định đã chốt/phần còn mở](Docs/18-open-questions.md) trước khi triển khai phần liên quan.
+```powershell
+# Terminal BE, bắt đầu tại gốc repository
+cd BE
+. .\tooling\use-node.ps1
+npm.cmd run dev
+```
 
-## Bộ tài liệu
+FE dùng **5173**, BE dùng **3000**, không trùng nhau. `npm run dev` ở gốc là lựa chọn chạy cả hai thay cho hai terminal, không phải bước chạy thêm. Folder `project/` là bản export tham khảo; app phát triển và chạy chính thức nằm ở `Fe/`, không chạy hai FE cùng lúc trên 5173.
 
-| File | Nội dung |
-| --- | --- |
-| [01](Docs/01-project-overview.md) | Mục tiêu, phạm vi, thuật ngữ |
-| [02](Docs/02-requirements.md) | Yêu cầu chức năng, phi chức năng, tìm kiếm, thông báo, AI |
-| [03](Docs/03-user-roles-permissions.md) | Vai trò và ma trận quyền |
-| [04](Docs/04-authentication-authorization.md) | Xác thực, phiên, phân quyền |
-| [05](Docs/05-user-flows.md) | Luồng người dùng và tình huống lỗi |
-| [06](Docs/06-use-cases.md) | Danh mục và đặc tả use case |
-| [07](Docs/07-business-rules.md) | Quy tắc nghiệp vụ và vòng đời |
-| [08](Docs/08-database-design.md) | Thực thể, quan hệ, ràng buộc, chỉ mục |
-| [09](Docs/09-api-design.md) | REST API, hợp đồng dữ liệu, lỗi |
-| [10](Docs/10-backend-architecture.md) | Kiến trúc và trách nhiệm các tầng |
-| [11](Docs/11-booking-concurrency.md) | Transaction, khóa ghế, hết hạn, callback |
-| [12](Docs/12-security.md) | Bảo mật, logging, auditing |
-| [13](Docs/13-testing-strategy.md) | Chiến lược kiểm thử và nghiệm thu |
-| [14](Docs/14-environment-deployment.md) | Môi trường, biến cấu hình, vận hành |
-| [15](Docs/15-development-rules.md) | Git, code, quy trình thay đổi |
-| [16](Docs/16-roadmap.md) | Lộ trình và điều kiện hoàn thành |
-| [17](Docs/17-architecture-decisions.md) | ADR và đánh đổi |
-| [18](Docs/18-open-questions.md) | Quyết định cần xác nhận |
-| [19](Docs/19-system-diagrams.md) | Bộ sơ đồ kiến trúc, ERD, sequence, state và cách xuất lại |
-| [20](Docs/20-physical-sql-design.md) | Thiết kế SQL vật lý và ranh giới bảo vệ của DB |
-| [21](Docs/21-sql-transactions.md) | Mẫu SQL và ranh giới transaction cho service |
-| [22](Docs/22-frontend-architecture.md) | Frontend, editor layout, form duyệt/lý do, phục hồi hold, payment/check-in |
-| [23](Docs/23-organization-review-seatmap.md) | Quyết định tổ chức, Admin review 15 ngày, Google/OTP, check-in và công cụ thiết kế ghế |
+Chạy từ thư mục gốc:
 
-Tài liệu tiếng Việt; tên kỹ thuật, API và mã trạng thái giữ bằng tiếng Anh để sử dụng nhất quán trong triển khai. Schema có thể nạp vào database thử rỗng theo hướng dẫn; các ví dụ API/transaction vẫn là thiết kế, chưa phải ứng dụng có thể chạy.
+| Lệnh                              | Mục đích                                                    |
+| --------------------------------- | ----------------------------------------------------------- |
+| npm run dev                       | Chạy đồng thời BE và FE                                     |
+| npm run dev:api / npm run dev:web | Chạy riêng từng app                                         |
+| npm run check                     | Secret guard, lint, typecheck, test, build, kiểm tra format |
+| npm run format                    | Format các file source/config được chỉ định                 |
+| npm run db:check                  | Kiểm tra kết nối MySQL chỉ đọc                              |
 
-Tài liệu bổ sung: [24 — Môi trường phát triển BE/FE](Docs/24-local-development.md).
+Trên PowerShell có thể dùng npm.cmd để tránh gọi nhầm npm.ps1. Build output không phải bản triển khai production hoàn chỉnh.
+
+## Quy tắc đóng góp
+
+Đọc [PROJECT_RULES.md](PROJECT_RULES.md) trước khi sửa code. Controller chỉ xử lý HTTP, service giữ nghiệp vụ và transaction, repository truy vấn DB bằng connection được truyền vào. Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.
+
+Không commit .env, token, khóa bí mật hoặc thông tin kết nối thật. Fe/.env chỉ chứa cấu hình công khai; mọi biến VITE_ có thể xuất hiện trong bundle. Chạy npm run check trước khi gửi thay đổi và bổ sung test cho hành vi mới.
+
+## Tài liệu
+
+- [Mục lục tài liệu](Docs/README.md)
+- [Môi trường local và kết quả rà soát setup](Docs/24-local-development.md)
+- [Thiết kế backend](Docs/10-backend-architecture.md) · [Thiết kế frontend](Docs/22-frontend-architecture.md)
+- [SQL và cách nạp](database/README.md) · [Sơ đồ hệ thống](Docs/diagrams/index.html)
+- [Lộ trình](Docs/16-roadmap.md) · [Quyết định còn mở](Docs/18-open-questions.md)

@@ -1,5 +1,9 @@
 # 23. Tổ chức, duyệt sự kiện và công cụ thiết kế sơ đồ
 
+Merchandise theo sự kiện và tên hiển thị nghệ sĩ/chương trình được bổ sung ở phần 10. Đây là đặc tả sản phẩm/UI, chưa phải chức năng BE/SQL đã triển khai.
+
+**Cập nhật theo làm rõ của chủ dự án:** phần 9 bên dưới mở rộng nghiệp vụ thay đổi/mở bán lại, hủy sự kiện, feedback có sao và điểm uy tín tổ chức. Tăng sức chứa 200 → 300 chỉ là ví dụ, không phải định nghĩa duy nhất của “Vé bán lại”. Các mô tả SQL/ghế bên dưới phản ánh mô hình hiện có, chưa triển khai phần mở rộng này.
+
 Nguồn: quyết định trực tiếp của chủ dự án ngày 2026-09-12: chấp thuận các khuyến nghị trước đó, với điều chỉnh về Organizer tổ chức, quyền Admin, đăng nhập, vé/check-in và venue. [18](18-open-questions.md) ghi trạng thái từng quyết định. Đây là đặc tả, chưa phải chức năng đã triển khai.
 
 ## 1. Organizer là tổ chức
@@ -100,3 +104,140 @@ DDL đã bổ sung Organization/membership, ExternalIdentity/OTP challenge, Even
 | Hành động | Lưu nháp → xem trước → xác nhận gửi; phiếu SENT chỉ đọc |
 
 Khung xem trước: “Hồ sơ [reviewId] của [tổ chức] cho sự kiện [tên] đã [bị từ chối/hết hạn]. Lý do: [reasonText]. Hướng dẫn: [guidance]. Người xử lý: [Admin].” Giá trị trong ngoặc do form/server cung cấp và escape, không là HTML được Organizer/Admin chèn. Đây là mẫu đặc tả UI sẵn cho implementation, chưa có trang web thực thi.
+
+## 9. Thay đổi sự kiện, feedback và uy tín tổ chức
+
+### 9.1. Phạm vi đã được chủ dự án xác nhận
+
+Website đóng vai trò trung gian, cung cấp công cụ cho Organizer vận hành và xử lý các tình huống. Admin duyệt quyền/hồ sơ và xem thông tin uy tín để hỗ trợ quyết định, không quản lý thường nhật thay tổ chức.
+
+- “Vé bán lại” không bị giới hạn vào tăng sức chứa. Ví dụ 200 → 300 chỉ minh họa một nguyên nhân mở bán tiếp; không đủ cơ sở để tự định nghĩa toàn bộ chính sách bằng ví dụ này hoặc suy ra marketplace vé cá nhân.
+- Organizer có chức năng hủy sự kiện và xử lý tình huống liên quan. Các hành động ảnh hưởng người mua cần trạng thái, thông báo và lịch sử theo dõi, không chỉ một nút xóa sự kiện.
+- Người dùng được feedback về hệ thống và về sự kiện/cách tổ chức bán vé, có đánh giá sao.
+- Hệ thống có thuật toán tính điểm uy tín cho tài khoản tạo sự kiện, có tăng/giảm điểm. Vì Organizer là tổ chức, hồ sơ uy tín gắn với **Organization**, đồng thời lưu người đại diện thực hiện hành động. Thay người đại diện không làm mất lịch sử tổ chức.
+- Admin xem điểm cùng bằng chứng/lịch sử để chấp nhận hoặc từ chối hồ sơ. Điểm không thay thế xác minh email công ty, duyệt tổ chức hoặc quyền quyết định của Admin.
+- Không gian là khối do Organizer thiết kế và đề xuất sức chứa để Admin xét; không có sẵn ghế cố định như rạp phim. Ghế đánh số chỉ dùng khi bố trí yêu cầu.
+
+### 9.2. Hồ sơ thay đổi và mở bán lại — thiết kế đề xuất
+
+Dùng một luồng chung: Organizer chọn sự kiện/suất → nêu loại yêu cầu và lý do → mô tả thay đổi/ảnh hưởng tới người mua → gửi xét duyệt khi thay đổi cần duyệt → nhận quyết định → thực hiện đợt mở bán theo bản hợp lệ. Không hard-code duy nhất loại “tăng sức chứa”.
+
+Các nguyên nhân có thể đưa ra để chốt chính sách: bổ sung sức chứa, mở đợt bán tiếp theo trong hạn mức đã duyệt, điều chỉnh cấu hình bán hoặc khôi phục bán sau tạm dừng. Đây là ví dụ đề xuất, không có nghĩa mọi nguyên nhân đã được phép tự động thực hiện. Mỗi loại phải xác định điều kiện, có cần duyệt lại không và cách ảnh hưởng tồn kho/vé/tiền. Luồng hủy sự kiện là hành động riêng, không tự biến vé hủy/hoàn thành vé được bán lại.
+
+Form có loại yêu cầu, lý do chi tiết, bản trước/sau nếu có, các suất bị ảnh hưởng, vé đã bán/đang giữ, phương án xử lý người mua và tài liệu tham chiếu trong hệ thống. Admin xem hồ sơ kèm uy tín tổ chức; khi từ chối/duyệt có lý do và audit. Không thêm upload tài liệu thật khi chưa có chính sách upload.
+
+**Ví dụ tăng sức chứa:** bản hiện hành 200, đề xuất 300, phần tăng tối đa 100 sau duyệt. Canvas lớn hơn không tự tạo tồn kho; venue có giới hạn cứng thì phải tuân thủ. Bản chờ duyệt không sửa vé đã bán hoặc hold còn hiệu lực; duyệt lặp không cộng lượng tăng nhiều lần. Khối không đánh số dùng khu/loại vé/số lượng, không tạo ghế giả. Đây là một test case trong luồng chung, không phải module độc lập.
+
+### 9.3. Organizer hủy sự kiện — yêu cầu UI và đề xuất xử lý
+
+Có hành động “Hủy sự kiện” với lý do, phạm vi sự kiện/suất, số đơn/vé bị ảnh hưởng, thông báo dự kiến cho khách, phương án xử lý và xác nhận rõ ràng. Không xóa lịch sử bán vé. Phân biệt hủy sự kiện đang vận hành với hồ sơ đăng sự kiện hết hạn duyệt.
+
+Khi việc hủy có hiệu lực, đề xuất dừng bán mới và chặn admission; hiển thị vé/đơn bị ảnh hưởng cùng trạng thái xử lý. Phải xử lý cả hold đang có, thanh toán đang chờ và tiền đến muộn; không chỉ đổi nhãn trên trang sự kiện. Thông báo đã hủy không đồng nghĩa đã hoàn tiền. UI phân biệt “Chờ xử lý”, “Đang hoàn”, “Đã hoàn”, “Hoàn thất bại” theo dữ liệu thực.
+
+Quyền Organizer chủ động xử lý đã được yêu cầu; việc hủy có cần Admin xác nhận, thời điểm có hiệu lực, hạn hoàn tiền, tự động hay thủ công và xử lý vé đã USED khi hủy một phần chưa được chốt. Không tự áp dụng điều kiện refund tự nguyện “chưa USED” cho mọi tình huống Organizer hủy sự kiện. Nền tảng trung gian vẫn phải theo dõi kết quả xử lý, không tự đánh dấu hoàn tất thay tổ chức.
+
+### 9.4. Feedback có sao và quyền phản hồi
+
+Tách rõ đối tượng:
+
+| Đối tượng | Nội dung | Cách sử dụng |
+| --- | --- | --- |
+| Hệ thống | Trải nghiệm tìm kiếm, đặt vé, lỗi thao tác, khả năng sử dụng | Cải thiện nền tảng; không trực tiếp trừ điểm tổ chức vì lỗi nền tảng |
+| Sự kiện/tổ chức | Cách bán vé, thông tin công bố, tổ chức sự kiện, cách xử lý thay đổi/hủy | Đầu vào đánh giá uy tín đúng Organization và sự kiện liên quan |
+
+Form đề xuất gồm đối tượng feedback, sự kiện/đơn liên quan khi có, đánh giá **1–5 sao**, nội dung và xác nhận gửi. Thang 1–5 là đề xuất UI; user đã yêu cầu sao nhưng chưa chốt thang điểm. Không bắt người mua của sự kiện bị hủy phải có check-in mới được phản ánh.
+
+Đề xuất chống thao túng: đăng nhập để gửi; feedback giao dịch liên kết đơn thuộc người gửi, có nhãn “Đã mua vé” khi xác thực; một đánh giá có hiệu lực/người/sự kiện/nhóm nội dung, sửa có lịch sử; không nhân trọng số vì mua nhiều vé hay đăng nhập nhiều thiết bị. Feedback không có giao dịch vẫn có kênh gửi phù hợp, nhưng không tự có trọng số như giao dịch xác thực. Quyền gửi, thời điểm và giới hạn chính xác cần chốt trước code.
+
+Organizer có thể phản hồi hoặc báo cáo đánh giá sai; không tự xóa đánh giá xấu. Đề xuất trạng thái chờ kiểm tra/công khai/ẩn có lý do, lịch sử kiểm duyệt và khiếu nại. Đánh giá thấp không tự đồng nghĩa vi phạm; report chưa xác minh không tự trừ điểm. Xử lý nội dung spam/xúc phạm độc lập với việc ý kiến tích cực hay tiêu cực. Không công khai mã vé, thông tin liên hệ hoặc dữ liệu đơn của người đánh giá.
+
+### 9.5. Điểm uy tín — thuật toán đề xuất để duyệt
+
+Tách **sao người dùng** và **điểm uy tín nội bộ**. Admin xem cả hai cùng số lượng mẫu, không coi 5 sao từ một người tương đương 5 sao từ hàng trăm giao dịch. Chưa chốt công khai điểm nội bộ cho khách.
+
+Đề xuất sao hiệu chỉnh với prior để giảm tác động mẫu nhỏ:
+
+```text
+R = (sum(w_i * stars_i) + m * C) / (sum(w_i) + m)
+F = 100 * (R - 1) / 4
+S = clamp(a * F + (1 - a) * O + B - P, 0, 100)
+```
+
+- `stars_i`: sao 1–5 của feedback hợp lệ về tổ chức/sự kiện; `w_i` là trọng số xác thực. Không dùng feedback hệ thống vào `F`.
+- `C`: prior sao tham chiếu được quản trị chính sách; `m`: cỡ mẫu prior. `F` là thành phần phản hồi quy đổi về 0–100.
+- `O`: điểm vận hành 0–100 từ các sự kiện/hồ sơ đã có kết quả xác minh; `a` cân bằng feedback và vận hành.
+- `B/P`: các khoản cộng/trừ được quy định, có nguồn và lý do. Một sự cố không bị tính lại cả trong `O` và `P`; chính sách phải chỉ rõ thành phần sở hữu từng tín hiệu.
+- Tổ chức mới/không đủ dữ liệu hiển thị **“Chưa đủ dữ liệu”**, không mặc định 0 điểm/xấu hoặc uy tín cao. Điểm prior tính nội bộ nếu có không thay nhãn này.
+
+Đây là công thức để thảo luận, **chưa có hệ số, ngưỡng hay mức phạt được duyệt**. Bảng chính sách cần chốt:
+
+| Tín hiệu | Hướng tác động đề xuất | Điều kiện |
+| --- | --- | --- |
+| Feedback xác thực | Sao cao/thấp làm tăng/giảm thành phần `F` | Loại trừ spam và feedback sai đối tượng theo kiểm duyệt có lý do |
+| Hoàn thành tổ chức/xử lý đúng cam kết | Tăng điểm vận hành hoặc khoản cộng | Có kết quả xác minh; không cộng chỉ vì tự khai hoàn thành |
+| Hủy sự kiện | Xét nguyên nhân, tần suất và cách giải quyết | Không mặc định mọi lần hủy đều cùng mức phạt; không ngăn hủy cần thiết bằng hình phạt tự động |
+| Khiếu nại được xác minh, không thực hiện phương án đã cam kết | Giảm theo mức độ đã xác định | Có kết luận và căn cứ; số lượng report thô không phải kết luận |
+| Khắc phục được xác nhận/khiếu nại được chấp nhận | Phục hồi hoặc đảo khoản điểm liên quan | Liên kết điều chỉnh với bút toán gốc, không xóa lịch sử |
+
+Mỗi lần tính/điều chỉnh cần nguồn sự kiện, Organization, thời điểm, phiên bản thuật toán, điểm trước/sau và lý do. Chống xử lý lặp để không cộng/trừ nhiều lần cho cùng một nguồn. Feedback được sửa/ẩn/khôi phục phải tính lại đóng góp một cách nhất quán. Đề xuất cơ chế decay hoặc cửa sổ thời gian chỉ sau khi chốt, không tự cho điểm phạt biến mất.
+
+Màn Admin hiển thị điểm, số sao/số đánh giá, độ đầy đủ dữ liệu, lịch sử sự kiện và hủy, tình trạng xử lý khách, lý do biến động và vấn đề chưa kết luận. Khi duyệt, lưu snapshot điểm/bằng chứng tại thời điểm quyết định; điểm đổi sau đó không sửa lịch sử xét duyệt. Không tự approve, tự khóa đăng sự kiện hoặc đặt ngưỡng loại hồ sơ khi chưa có chính sách; Admin đưa ra quyết định có lý do.
+
+### 9.6. Giới hạn triển khai và quyết định còn mở
+
+Chức năng đã yêu cầu: hồ sơ linh hoạt cho tình huống bán lại/thay đổi, Organizer hủy sự kiện, feedback có sao cho hai đối tượng, điểm uy tín tổ chức hỗ trợ Admin. Cần chốt ma trận lý do/duyệt lại, hạn xử lý thay đổi, chính sách hủy/tiền, điều kiện feedback/kiểm duyệt, hệ số và ngưỡng điểm, mức công khai/khiếu nại. Không hỏi lại nhu cầu có các chức năng này.
+
+SQL/API/ứng dụng chưa hỗ trợ đầy đủ các phần mới. Trước triển khai cần đồng bộ revision/đợt bán, tồn kho theo khối, workflow hủy, feedback/rating, lịch sử điểm và audit; kiểm thử chống vượt tồn kho, thao tác lặp, sửa đánh giá, tính trùng điểm và bảo toàn đơn/vé. Không coi bản thiết kế UI là tính năng đã hoạt động.
+
+## 10. Merchandise theo sự kiện và tên hiển thị
+
+### 10.1. Yêu cầu đã xác nhận
+
+Sự kiện có thể bán thêm merchandise ngay trên nền tảng. Merchandise thuộc sự kiện, do Organization sở hữu sự kiện tạo và quản lý; không tự mở marketplace cho người bán ngoài sự kiện.
+
+Ví dụ của chủ dự án: công ty chủ quản xác minh bằng email công ty, tạo sự kiện **Fanmeeting PMC**; tag nổi bật với khách là **PMC** thay vì tên công ty. Đây là ví dụ về tên hiển thị, không giới hạn merchandise vào fanmeeting hoặc âm nhạc.
+
+| Khái niệm | Ví dụ minh họa | Vai trò |
+| --- | --- | --- |
+| Organization | Công ty chủ quản (tên giả) | Chủ sở hữu, quyền quản lý, hồ sơ duyệt, uy tín và xử lý đơn/report |
+| Tên sự kiện | Fanmeeting PMC | Tên trang sự kiện và ngữ cảnh mua vé/hàng hóa |
+| Tag/tên hiển thị | PMC | Nhận diện nghệ sĩ/chương trình ở card, header và gian hàng sự kiện |
+| Danh mục | Nhạc sống hoặc danh mục phù hợp do Organizer chọn | Phân loại catalog; không thay danh mục bằng PMC |
+
+Tag PMC không tạo tài khoản Organizer mới, không thay email công ty, không chuyển quyền sở hữu sang nghệ sĩ và không xóa tên đơn vị tổ chức khỏi phần thông tin tổ chức/đơn hàng. Điểm uy tín vẫn thuộc Organization; đổi tag không làm mới lịch sử. Không tự gắn nhãn “chính thức/đã xác minh nghệ sĩ” chỉ vì đã xác minh email công ty.
+
+### 10.2. Trải nghiệm khách và Organizer
+
+Trang sự kiện có khu **Merchandise** cùng nhận diện PMC, danh sách sản phẩm và liên kết chi tiết. Ví dụ minh họa có thể là áo, túi hoặc vật phẩm sự kiện; không mặc định mọi sản phẩm đều có size/màu.
+
+Thiết kế đề xuất cho sản phẩm: tên, hình minh họa, mô tả, giá, biến thể nếu có, số lượng, trạng thái còn/hết hàng và thông tin cách nhận hàng theo chính sách được chốt. Chọn biến thể phải làm rõ giá/tồn kho tương ứng. Không tự bật preorder, hàng số, hàng cá nhân hóa, combo giảm giá hoặc phí giao hàng.
+
+Organizer có tab quản lý Merchandise trong đúng sự kiện: danh sách, tạo/sửa sản phẩm, biến thể, giá, tồn kho, trạng thái bán và theo dõi đơn/giao nhận. Nhãn trạng thái và dữ liệu mẫu phục vụ thiết kế, chưa phải enum/schema đã triển khai. Sửa sản phẩm không đổi tên/giá/biến thể đã chụp vào đơn cũ; ngừng bán không xóa lịch sử mua.
+
+Admin giữ vai trò xét duyệt và hỗ trợ theo scope. Chưa chốt merchandise được duyệt cùng hồ sơ sự kiện hay có hồ sơ riêng; không tự thêm nhiệm vụ Admin quản lý giá, kho hoặc giao hàng thường xuyên. Các thay đổi tên hiển thị/nội dung đang công khai phải tuân thủ chính sách duyệt nội dung, không dùng tag để vượt quy trình hiện hành.
+
+### 10.3. Ranh giới vé, hàng hóa và tồn kho
+
+**Chốt bổ sung của chủ dự án:** website hỗ trợ thanh toán hàng hóa và giao tới **địa chỉ người nhận**. Organizer chọn điều kiện mua: **được mua độc lập, không cần vé**, hoặc **phải có vé**. Điều kiện phải hiện trước khi khách bắt đầu thanh toán, không chỉ báo lỗi ở bước cuối. Không coi mua hàng độc lập là guest checkout: theo chính sách tài khoản hiện hành, khách đăng nhập để thanh toán và quản lý đơn.
+
+Luồng UI gồm sản phẩm/biến thể/số lượng → kiểm tra điều kiện mua → thông tin người nhận và địa chỉ giao → xem lại hàng, tiền hàng và phí giao theo dữ liệu hợp lệ → thanh toán trên web → theo dõi đơn/giao hàng. Form nhận hàng có tên người nhận, thông tin liên hệ và địa chỉ theo vùng phục vụ; không lấy tên người tham dự vé thay cho người nhận hàng. Dữ liệu địa chỉ chỉ dùng trong phạm vi xử lý đơn, không công khai trên feedback.
+
+Organizer có cấu hình điều kiện vé và chỉ dẫn rõ cho khách. Đề xuất điều kiện yêu cầu vé được kiểm tra ở server với vé thuộc người mua và sự kiện liên quan; không nhận mã vé bất kỳ làm bằng chứng. Cấp cấu hình theo sự kiện hay từng sản phẩm, vé hợp lệ ở trạng thái nào, một vé mua được bao nhiêu hàng, có chấp nhận vé đang mua cùng checkout và việc vé bị hoàn sau khi hàng đã giao cần chốt trước code. Không tự áp dụng điều kiện có vé cho mọi sự kiện.
+
+Theo dõi riêng trạng thái tiền và trạng thái giao: chờ thanh toán, đã thanh toán/đang xử lý tiền; chờ xử lý hàng, đang giao, đã giao, giao thất bại (nhãn UX đề xuất). Chưa chọn hãng vận chuyển hoặc tích hợp tracking; không hứa cập nhật vận chuyển tự động nếu chưa có nguồn. Đơn vị bán hoặc hệ thống tích hợp chỉ cập nhật theo quyền và dữ liệu thực. Phí chưa xác định không được hiển thị thành 0 hoặc miễn phí; trước thu tiền phải có tổng tiền được xác nhận.
+
+Merchandise không phải TicketType hoặc ghế. Tồn kho hàng hóa tách khỏi sức chứa sự kiện; khi có biến thể thì theo biến thể. Mua áo không chiếm suất tham dự và không cấp quyền vào cửa. Mã nhận hàng nếu sử dụng phải tách khỏi credential check-in/admission; đã nhận hàng không đồng nghĩa đã vào sự kiện.
+
+Đề xuất lưu dòng hàng với snapshot sản phẩm, biến thể, giá, số lượng và đơn vị bán. Theo dõi thanh toán và giao/nhận hàng riêng: đã trả tiền chưa có nghĩa đã nhận đủ hàng. Cần chống bán vượt tồn kho và xử lý lặp khi thanh toán/ghi nhận nhận hàng. Không tự áp dụng hold 5 phút hoặc giới hạn 6 vé cho hàng hóa; thời gian giữ kho và giới hạn mua merchandise chưa chốt.
+
+Nếu mua vé kèm hàng trong một lần checkout, phải chốt nguyên tắc khi một phần hết chỗ/hết hàng hoặc thanh toán chưa rõ kết quả. Không tự báo cả đơn thành công hoặc tự bỏ hàng khỏi đơn. Chưa quyết định giỏ hàng chung hay đơn tách, không tự cho phép giỏ nhiều sự kiện/tổ chức.
+
+### 10.4. Hủy, feedback và quyết định còn mở
+
+Hủy sự kiện không tự xác định cách xử lý hàng đã giao/chưa giao. UI cần hiển thị từng phần vé/merchandise và tình trạng giải quyết tương ứng; không áp dụng chính sách full refund vé một cách máy móc cho đơn hàng hỗn hợp.
+
+Đề xuất mở rộng feedback về tổ chức với đối tượng **đơn merchandise**, phân biệt chất lượng hàng/giao nhận với trải nghiệm website và tổ chức sự kiện. Đây là đề xuất phân loại thêm; trọng số vào điểm uy tín chưa chốt. Không tính cùng một phản ánh nhiều lần qua cả đơn vé, đơn hàng và report.
+
+Đã chốt: thanh toán trên web, giao tới địa chỉ người nhận; Organizer cấu hình cho mua độc lập hoặc yêu cầu có vé. Không dựng nhận tại quầy làm luồng mặc định. Cần chốt phạm vi giao, phí/đơn vị vận chuyển, thời gian bán/giao, giữ kho/hạn mức, đổi trả/hoàn khi hủy, checkout chung/tách, chi tiết xác minh vé và phạm vi duyệt sản phẩm/ảnh. Luồng thiết kế phải hoàn chỉnh tới địa chỉ, thanh toán và theo dõi giao hàng; chỉ đánh dấu các chính sách thực sự còn mở.
+
+SQL/API hiện tại chưa có đầy đủ catalog hàng hóa/biến thể/tồn kho/đơn hàng/giao nhận và dữ liệu nhận diện hiển thị. Khi triển khai phải đồng bộ hợp đồng dữ liệu, quyền theo tổ chức/sự kiện, thanh toán, hoàn tiền, report và audit; không dùng bảng vé để giả lập merchandise.
