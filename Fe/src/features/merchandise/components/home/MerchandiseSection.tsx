@@ -1,6 +1,7 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag,
   ChevronRight,
@@ -15,6 +16,7 @@ import { merchandise } from '../../data/homeMerchandise';
 import Badge from '../../../../shared/ui/Badge';
 import Button from '../../../../shared/ui/Button';
 import { formatPrice } from '../../../../shared/utils/format';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
 const badgeVariant: Record<string, 'primary' | 'warning' | 'success'> = {
   New: 'primary',
@@ -23,8 +25,13 @@ const badgeVariant: Record<string, 'primary' | 'warning' | 'success'> = {
 };
 
 export default function MerchandiseSection() {
-  const merchOrgs = organizers.filter((org) => org.hasMerchandise);
-  const [activeOrg, setActiveOrg] = useState<string>(merchOrgs[0]?.id ?? '');
+  const merchOrgs = useMemo(() => organizers.filter((org) => org.hasMerchandise), []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedOrganizer = searchParams.get('organizer');
+  const { openPreview } = useQuickPreview();
+  const activeOrg = merchOrgs.some((org) => org.id === requestedOrganizer)
+    ? (requestedOrganizer as string)
+    : (merchOrgs[0]?.id ?? '');
   const selectedOrg = merchOrgs.find((org) => org.id === activeOrg) ?? merchOrgs[0];
   const selectedProducts = merchandise.filter((product) => product.organizerId === selectedOrg?.id);
   const bannerImage = selectedProducts[0]?.image ?? selectedOrg?.avatar;
@@ -46,6 +53,10 @@ export default function MerchandiseSection() {
             </p>
           </div>
           <button
+            type="button"
+            onClick={() => {
+              if (selectedProducts[0]) openPreview('product', selectedProducts[0].id);
+            }}
             className={ui(
               'flex items-center gap-1 text-sm font-semibold text-ink-600 hover:text-ink-900 transition-colors',
             )}
@@ -67,7 +78,11 @@ export default function MerchandiseSection() {
             return (
               <button
                 key={org.id}
-                onClick={() => setActiveOrg(org.id)}
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams);
+                  next.set('organizer', org.id);
+                  void setSearchParams(next, { preventScrollReset: true });
+                }}
                 className={ui(
                   `group flex-shrink-0 w-[112px] sm:w-[128px] rounded-2xl p-3 text-center transition-all duration-300 ${
                     isActive
@@ -197,7 +212,12 @@ export default function MerchandiseSection() {
                 </h3>
                 <p className={ui('text-sm text-ink-400 mt-1')}>The {selectedOrg.name} collection</p>
               </div>
-              <Button variant="outline" size="sm" className="hidden sm:flex">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex"
+                onClick={() => openPreview('organizer', selectedOrg.id)}
+              >
                 Visit store <ExternalLink size={14} />
               </Button>
             </div>
@@ -207,6 +227,15 @@ export default function MerchandiseSection() {
                 <article
                   data-reveal
                   key={product.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openPreview('product', product.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openPreview('product', product.id);
+                    }
+                  }}
                   className={ui(
                     'group bg-white rounded-2xl border border-ink-100 shadow-card overflow-hidden transition-all duration-300 hover:shadow-elevated hover:-translate-y-1.5 cursor-pointer',
                   )}

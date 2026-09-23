@@ -1,7 +1,7 @@
 import { ui } from '../../../shared/styles/classes';
-import { Link } from 'react-router-dom';
 import { categories, formatDate, formatPrice, type DiscoveryEvent } from '../data/discovery';
 import { Icon } from '../../../shared/ui/Icon';
+import { useQuickPreview } from '../../preview/hooks/useQuickPreview';
 export function EventArtwork({
   event,
   className = '',
@@ -37,9 +37,14 @@ export function EventArtwork({
   );
 }
 export function EventCard({ event }: { event: DiscoveryEvent }) {
+  const { openPreview } = useQuickPreview();
   return (
     <article className={ui('event-card')}>
-      <Link to={`/events/${event.id}`} className={ui('event-card-link')}>
+      <button
+        type="button"
+        onClick={() => openPreview('event', event.id)}
+        className={ui('event-card-link w-full text-left')}
+      >
         <EventArtwork event={event} />
         <div className={ui('event-card-body')}>
           <span className={ui('category-label')}>
@@ -69,7 +74,7 @@ export function EventCard({ event }: { event: DiscoveryEvent }) {
             </span>
           </div>
         </div>
-      </Link>
+      </button>
     </article>
   );
 }

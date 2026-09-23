@@ -27,6 +27,7 @@ export interface Category {
 
 export interface ResaleTicket {
   id: string;
+  eventId: string;
   eventTitle: string;
   image: string;
   date: string;

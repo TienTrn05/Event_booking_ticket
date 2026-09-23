@@ -3,8 +3,11 @@ import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { Calendar, MapPin, ChevronRight } from 'lucide-react';
 import { officialEvents } from '../../data/mockData';
 import Badge from '../../../../shared/ui/Badge';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
 export default function OfficialPartnerEvents() {
+  const { openPreview } = useQuickPreview();
+
   return (
     <section id="spotlight" className={ui('home-chapter chapter-partners py-14 lg:py-20 bg-white')}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -21,11 +24,16 @@ export default function OfficialPartnerEvents() {
             </h2>
           </div>
           <button
+            type="button"
+            onClick={() => {
+              const firstEvent = officialEvents[0];
+              if (firstEvent) openPreview('event', firstEvent.id);
+            }}
             className={ui(
               'flex items-center gap-1 text-sm font-semibold text-ink-600 hover:text-ink-900 transition-colors',
             )}
           >
-            All official events
+            Featured event
             <ChevronRight size={16} />
           </button>
         </div>
@@ -35,6 +43,15 @@ export default function OfficialPartnerEvents() {
             <article
               data-reveal
               key={event.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openPreview('event', event.id)}
+              onKeyDown={(keyboardEvent) => {
+                if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+                  keyboardEvent.preventDefault();
+                  openPreview('event', event.id);
+                }
+              }}
               className={ui(
                 'group bg-white rounded-2xl border border-ink-100 shadow-card overflow-hidden transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer',
               )}

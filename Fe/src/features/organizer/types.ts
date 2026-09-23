@@ -8,4 +8,5 @@ export interface Organizer {
   category: string;
   upcomingEventTitle?: string;
   upcomingEventDate?: string;
+  upcomingEventId?: string;
 }

@@ -4,8 +4,11 @@ import { resaleTickets } from '../../data/mockData';
 import Badge from '../../../../shared/ui/Badge';
 import Button from '../../../../shared/ui/Button';
 import { formatPrice } from '../../../../shared/utils/format';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
 export default function ResaleTickets() {
+  const { openPreview } = useQuickPreview();
+
   return (
     <section
       id="resale"
@@ -61,6 +64,15 @@ export default function ResaleTickets() {
             <article
               data-reveal
               key={ticket.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openPreview('resale', ticket.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openPreview('resale', ticket.id);
+                }
+              }}
               className={ui(
                 'group flex-shrink-0 w-[310px] sm:w-[350px] bg-white rounded-2xl overflow-hidden shadow-elevated transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(232,93,44,0.25)] animate-slide-up snap-start',
               )}
@@ -150,6 +162,10 @@ export default function ResaleTickets() {
                   </div>
                   <Button
                     size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openPreview('resale', ticket.id);
+                    }}
                     className="group-hover:shadow-lg group-hover:shadow-primary-500/20"
                   >
                     Buy ticket <ArrowRight size={14} />

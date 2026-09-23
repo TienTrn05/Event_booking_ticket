@@ -231,6 +231,7 @@ export const exploreEvents: Event[] = [
 export const resaleTickets: ResaleTicket[] = [
   {
     id: 'r1',
+    eventId: 'fe1',
     eventTitle: 'Coldplay: Music of the Spheres',
     image:
       'https://images.pexels.com/photos/5193526/pexels-photo-5193526.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
@@ -247,6 +248,7 @@ export const resaleTickets: ResaleTicket[] = [
   },
   {
     id: 'r2',
+    eventId: 'fe2',
     eventTitle: 'Sơn Tùng M-TP Live Concert 2026',
     image:
       'https://images.pexels.com/photos/30215324/pexels-photo-30215324.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
@@ -263,6 +265,7 @@ export const resaleTickets: ResaleTicket[] = [
   },
   {
     id: 'r3',
+    eventId: 'fe3',
     eventTitle: 'Monsoon Music Festival 2026',
     image:
       'https://images.pexels.com/photos/17373843/pexels-photo-17373843.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',
@@ -279,6 +282,7 @@ export const resaleTickets: ResaleTicket[] = [
   },
   {
     id: 'r4',
+    eventId: 'fe4',
     eventTitle: 'Manchester United vs Vietnam All Stars',
     image:
       'https://images.pexels.com/photos/30651230/pexels-photo-30651230.jpeg?auto=compress&cs=tinysrgb&h=650&w=940',

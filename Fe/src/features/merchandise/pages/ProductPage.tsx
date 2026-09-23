@@ -1,31 +1,38 @@
 import { ui } from '../../../shared/styles/classes';
 import { Link, useParams } from 'react-router-dom';
-import { demoProducts } from '../data/catalog';
 import { ProductArtwork } from '../components/ProductArtwork';
-import { demoEvents, formatPrice } from '../../events/data/discovery';
+import { formatPrice } from '../../events/data/discovery';
+import { getMerchandiseById } from '../data/merchandiseCatalog';
 
 export function ProductPage() {
   const { productId } = useParams();
-  const product = demoProducts.find((item) => item.id === productId);
+  const product = getMerchandiseById(productId);
   if (!product)
     return (
       <main id="main" className={ui('container content-page')}>
         <h1>Không tìm thấy sản phẩm</h1>
-        <Link to="/#merchandise-home">Về merchandise</Link>
+        <Link to="/#merchandise">Về merchandise</Link>
       </main>
     );
-  const event = demoEvents.find((item) => item.id === product.eventId);
   return (
     <main id="main" className={ui('container content-page')}>
       <div className={ui('breadcrumb')}>
-        <Link to="/#merchandise-home">Merchandise</Link>
+        <Link to="/#merchandise">Merchandise</Link>
         <span>/</span>
-        <Link to={`/events/${product.eventId}`}>{product.displayName}</Link>
+        <Link to={`/events/${product.eventId}`}>{product.eventTitle}</Link>
       </div>
       <div className={ui('detail-grid')}>
-        <ProductArtwork product={product} />
+        {product.artwork ? (
+          <ProductArtwork product={product.artwork} />
+        ) : (
+          <div className="aspect-[1.4] overflow-hidden rounded-2xl border border-home-line bg-home-elevated">
+            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          </div>
+        )}
         <div className={ui('detail-copy')}>
-          <span className={ui('eyebrow')}>{product.displayName} · SẢN PHẨM MINH HỌA</span>
+          <span className={ui('eyebrow')}>
+            {product.badge ?? 'MERCHANDISE'} · SẢN PHẨM MINH HỌA
+          </span>
           <h1>{product.name}</h1>
           <p>
             Thuộc sự kiện:{' '}
@@ -33,7 +40,16 @@ export function ProductPage() {
               {product.eventTitle}
             </Link>
           </p>
-          <p>Đơn vị bán: {event?.organization}</p>
+          <p>
+            Đơn vị bán:{' '}
+            {product.organizerId ? (
+              <Link className={ui('text-link')} to={`/organizers/${product.organizerId}`}>
+                {product.organizer}
+              </Link>
+            ) : (
+              product.organizer
+            )}
+          </p>
           <h2>{formatPrice(product.priceVnd)}</h2>
           <div className={ui('notice')}>
             {product.requiresTicket

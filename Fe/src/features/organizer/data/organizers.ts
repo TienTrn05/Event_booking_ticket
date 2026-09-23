@@ -12,6 +12,7 @@ export const organizers: Organizer[] = [
     category: 'Music',
     upcomingEventTitle: 'Sơn Tùng M-TP Live Concert 2026',
     upcomingEventDate: 'Oct 18, 2026',
+    upcomingEventId: 'fe2',
   },
   {
     id: 'o2',
@@ -24,6 +25,7 @@ export const organizers: Organizer[] = [
     category: 'Music',
     upcomingEventTitle: 'Đen Vâu Live Concert',
     upcomingEventDate: 'Oct 25, 2026',
+    upcomingEventId: 'u1',
   },
   {
     id: 'o3',
@@ -36,6 +38,7 @@ export const organizers: Organizer[] = [
     category: 'Festivals',
     upcomingEventTitle: 'Monsoon Music Festival 2026',
     upcomingEventDate: 'Nov 22, 2026',
+    upcomingEventId: 'fe3',
   },
   {
     id: 'o4',
@@ -48,6 +51,7 @@ export const organizers: Organizer[] = [
     category: 'Arts',
     upcomingEventTitle: 'Contemporary Art Exhibition: Boundless',
     upcomingEventDate: 'Sep 25, 2026',
+    upcomingEventId: 'e4',
   },
   {
     id: 'o5',
@@ -60,6 +64,7 @@ export const organizers: Organizer[] = [
     category: 'Sports',
     upcomingEventTitle: 'V.League Championship Final 2026',
     upcomingEventDate: 'Dec 15, 2026',
+    upcomingEventId: 'u3',
   },
   {
     id: 'o6',
@@ -72,6 +77,7 @@ export const organizers: Organizer[] = [
     category: 'Technology',
     upcomingEventTitle: 'Vietnam Tech Summit 2026',
     upcomingEventDate: 'Nov 5, 2026',
+    upcomingEventId: 'e2',
   },
   {
     id: 'o7',
@@ -84,6 +90,7 @@ export const organizers: Organizer[] = [
     category: 'Arts',
     upcomingEventTitle: 'Street Art & Culture Festival',
     upcomingEventDate: 'Oct 30, 2026',
+    upcomingEventId: 'u4',
   },
   {
     id: 'o8',
@@ -95,5 +102,6 @@ export const organizers: Organizer[] = [
     category: 'Workshops',
     upcomingEventTitle: 'Masterclass: Modern Pottery Techniques',
     upcomingEventDate: 'Oct 10, 2026',
+    upcomingEventId: 'e6',
   },
 ];

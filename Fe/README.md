@@ -38,7 +38,7 @@ Sau khi đổi cấu hình Tailwind/PostCSS, khởi động lại dev server đ�
 
 ### Home được thiết kế lại
 
-Home giữ nội dung và màu xanh Eventix, với hero hai cột, thẻ sự kiện nổi bật một hàng có hover giãn thẻ, section có icon Lucide và nhịp nền riêng. `shared/styles/classes.ts` định nghĩa các lớp nền, chữ và CTA cho cả hai theme; navbar dùng màu semantic, không dùng nền trắng bán trong suốt ở dark mode. Bỏ số trang trí. Resale, địa điểm và Blog dùng hàng ngang gọn; màn hình nhỏ cuộn ngang, nút tối thiểu 44px, focus rõ và hỗ trợ `prefers-reduced-motion`.
+Home giữ nội dung và màu xanh Eventix, với hero hai cột, thẻ sự kiện nổi bật một hàng có hover giãn thẻ, section có icon Lucide và nhịp nền riêng. `shared/styles/classes.ts` định nghĩa các lớp nền, chữ và CTA cho cả hai theme; navbar dùng màu semantic, không dùng nền trắng bán trong suốt ở dark mode. Bỏ số trang trí. Resale, địa điểm và Blog dùng hàng ngang gọn; màn hình nhỏ cuộn ngang, nút tối thiểu 44px và focus rõ.
 
 Phần dưới ghi lại nguồn chuyển đổi ban đầu; giao diện hiện tại đã được chỉnh theo yêu cầu redesign, không còn giữ nguyên thiết kế của bản mẫu. Nội dung demo và phạm vi tích hợp backend vẫn như cũ.
 
@@ -49,5 +49,7 @@ Tailwind CSS 3, PostCSS, Autoprefixer và Lucide React phục vụ đúng thiế
 Dữ liệu trang chủ là fixture từ bản mẫu, được chia vào `features/events/data`, `features/organizer/data`, `features/merchandise/data` và `features/content/data`. Đây là bản demo giao diện. Số liệu, tài khoản, đối tác, trạng thái vé và giá trong mẫu không xác nhận dữ liệu thực tế. Bộ lọc, sắp xếp, tải thêm, yêu thích, chọn nghệ sĩ merchandise, menu mobile và đổi theme hoạt động theo mẫu. Ảnh và font cần kết nối mạng.
 
 Trang chi tiết, Blog, hướng dẫn và `/reopening` dùng chung header/footer với Home; typography cũ được giới hạn trong `.legacy-site`. Tìm kiếm trên `/reopening` dùng URL; trang chủ dùng bộ lọc tại chỗ theo mẫu. Các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở popup theo ngữ cảnh. Popup chưa xác thực thật vì backend auth chưa có endpoint; không tạo tài khoản hoặc vé giả. Theme Light / Dark / System tiếp tục lưu lựa chọn giao diện và đồng bộ giữa các tab.
+
+Card sự kiện, organizer, merchandise, bài viết và vé bán lại mở cùng một thẻ xem nhanh. Trạng thái xem nhanh nằm trong query `preview` + `previewId` để Back/Forward hoạt động và không làm mất query bộ lọc. Dữ liệu xem nhanh được resolve qua catalog chuẩn hóa theo ID; nút **Xem toàn bộ** đi tới page chi tiết. Các page chi tiết dùng `React.lazy` trong `src/app/routes.tsx`, nên chunk JavaScript tương ứng chỉ được tải khi điều hướng.
 
 Kiểm tra bằng npm run check từ gốc.
