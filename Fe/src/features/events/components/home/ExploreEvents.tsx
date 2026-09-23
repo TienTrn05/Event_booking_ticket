@@ -1,6 +1,7 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, MapPin, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { exploreEvents } from '../../data/mockData';
 import EventCard from './DiscoveryEventCard';
@@ -15,7 +16,14 @@ const categoryFilters = [
   'Workshops',
   'Festivals',
 ] as const;
-const cityFilters = ['All Cities', 'Ha Noi', 'Ho Chi Minh City', 'Da Nang'] as const;
+const cityFilters = [
+  'All Cities',
+  'Ha Noi',
+  'Ho Chi Minh City',
+  'Da Nang',
+  'Hue',
+  'Hai Phong',
+] as const;
 const sortOptions = [
   'Most Popular',
   'Date (Soonest)',
@@ -31,8 +39,14 @@ export default function ExploreEvents({
   category: EventCategory | 'All';
   onCategoryChange: (category: EventCategory | 'All') => void;
 }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedCity = searchParams.get('city');
   const [search, setSearch] = useState('');
-  const [city, setCity] = useState<(typeof cityFilters)[number]>('All Cities');
+  const city: (typeof cityFilters)[number] = cityFilters.includes(
+    requestedCity as (typeof cityFilters)[number],
+  )
+    ? (requestedCity as (typeof cityFilters)[number])
+    : 'All Cities';
   const [sort, setSort] = useState<(typeof sortOptions)[number]>('Most Popular');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
@@ -153,7 +167,10 @@ export default function ExploreEvents({
               <select
                 value={city}
                 onChange={(event) => {
-                  setCity(event.target.value as (typeof cityFilters)[number]);
+                  const next = new URLSearchParams(searchParams);
+                  if (event.target.value === 'All Cities') next.delete('city');
+                  else next.set('city', event.target.value);
+                  void setSearchParams(next, { preventScrollReset: true });
                   setShowAll(false);
                 }}
                 className={ui(

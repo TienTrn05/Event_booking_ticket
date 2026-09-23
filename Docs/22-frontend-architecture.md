@@ -16,6 +16,12 @@ Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đ
 
 Các fixture và component của Blog, merchandise và organizer nằm trong feature tương ứng; `events` chỉ giữ sự kiện, danh mục và vé bán lại. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
 
+### Xem nhanh và liên kết catalog
+
+Các nguồn fixture của Home được chuẩn hóa qua `features/events/data/eventCatalog.ts` và `features/merchandise/data/merchandiseCatalog.ts`. Quan hệ organizer, sự kiện, merchandise và vé bán lại dùng ID; component không tự đối chiếu bằng tiêu đề hiển thị. `features/preview` là feature điều phối thẻ xem nhanh dùng chung cho event, organizer, merchandise, bài viết và vé bán lại.
+
+Click một item trên Home đặt `preview` và `previewId` vào query hiện tại rồi mở `QuickPreviewDialog`; đóng dialog xóa hai query này và giữ nguyên bộ lọc/hash. Nút **Xem toàn bộ** điều hướng tới route chi tiết. Các page chi tiết được khai báo bằng `React.lazy` trong `app/routes.tsx`, vì vậy browser chỉ tải chunk JavaScript của page sau khi người dùng yêu cầu xem đầy đủ. Query chỉ chứa loại và ID công khai, không chứa token, giá tin cậy hay dữ liệu xác thực.
+
 ## Nguyên tắc bắt buộc
 
 - **Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.** Mọi giá trị nhạy cảm lấy từ server response, không tự tính hoặc cache dài hạn.
@@ -171,14 +177,14 @@ Fe/src/
 
 ## Phân tầng và trách nhiệm
 
-| Tầng | Trách nhiệm | Không được làm |
-|---|---|---|
-| **Page** | Compose components, đọc route params, điều phối hooks | Gọi API trực tiếp, chứa business logic |
-| **Component** | Render UI, phát event lên parent hoặc hook | Tự quyết định quyền, trạng thái thanh toán, giá |
-| **Hook (domain)** | Gọi API qua `api/`, quản lý loading/error/data local | Truy cập DOM, render JSX |
-| **api/ (feature)** | Gọi `shared/api/client`, serialize request/response DTO | Xử lý auth, retry, idempotency |
-| **shared/api/client** | HTTP, auth header, token refresh, error normalize | Biết domain cụ thể nào đang được gọi |
-| **AuthProvider** | Giữ access token trong memory, expose refresh function | Lưu token vào storage |
+| Tầng                  | Trách nhiệm                                             | Không được làm                                  |
+| --------------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| **Page**              | Compose components, đọc route params, điều phối hooks   | Gọi API trực tiếp, chứa business logic          |
+| **Component**         | Render UI, phát event lên parent hoặc hook              | Tự quyết định quyền, trạng thái thanh toán, giá |
+| **Hook (domain)**     | Gọi API qua `api/`, quản lý loading/error/data local    | Truy cập DOM, render JSX                        |
+| **api/ (feature)**    | Gọi `shared/api/client`, serialize request/response DTO | Xử lý auth, retry, idempotency                  |
+| **shared/api/client** | HTTP, auth header, token refresh, error normalize       | Biết domain cụ thể nào đang được gọi            |
+| **AuthProvider**      | Giữ access token trong memory, expose refresh function  | Lưu token vào storage                           |
 
 ---
 
@@ -204,15 +210,15 @@ AuthProvider (React Context)
 ```typescript
 // shared/api/client.ts — hợp đồng
 interface RequestOptions {
-  idempotencyKey?: string   // bắt buộc cho hold, checkout, payment, cancel, check-in, refund
-  signal?: AbortSignal
+  idempotencyKey?: string; // bắt buộc cho hold, checkout, payment, cancel, check-in, refund
+  signal?: AbortSignal;
 }
 
-async function apiGet<T>(path: string, options?: RequestOptions): Promise<T>
-async function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>
-async function apiPatch<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>
-async function apiPut<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>
-async function apiDelete(path: string, options?: RequestOptions): Promise<void>
+async function apiGet<T>(path: string, options?: RequestOptions): Promise<T>;
+async function apiPost<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
+async function apiPatch<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
+async function apiPut<T>(path: string, body: unknown, options?: RequestOptions): Promise<T>;
+async function apiDelete(path: string, options?: RequestOptions): Promise<void>;
 ```
 
 **Idempotency-Key:** Sinh UUID v4 ở caller (hook), truyền vào `options.idempotencyKey`. Client attach vào header `Idempotency-Key`. Hook giữ key trong `useRef` — không sinh lại khi re-render. Key chỉ đổi khi user bắt đầu thao tác mới.
@@ -283,12 +289,12 @@ Xóa metadata khi hoàn tất chuyển sang booking đã biết ID, nhả hold h
 
 Bảng dưới đọc trường DTO `availability`, không dùng trực tiếp status DB. Server ánh xạ `AVAILABLE_AFTER_CLEANUP` nội bộ thành AVAILABLE theo [09](09-api-design.md); frontend không thêm trạng thái tồn kho mới. Mọi yêu cầu giữ vẫn có thể trả 409 sau khi revalidate.
 
-| Trạng thái ghế | Hiển thị |
-|---|---|
-| `AVAILABLE` | Có thể chọn |
+| Trạng thái ghế               | Hiển thị                    |
+| ---------------------------- | --------------------------- |
+| `AVAILABLE`                  | Có thể chọn                 |
 | `HELD` (người khác, còn hạn) | Grayed out, không chọn được |
-| `SOLD` | Grayed out |
-| Đang chọn (local) | Highlight |
+| `SOLD`                       | Grayed out                  |
+| Đang chọn (local)            | Highlight                   |
 
 **Không tin snapshot UI làm căn cứ checkout.** Khi user submit hold, server kiểm tra lại dưới khóa. Nếu 409 `SEAT_UNAVAILABLE` → hiển thị lỗi, reload snapshot từ server, không tự chọn ghế thay user.
 
@@ -325,17 +331,17 @@ Khoảng poll và timeout là đề xuất; cần benchmark với mock payment l
 
 ## Xử lý lỗi và UX bắt buộc (NFR-012)
 
-| Tình huống | Hành vi FE bắt buộc |
-|---|---|
-| 409 `SEAT_UNAVAILABLE` khi hold | Hiển thị "Ghế đã bị giữ bởi người khác", reload seat map, không tự chọn lại |
-| Hold hết hạn (`expiresAt` đã qua) | Hiển thị "Phiên giữ ghế đã hết hạn", nút "Chọn lại ghế" |
-| Giá server khác giá đang hiển thị | Modal xác nhận giá mới trước khi tiếp tục checkout |
-| Payment timeout/chưa rõ | "Đang xác minh giao dịch..." + nút kiểm tra thủ công |
-| 401 access token hết hạn | Tự refresh, retry request gốc, ẩn với người dùng |
-| 401 refresh thất bại | Logout, redirect về `/login`, toast "Phiên đăng nhập đã hết" |
-| 403 | "Bạn không có quyền thực hiện thao tác này" |
-| 404 | "Không tìm thấy tài nguyên" — không lộ thông tin owner |
-| 500/503 | "Lỗi hệ thống, vui lòng thử lại sau" — không log stack trace ra console production |
+| Tình huống                        | Hành vi FE bắt buộc                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| 409 `SEAT_UNAVAILABLE` khi hold   | Hiển thị "Ghế đã bị giữ bởi người khác", reload seat map, không tự chọn lại        |
+| Hold hết hạn (`expiresAt` đã qua) | Hiển thị "Phiên giữ ghế đã hết hạn", nút "Chọn lại ghế"                            |
+| Giá server khác giá đang hiển thị | Modal xác nhận giá mới trước khi tiếp tục checkout                                 |
+| Payment timeout/chưa rõ           | "Đang xác minh giao dịch..." + nút kiểm tra thủ công                               |
+| 401 access token hết hạn          | Tự refresh, retry request gốc, ẩn với người dùng                                   |
+| 401 refresh thất bại              | Logout, redirect về `/login`, toast "Phiên đăng nhập đã hết"                       |
+| 403                               | "Bạn không có quyền thực hiện thao tác này"                                        |
+| 404                               | "Không tìm thấy tài nguyên" — không lộ thông tin owner                             |
+| 500/503                           | "Lỗi hệ thống, vui lòng thử lại sau" — không log stack trace ra console production |
 
 ---
 
@@ -366,18 +372,17 @@ Server validate lại tất cả. FE không block submit chỉ vì validation FE
 
 ## Quyết định cần chốt (Q-016)
 
-| Hạng mục | Phương án đề xuất | Phụ thuộc |
-|---|---|---|
-| Routing library | React Router v6 hoặc TanStack Router | Q-016 |
-| Server state / API cache | TanStack Query (React Query) | Q-016 |
-| Form + validation | React Hook Form + Zod | Q-016 |
-| Global state (ngoài auth) | Zustand hoặc React Context | Q-016 |
-| Seat map rendering | SVG inline (tọa độ từ `map_x/map_y`) | Q-014 |
-| Accessibility level | Cần chốt Q-014 trước implement |  |
-| Internationalization | Tiếng Việt MVP; i18n library nếu cần đa ngôn ngữ | Q-014 |
+| Hạng mục                  | Phương án đề xuất                                | Phụ thuộc |
+| ------------------------- | ------------------------------------------------ | --------- |
+| Routing library           | React Router v6 hoặc TanStack Router             | Q-016     |
+| Server state / API cache  | TanStack Query (React Query)                     | Q-016     |
+| Form + validation         | React Hook Form + Zod                            | Q-016     |
+| Global state (ngoài auth) | Zustand hoặc React Context                       | Q-016     |
+| Seat map rendering        | SVG inline (tọa độ từ `map_x/map_y`)             | Q-014     |
+| Accessibility level       | Cần chốt Q-014 trước implement                   |           |
+| Internationalization      | Tiếng Việt MVP; i18n library nếu cần đa ngôn ngữ | Q-014     |
 
 Không pin phiên bản cụ thể trong doc; chọn khi bắt đầu Phase 1 và commit `package.json` + lockfile ngay.
-
 
 ## Editor layout trong web
 
@@ -400,6 +405,7 @@ AdmissionScanPage là bước riêng, cần CheckIn và Ticket VALID rồi quét
 EventReviewQueuePage hiển thị tổ chức, event/session sớm nhất, version đã gửi, submittedAt, expiresAt, trạng thái và thời gian còn lại theo serverTime. Không có nút tự sửa nội dung event cho Admin. Approve/reject trong hạn; khi EXPIRED không cho approve và hiện việc “Cần gửi phiếu lý do”.
 
 ReviewReasonFormPage:
+
 - Metadata chỉ đọc: reviewId/eventId, tổ chức, thời điểm gửi/hết hạn.
 - reasonCode: select mã lý do, gồm quá hạn review; reasonText: textarea bắt buộc do Admin soạn.
 - guidance: hướng dẫn khắc phục/nộp lại; không tự hứa gia hạn hoặc đã được đăng.

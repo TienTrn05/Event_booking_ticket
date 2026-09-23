@@ -4,8 +4,11 @@ import { Calendar, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { articles } from '../data/articles';
 import Badge from '../../../shared/ui/Badge';
+import { useQuickPreview } from '../../preview/hooks/useQuickPreview';
 
 export default function BlogPreview() {
+  const { openPreview } = useQuickPreview();
+
   return (
     <section id="blog" className={ui('home-chapter chapter-blog py-14 lg:py-20 bg-white')}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -32,10 +35,18 @@ export default function BlogPreview() {
 
         <div className={ui('grid grid-cols-1 sm:grid-cols-3 gap-5')}>
           {Object.entries(articles).map(([id, post]) => (
-            <Link
+            <article
               data-reveal
               key={id}
-              to={`/blog/${id}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => openPreview('article', id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openPreview('article', id);
+                }
+              }}
               className={ui(
                 'group bg-white rounded-2xl border border-ink-100 shadow-card overflow-hidden transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer',
               )}
@@ -73,7 +84,7 @@ export default function BlogPreview() {
                   </span>
                 </div>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       </div>

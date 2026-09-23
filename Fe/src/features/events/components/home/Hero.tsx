@@ -1,8 +1,10 @@
 import { ui } from '../../../../shared/styles/classes';
 import { ArrowRight, ArrowUpRight, Search, MapPin, Sparkles, Calendar } from 'lucide-react';
 import { featuredEvents } from '../../data/mockData';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 export default function Hero() {
   const event = featuredEvents[0];
+  const { openPreview } = useQuickPreview();
   return (
     <section className={ui('editorial-hero')}>
       <div className={ui('hero-backdrop !animate-ambient-drift')} aria-hidden="true" />
@@ -40,9 +42,12 @@ export default function Hero() {
           </div>
         </div>
         {event && (
-          <a
-            className={ui('hero-event-preview !animate-hero-arrive ![animation-delay:180ms]')}
-            href="#featured"
+          <button
+            type="button"
+            className={ui(
+              'hero-event-preview text-left !animate-hero-arrive ![animation-delay:180ms]',
+            )}
+            onClick={() => openPreview('event', event.id)}
           >
             <img src={event.image} alt={event.title} />
             <div className={ui('hero-preview-top')}>
@@ -60,7 +65,7 @@ export default function Hero() {
                 {event.dateLabel.split('·')[0]}
               </p>
             </div>
-          </a>
+          </button>
         )}
       </div>
       <div className={ui('home-container hero-discovery-strip')}>

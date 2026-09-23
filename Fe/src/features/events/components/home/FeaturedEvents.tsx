@@ -1,16 +1,26 @@
 import { ui } from '../../../../shared/styles/classes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Heart, MapPin, Calendar, ArrowRight } from 'lucide-react';
 import { featuredEvents } from '../../data/mockData';
 import StatusBadge from '../StatusBadge';
 import { formatPrice } from '../../../../shared/utils/format';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 export default function FeaturedEvents() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copyReady, setCopyReady] = useState(true);
+  const { openPreview } = useQuickPreview();
+
+  useEffect(() => {
+    if (copyReady) return;
+    const timer = window.setTimeout(() => setCopyReady(true), 340);
+    return () => window.clearTimeout(timer);
+  }, [copyReady, expandedId]);
 
   const showCard = (id: string | null) => {
     if (expandedId === id) return;
+    setCopyReady(false);
     setExpandedId(id);
   };
 
@@ -30,7 +40,7 @@ export default function FeaturedEvents() {
         <div
           className={ui('featured-hover-rail')}
           data-expanded={expandedId !== null}
-
+          data-copy-ready={copyReady}
           onMouseLeave={() => showCard(null)}
           onBlur={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget)) showCard(null);
@@ -40,10 +50,19 @@ export default function FeaturedEvents() {
             <article
               data-reveal="fade-card"
               data-active={expandedId === event.id}
+              role="button"
+              tabIndex={0}
               key={event.id}
               className={ui('spotlight-card')}
               onMouseEnter={() => showCard(event.id)}
               onFocus={() => showCard(event.id)}
+              onClick={() => openPreview('event', event.id)}
+              onKeyDown={(eventKey) => {
+                if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+                  eventKey.preventDefault();
+                  openPreview('event', event.id);
+                }
+              }}
             >
               <div className={ui('spotlight-image')}>
                 <img src={event.image} alt={event.title} loading="lazy" />
@@ -52,14 +71,15 @@ export default function FeaturedEvents() {
                   className={ui('favorite-button')}
                   aria-label={'Favorite ' + event.title}
                   aria-pressed={favorites.has(event.id)}
-                  onClick={() =>
+                  onClick={(clickEvent) => {
+                    clickEvent.stopPropagation();
                     setFavorites((prev) => {
                       const next = new Set(prev);
                       if (next.has(event.id)) next.delete(event.id);
                       else next.add(event.id);
                       return next;
-                    })
-                  }
+                    });
+                  }}
                 >
                   <Heart size={19} fill={favorites.has(event.id) ? 'currentColor' : 'none'} />
                 </button>
@@ -85,9 +105,16 @@ export default function FeaturedEvents() {
                     <span className={ui('price-label')}>From</span>
                     <strong>{formatPrice(event.startingPrice, event.currency)}</strong>
                   </div>
-                  <a href="#discover" className={ui('home-cta')}>
-                    Explore event <ArrowRight size={16} />
-                  </a>
+                  <button
+                    type="button"
+                    className={ui('home-cta')}
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      openPreview('event', event.id);
+                    }}
+                  >
+                    Xem nhanh <ArrowRight size={16} />
+                  </button>
                 </div>
               </div>
             </article>

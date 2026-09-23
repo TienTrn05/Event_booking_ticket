@@ -5,6 +5,7 @@ import type { Event } from '../../types';
 import Badge from '../../../../shared/ui/Badge';
 import StatusBadge from '../StatusBadge';
 import { formatPrice } from '../../../../shared/utils/format';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
 interface EventCardProps {
   event: Event;
@@ -14,8 +15,10 @@ interface EventCardProps {
 
 export default function EventCard({ event, onToggleFavorite, isFavorite = false }: EventCardProps) {
   const [favorite, setFavorite] = useState(isFavorite);
+  const { openPreview } = useQuickPreview();
 
   const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setFavorite((prev) => !prev);
     onToggleFavorite?.(event.id);
@@ -24,6 +27,15 @@ export default function EventCard({ event, onToggleFavorite, isFavorite = false 
   return (
     <article
       data-reveal
+      role="button"
+      tabIndex={0}
+      onClick={() => openPreview('event', event.id)}
+      onKeyDown={(eventKey) => {
+        if (eventKey.key === 'Enter' || eventKey.key === ' ') {
+          eventKey.preventDefault();
+          openPreview('event', event.id);
+        }
+      }}
       className={ui(
         'group bg-white rounded-2xl border border-ink-100 shadow-card overflow-hidden transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer',
       )}

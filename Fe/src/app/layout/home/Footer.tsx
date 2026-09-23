@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Ticket } from 'lucide-react';
+import { Ticket } from 'lucide-react';
 import { useAuthDialog } from '../../../features/auth/context/AuthDialogContext';
 import { useScrollReveal } from '../../../shared/motion/useScrollReveal';
 

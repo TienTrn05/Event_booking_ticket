@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { AuthDialogProvider } from '../../features/auth/components/AuthDialog';
+import { QuickPreviewDialog } from '../../features/preview/components/QuickPreviewDialog';
 import { ui } from '../../shared/styles/classes';
 import Navbar from './home/Navbar';
 import Footer from './home/Footer';
@@ -11,6 +12,7 @@ export function AppShell() {
         <Navbar />
         <Outlet />
         <Footer />
+        <QuickPreviewDialog />
       </AuthDialogProvider>
     </div>
   );

@@ -2,8 +2,11 @@ import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { BadgeCheck, ArrowRight } from 'lucide-react';
 import { organizers } from '../../../organizer/data/organizers';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
 export default function FeaturedOrganizers() {
+  const { openPreview } = useQuickPreview();
+
   return (
     <section
       id="stars"
@@ -51,6 +54,15 @@ export default function FeaturedOrganizers() {
             <article
               data-reveal
               key={org.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openPreview('organizer', org.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openPreview('organizer', org.id);
+                }
+              }}
               className="stars-card group relative flex min-h-[180px] w-[164px] shrink-0 flex-col items-center justify-center rounded-2xl p-4 text-center"
             >
               <div className="relative mb-3">
