@@ -25,18 +25,6 @@ export interface Category {
   gradient: string;
 }
 
-export interface Organizer {
-  id: string;
-  name: string;
-  avatar: string;
-  verified: boolean;
-  eventCount: number;
-  hasMerchandise: boolean;
-  category: string;
-  upcomingEventTitle?: string;
-  upcomingEventDate?: string;
-}
-
 export interface ResaleTicket {
   id: string;
   eventTitle: string;
@@ -51,28 +39,6 @@ export interface ResaleTicket {
   currency: string;
   sellerVerified: boolean;
   timeLeft: string;
-}
-
-export interface MerchandiseProduct {
-  id: string;
-  name: string;
-  image: string;
-  price: number;
-  currency: string;
-  organizer: string;
-  organizerId: string;
-  badge: 'New' | 'Limited' | 'Best Seller' | null;
-  eventTitle: string;
-}
-
-export interface BlogPost {
-  id: string;
-  title: string;
-  excerpt: string;
-  image: string;
-  date: string;
-  category: string;
-  readTime: string;
 }
 
 export interface OfficialEvent {

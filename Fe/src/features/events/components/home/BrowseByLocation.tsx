@@ -1,5 +1,5 @@
 import { ui } from '../../../../shared/styles/classes';
-import { SectionEmblem } from './SectionEmblem';
+import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { MapPin, ChevronRight } from 'lucide-react';
 import { locations } from '../../data/mockData';
 

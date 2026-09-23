@@ -31,7 +31,11 @@ export default function CatalogTabs({
       className={ui('relative z-30 border-b border-ink-100 bg-white !animate-reveal-up')}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className={ui('flex items-center gap-2 overflow-x-auto no-scrollbar py-3')}>
+        <div
+          className={ui(
+            'flex  items-center  justify-evenly gap-2 overflow-x-auto no-scrollbar py-3',
+          )}
+        >
           {tagFilters.map((filter) => (
             <button
               key={filter.category}

@@ -2,28 +2,49 @@ import { ui } from '../../../../shared/styles/classes';
 import { useState } from 'react';
 import { Heart, MapPin, Calendar, ArrowRight } from 'lucide-react';
 import { featuredEvents } from '../../data/mockData';
-import StatusBadge from '../../../../shared/ui/StatusBadge';
+import StatusBadge from '../StatusBadge';
 import { formatPrice } from '../../../../shared/utils/format';
-import { SectionEmblem } from './SectionEmblem';
+import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 export default function FeaturedEvents() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const showCard = (id: string | null) => {
+    if (expandedId === id) return;
+    setExpandedId(id);
+  };
+
   return (
     <section id="featured" className={ui('home-chapter featured-chapter')}>
       <div className={ui('home-container')}>
         <div className={ui('chapter-heading')}>
           <div>
             <SectionEmblem kind="featured" />
-            <span className={ui('chapter-eyebrow')}>Worth the hype</span>
-            <h2 data-reveal="heading">Trending</h2>
-            <p>Good nights become great stories.</p>
+
+            <h2 data-reveal="fade-card">Trending</h2>
           </div>
           <a className={ui('home-link')} href="#discover">
             View all events <ArrowRight size={18} />
           </a>
         </div>
-        <div className={ui('featured-hover-rail')}>
+        <div
+          className={ui('featured-hover-rail')}
+          data-expanded={expandedId !== null}
+
+          onMouseLeave={() => showCard(null)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) showCard(null);
+          }}
+        >
           {featuredEvents.map((event) => (
-            <article data-reveal key={event.id} className={ui('spotlight-card')}>
+            <article
+              data-reveal="fade-card"
+              data-active={expandedId === event.id}
+              key={event.id}
+              className={ui('spotlight-card')}
+              onMouseEnter={() => showCard(event.id)}
+              onFocus={() => showCard(event.id)}
+            >
               <div className={ui('spotlight-image')}>
                 <img src={event.image} alt={event.title} loading="lazy" />
                 <span className={ui('spotlight-category')}>{event.category}</span>

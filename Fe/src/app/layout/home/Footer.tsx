@@ -1,102 +1,117 @@
-import { ui } from '../../../shared/styles/classes';
-import { Ticket, Instagram, Facebook, Youtube, Twitter } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Sparkles, Ticket } from 'lucide-react';
+import { useAuthDialog } from '../../../features/auth/context/AuthDialogContext';
+import { useScrollReveal } from '../../../shared/motion/useScrollReveal';
 
-const footerSections = [
+const footerGroups = [
   {
-    title: 'Discover',
-    links: ['Trending Events', 'Music', 'Technology', 'Sports', 'Arts & Culture', 'Festivals'],
-  },
-  {
-    title: 'Platform',
-    links: ['For Organizers', 'Pricing', 'Seat Mapping', 'Analytics', 'API Docs', 'Integrations'],
-  },
-  {
-    title: 'Company',
-    links: ['About Us', 'Careers', 'Press Kit', 'Blog', 'Contact', 'Partners'],
-  },
-  {
-    title: 'Support',
+    title: 'Explore',
     links: [
-      'Help Center',
-      'Refund Policy',
-      'Terms of Service',
-      'Privacy Policy',
-      'Cookie Settings',
-      'Report an Issue',
+      { label: 'Trending events', to: '/#featured' },
+      { label: 'Browse all events', to: '/#discover' },
+      { label: 'Browse by location', to: '/#locations' },
+      { label: 'Resale tickets', to: '/#resale' },
+    ],
+  },
+  {
+    title: 'Discover more',
+    links: [
+      { label: 'Featured organizers', to: '/#stars' },
+      { label: 'The Spotlight', to: '/#spotlight' },
+      { label: 'Merchandise', to: '/#merchandise' },
+      { label: 'Blog & insights', to: '/#blog' },
     ],
   },
 ];
 
-const socialIcons = [Instagram, Facebook, Youtube, Twitter];
-
 export default function Footer() {
+  const { openAuth } = useAuthDialog();
+  const revealRoot = useScrollReveal();
   return (
-    <footer className="bg-ink-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className={ui('grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8 mb-12')}>
-          {/* Brand */}
-          <div className="col-span-2" data-reveal>
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-primary-600 flex items-center justify-center">
-                <Ticket className="w-5 h-5 text-white" />
-              </div>
-              <span className={ui('text-lg font-extrabold tracking-tight')}>Eventix</span>
-            </div>
-            <p className="text-sm text-white/60 leading-relaxed max-w-xs mb-6">
-              The modern ticketing platform for discovering and creating unforgettable live
-              experiences.
+    <footer className="home-footer relative overflow-hidden text-white">
+      <div aria-hidden="true" className="footer-glow pointer-events-none absolute inset-0" />
+      <div ref={revealRoot} className="relative mx-auto max-w-7xl px-4 pb-24 pt-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 border-b border-white/15 pb-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(3,1fr)]">
+          <div>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 text-xl font-extrabold tracking-tight text-white"
+            >
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500 text-white">
+                <Ticket size={21} />
+              </span>
+              Eventix
+            </Link>
+            <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300">
+              Discover events, find your people, and make every night a story worth keeping.
             </p>
-            <div className="flex gap-3">
-              {socialIcons.map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-9 h-9 rounded-lg bg-white/5 hover:bg-primary-600 flex items-center justify-center transition-colors"
-                  aria-label="Social link"
-                >
-                  <Icon size={18} className="text-white/70" />
-                </a>
-              ))}
-            </div>
           </div>
-
-          {/* Link sections */}
-          {footerSections.map((section) => (
-            <div key={section.title} data-reveal>
-              <h4 className="text-sm font-bold text-white mb-4">{section.title}</h4>
-              <ul className="space-y-2.5">
-                {section.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
-                      className="text-sm text-white/60 hover:text-white transition-colors"
+          {footerGroups.map((group) => (
+            <div data-reveal key={group.title}>
+              <h3 className="mb-5 text-sm font-extrabold text-white">{group.title}</h3>
+              <ul className="space-y-3.5">
+                {group.links.map((link) => (
+                  <li key={link.to}>
+                    <Link
+                      to={link.to}
+                      className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
                     >
-                      {link}
-                    </a>
+                      <span aria-hidden="true" className="footer-link-mark" />
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
-        </div>
-
-        <div
-          className={ui(
-            'pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4',
-          )}
-        >
-          <p className="text-sm text-white/50">© 2026 Eventix. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-              Terms
-            </a>
-            <a href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="text-sm text-white/50 hover:text-white transition-colors">
-              Cookies
-            </a>
+          <div data-reveal>
+            <h3 className="mb-5 text-sm font-extrabold text-white">Account & support</h3>
+            <ul className="space-y-3.5">
+              <li>
+                <button
+                  type="button"
+                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
+                  onClick={() => openAuth('tickets')}
+                >
+                  <span aria-hidden="true" className="footer-link-mark" />
+                  My Tickets
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
+                  onClick={() => openAuth('login')}
+                >
+                  <span aria-hidden="true" className="footer-link-mark" />
+                  Đăng nhập
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
+                  onClick={() => openAuth('register')}
+                >
+                  <span aria-hidden="true" className="footer-link-mark" />
+                  Đăng ký
+                </button>
+              </li>
+              <li>
+                <Link
+                  to="/guide"
+                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
+                >
+                  <span aria-hidden="true" className="footer-link-mark" />
+                  Help & guides
+                </Link>
+              </li>
+            </ul>
           </div>
+        </div>
+        <div className="flex flex-col justify-between gap-2 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center">
+          <span>© 2026 Eventix. Made for memorable moments.</span>
+          <span>Preview experience · Account access and ticket sales are coming soon.</span>
         </div>
       </div>
     </footer>

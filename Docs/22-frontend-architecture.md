@@ -10,6 +10,12 @@ Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, fix
 
 Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đổi hợp đồng nghiệp vụ hoặc xác nhận đối tác/tài khoản/giao dịch thật. Bộ lọc trang chủ dùng state theo mẫu; /reopening giữ lọc URL từ trước. Xem [Fe/README.md](../Fe/README.md) cho phạm vi triển khai hiện tại.
 
+### Phạm vi Fe hiện đã triển khai
+
+`app/routes.tsx` khai báo route; `app/layout/AppShell.tsx` dùng chung Navbar/Footer cho Home và các trang nội dung. `app/SiteLayout.tsx` chỉ giới hạn typography legacy. Giao diện đăng nhập hiện là `features/auth/components/AuthDialog.tsx`, còn context mở dialog ở `features/auth/context`: các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở dialog theo ngữ cảnh. Đây chỉ là UI xem trước, chưa tạo phiên đăng nhập, vé hoặc quyền truy cập. Khi API auth sẵn sàng, triển khai luồng Google/OTP và route bảo vệ theo phần hợp đồng bên dưới.
+
+Các fixture và component của Blog, merchandise và organizer nằm trong feature tương ứng; `events` chỉ giữ sự kiện, danh mục và vé bán lại. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
+
 ## Nguyên tắc bắt buộc
 
 - **Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.** Mọi giá trị nhạy cảm lấy từ server response, không tự tính hoặc cache dài hạn.
@@ -20,7 +26,7 @@ Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đ
 
 ---
 
-## Cấu trúc thư mục
+## Cấu trúc thư mục đích khi các API nghiệp vụ được triển khai
 
 ```text
 Fe/src/
@@ -223,7 +229,7 @@ Xóa metadata khi hoàn tất chuyển sang booking đã biết ID, nhả hold h
 
 ---
 
-## Routing và protected routes
+## Routing và protected routes đích
 
 ```
 / (PublicLayout)

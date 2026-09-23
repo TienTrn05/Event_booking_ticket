@@ -1,9 +1,9 @@
 import { ui } from '../../../../shared/styles/classes';
-import { SectionEmblem } from './SectionEmblem';
+import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { useState, useMemo } from 'react';
 import { Search, MapPin, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { exploreEvents } from '../../data/mockData';
-import EventCard from '../../../../shared/ui/EventCard';
+import EventCard from './DiscoveryEventCard';
 import type { Event, EventCategory } from '../../types/index';
 
 const categoryFilters = [
@@ -77,9 +77,6 @@ export default function ExploreEvents({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
           <div>
-            <span className="text-sm font-bold text-primary-600 uppercase tracking-wide">
-              Discover
-            </span>
             <SectionEmblem kind="discover" />
             <h2
               data-reveal="heading"

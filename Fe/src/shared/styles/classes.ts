@@ -127,10 +127,8 @@ export const uiClasses: Readonly<Record<string, string>> = {
     'legacy:[.reopening-body_&]:flex-wrap legacy:[.reopening-body_&]:gap-3',
   ].join(' '),
   'catalog-floating': [
-    '[&_a]:rounded-[100px] [&_a]:px-[18px] [&_a]:min-h-11',
     '[transition:opacity_420ms_ease,_translate_680ms_cubic-bezier(0.22,_1,_0.36,_1),_scale_680ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_680ms]',
     '[.reference-site.reference-site_&_>_div]:[background:var(--home-nav)] [.reference-site.reference-site_&_>_div]:border-home-line [.reference-site.reference-site_&_>_div]:rounded-[18px] [.reference-site.reference-site_&_>_div]:shadow-[0_10px_40px_#0003]',
-    'until-639:[.reference-site.reference-site_&]:hidden',
   ].join(' '),
   'category-label': [
     'legacy:text-[length:10px] legacy:text-accent legacy:font-bold',
@@ -487,7 +485,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
     'until-639:[.chapter-heading_>_&]:mt-4',
   ].join(' '),
   'home-mobile-menu': [
-    'overflow-hidden origin-top p-[16px_24px_24px] [background:var(--home-nav)] [border-top:1px_solid_var(--home-line)] [transition:max-height_420ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_240ms_ease,_transform_420ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_420ms] from-960:hidden',
+    'overflow-hidden origin-top p-[16px_24px_24px] [background:var(--home-nav)] [border-top:1px_solid_var(--home-line)] [transition:max-height_420ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_240ms_ease,_transform_420ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_420ms] from-1200:hidden',
     '[&_a]:flex [&_a]:items-center [&_a]:min-h-12 [&_a]:text-home-text',
   ].join(' '),
   'home-nav': [
@@ -506,10 +504,10 @@ export const uiClasses: Readonly<Record<string, string>> = {
     "[&_a]:relative [&_a]:[transition:color_220ms_ease] [&_a::after]:[content:''] [&_a::after]:absolute [&_a::after]:left-0 [&_a::after]:right-0 [&_a::after]:bottom-1.5 [&_a::after]:h-0.5 [&_a::after]:rounded-full [&_a::after]:bg-home-accent [&_a::after]:scale-x-0 [&_a::after]:origin-left [&_a::after]:[transition:scale_360ms_cubic-bezier(0.22,_1,_0.36,_1)]",
     '[&_a:hover]:text-home-accent [&_a:hover::after]:scale-x-50 [&_a[aria-current=location]]:text-home-accent [&_a[aria-current=location]::after]:scale-x-100',
     'until-1199:gap-4',
-    'until-959:hidden',
+    'until-1199:hidden',
   ].join(' '),
   'home-navbar': [
-    'sticky top-[0] z-[60] [border-bottom:1px_solid_var(--home-line)] [background:var(--home-nav)] text-home-text will-change-transform [transition:transform_620ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_420ms_ease,_box-shadow_420ms_ease]',
+    'sticky top-[0] z-[60] [border-bottom:1px_solid_var(--home-line)] [background:var(--home-nav)] text-home-text will-change-transform [transition:transform_850ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_650ms_ease,_box-shadow_650ms_ease]',
     '[&:focus-within]:[transform:translateY(0)] [&:focus-within]:opacity-100 [&:focus-within]:pointer-events-auto',
   ].join(' '),
   icon: [
@@ -617,7 +615,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
   'nav-menu': [
     'hidden items-center justify-center w-11 [&_svg]:[transition:transform_320ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_180ms_ease]',
     "[&[aria-expanded='true']_svg]:rotate-90 [&:active_svg]:scale-90",
-    'until-959:flex',
+    'until-1199:flex',
   ].join(' '),
   'nav-search': [
     'flex gap-2 items-center justify-center min-h-11 text-[length:13px] font-bold whitespace-nowrap w-11 [&_svg]:[transition:transform_280ms_ease] [&:hover_svg]:scale-110',
@@ -626,10 +624,6 @@ export const uiClasses: Readonly<Record<string, string>> = {
   'nav-tickets': [
     'flex gap-2 items-center justify-center min-h-11 text-[length:13px] font-bold whitespace-nowrap',
     'until-959:hidden',
-  ].join(' '),
-  'no-scrollbar': [
-    '[&::-webkit-scrollbar]:hidden',
-    '[-ms-overflow-style:none] [scrollbar-width:none]',
   ].join(' '),
   notice: [
     'legacy:[border-left:3px_solid_var(--accent)] legacy:p-[14px_18px] legacy:[background:var(--accent-soft)] legacy:text-[length:13px] legacy:leading-[1.7] legacy:rounded-[0_8px_8px_0]',
@@ -770,10 +764,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
     '[&:hover]:[transform:translateY(-3px)] [&:hover]:[background:var(--home-hover)] [&:hover]:[border-color:color-mix(in_srgb,_var(--home-accent)_45%,_transparent)]',
     'until-1199:grid-cols-[110px_minmax(0,_1fr)]',
     'until-959:flex until-959:flex-col',
-    '[.featured-hover-rail_&]:flex [.featured-hover-rail_&]:flex-col [.featured-hover-rail_&]:flex-[1_1_0] [.featured-hover-rail_&]:min-w-0 [.featured-hover-rail_&]:will-change-[flex-grow,transform] [.featured-hover-rail_&]:[transition:flex-grow_720ms_cubic-bezier(0.22,_1,_0.36,_1),_transform_520ms_cubic-bezier(0.22,_1,_0.36,_1),_border-color_320ms_ease,_box-shadow_520ms_ease]',
-    'pointer-wide-1100:[.featured-hover-rail:hover_&]:grow-[0.9]',
-    'pointer-wide-1100:[.featured-hover-rail_&:hover]:grow-[1.32] pointer-wide-1100:[.featured-hover-rail_&:hover]:[transform:translateY(-5px)]',
-    'pointer-wide-1100:[.featured-hover-rail_&:focus-within]:grow-[1.32] pointer-wide-1100:[.featured-hover-rail_&:focus-within]:[transform:translateY(-5px)]',
+    '[.featured-hover-rail_&]:flex [.featured-hover-rail_&]:flex-col [.featured-hover-rail_&]:flex-[1_1_0] [.featured-hover-rail_&]:min-w-0',
     'pointer-wide-1100:[.featured-hover-rail_&:hover_img]:[transform:scale(1.035)] pointer-wide-1100:[.featured-hover-rail_&:hover_img]:[transition:transform_760ms_cubic-bezier(0.22,_1,_0.36,_1)]',
     'until-1099:[.featured-hover-rail_&]:flex-[0_0_300px] until-1099:[.featured-hover-rail_&]:[scroll-snap-align:start]',
     'until-639:[.featured-hover-rail_&]:basis-[min(290px,_85vw)] until-639:[.featured-hover-rail_&]:min-w-0',

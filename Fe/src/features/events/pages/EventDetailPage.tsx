@@ -3,8 +3,10 @@ import { Link, useParams } from 'react-router-dom';
 import { EventArtwork } from '../components/EventCard';
 import { categories, demoEvents, formatDate, formatPrice } from '../data/discovery';
 import { MerchandisePreview } from '../../merchandise/components/MerchandisePreview';
+import { useAuthDialog } from '../../auth/context/AuthDialogContext';
 
 export function EventDetailPage() {
+  const { openAuth } = useAuthDialog();
   const { eventId } = useParams();
   const event = demoEvents.find((item) => item.id === eventId);
   if (!event)
@@ -63,12 +65,9 @@ export function EventDetailPage() {
             <dd>{formatPrice(event.priceVnd)}</dd>
           </dl>
           <p className={ui('section-intro')}>Bạn cần đăng nhập trước khi giữ chỗ hoặc mua vé.</p>
-          <Link
-            className={ui('button')}
-            to={`/login?returnTo=${encodeURIComponent(`/events/${event.id}`)}`}
-          >
+          <button type="button" className={ui('button')} onClick={() => openAuth('checkout')}>
             Thông tin đăng nhập
-          </Link>
+          </button>
           {event.reopening && <p className={ui('notice')}>{event.reopening}</p>}
         </aside>
       </div>

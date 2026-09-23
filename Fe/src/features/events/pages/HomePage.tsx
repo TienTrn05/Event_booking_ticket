@@ -7,10 +7,9 @@ import ExploreEvents from '../components/home/ExploreEvents';
 import ResaleTickets from '../components/home/ResaleTickets';
 import BrowseByLocation from '../components/home/BrowseByLocation';
 import OfficialPartnerEvents from '../components/home/OfficialPartnerEvents';
-import Merchandise from '../components/home/Merchandise';
-import BlogPreview from '../components/home/BlogPreview';
-import OrganizerCTA from '../components/home/OrganizerCTA';
-import Footer from '../../../app/layout/home/Footer';
+import MerchandiseSection from '../../merchandise/components/home/MerchandiseSection';
+import BlogPreview from '../../content/components/BlogPreview';
+
 import { useScrollReveal } from '../../../shared/motion/useScrollReveal';
 import { homeMotion } from '../../../shared/motion/classes';
 import { useState } from 'react';
@@ -31,11 +30,9 @@ export function HomePage() {
         <ResaleTickets />
         <BrowseByLocation />
         <OfficialPartnerEvents />
-        <Merchandise />
+        <MerchandiseSection />
         <BlogPreview />
-        <OrganizerCTA />
       </main>
-      <Footer />
     </div>
   );
 }

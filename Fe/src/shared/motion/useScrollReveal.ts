@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 // Literal utilities let Tailwind discover every state at build time.
 const revealClasses = {
   heading: '!animate-reveal-left',
+  softHeading: '!animate-reveal-soft',
+  fadeCard: '!animate-reveal-fade',
   card: '!animate-reveal-scale',
 } as const;
 const delays = [
@@ -24,7 +26,13 @@ export function useScrollReveal() {
         for (const entry of intersections) {
           if (!entry.isIntersecting) continue;
           const kind =
-            (entry.target as HTMLElement).dataset.reveal === 'heading' ? 'heading' : 'card';
+            (entry.target as HTMLElement).dataset.reveal === 'soft-heading'
+              ? 'softHeading'
+              : (entry.target as HTMLElement).dataset.reveal === 'fade-card'
+                ? 'fadeCard'
+                : (entry.target as HTMLElement).dataset.reveal === 'heading'
+                  ? 'heading'
+                  : 'card';
           entry.target.classList.add(revealClasses[kind]);
           observer.unobserve(entry.target);
         }

@@ -1,84 +1,78 @@
 import { ui } from '../../../../shared/styles/classes';
-import { SectionEmblem } from './SectionEmblem';
-import { BadgeCheck, ChevronRight } from 'lucide-react';
-import { organizers } from '../../data/mockData';
+import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
+import { BadgeCheck, ArrowRight } from 'lucide-react';
+import { organizers } from '../../../organizer/data/organizers';
 
 export default function FeaturedOrganizers() {
   return (
-    <section id="stars" className={ui('home-chapter chapter-stars py-14 lg:py-20')}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between gap-4 mb-6">
+    <section
+      id="stars"
+      className={ui(
+        'home-chapter chapter-stars stars-section relative isolate overflow-hidden py-14 lg:py-20',
+      )}
+    >
+      <div aria-hidden="true" className="stars-backdrop pointer-events-none absolute inset-0">
+        <svg
+          className="stars-waves absolute inset-0 h-full w-full"
+          viewBox="0 0 1600 420"
+          preserveAspectRatio="none"
+        >
+          <path d="M-100 250 C 170 350, 330 80, 540 185 S 890 315, 1120 180 S 1390 105, 1700 230" />
+          <path d="M-100 310 C 170 160, 350 265, 560 150 S 900 150, 1120 280 S 1430 140, 1700 190" />
+          <path d="M-80 110 C 210 30, 380 170, 560 250 S 930 130, 1130 180 S 1420 300, 1700 160" />
+          <path d="M-100 370 C 250 200, 390 360, 620 260 S 980 270, 1200 340 S 1450 250, 1700 320" />
+
+          <path d="M-120 210 C 120 120, 320 300, 560 220 S 930 120, 1160 210 S 1450 330, 1720 240" />
+          <path d="M-90 145 C 140 260, 320 60, 520 145 S 900 310, 1140 210 S 1450 70, 1710 155" />
+          <path d="M-110 285 C 180 410, 360 140, 560 215 S 900 255, 1120 205 S 1430 145, 1700 245" />
+          <path d="M-70 75 C 190 10, 400 140, 620 120 S 970 55, 1180 170 S 1470 260, 1710 130" />
+        </svg>
+      </div>
+      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <span className="text-sm font-bold text-primary-600 uppercase tracking-wide">
-              Find your people
-            </span>
             <SectionEmblem kind="stars" />
             <h2
-              data-reveal="heading"
-              className={ui(
-                'text-2xl lg:text-3xl font-extrabold text-ink-900 tracking-tight mt-1.5',
-              )}
+              data-reveal="soft-heading"
+              className="stars-title mt-2 text-3xl font-extrabold tracking-tight"
             >
               Feature Stars
             </h2>
           </div>
-          <button
-            className={ui(
-              'flex items-center gap-1 text-sm font-semibold text-ink-600 hover:text-ink-900 transition-colors',
-            )}
+          <a
+            href="#organizers"
+            className="stars-all-link inline-flex items-center gap-2 text-sm font-bold"
           >
-            All organizers
-            <ChevronRight size={16} />
-          </button>
+            For organizers <ArrowRight size={16} />
+          </a>
         </div>
-
-        <div
-          className={ui('flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0')}
-        >
+        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
           {organizers.map((org) => (
-            <button
+            <article
               data-reveal
               key={org.id}
-              className={ui(
-                'group flex-shrink-0 w-[200px] bg-white rounded-2xl border border-ink-100 shadow-card p-4 flex flex-col items-center text-center hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300',
-              )}
+              className="stars-card group relative flex min-h-[180px] w-[164px] shrink-0 flex-col items-center justify-center rounded-2xl p-4 text-center"
             >
               <div className="relative mb-3">
-                <div
-                  className={ui(
-                    'w-16 h-16 rounded-full overflow-hidden ring-2 ring-ink-100 group-hover:ring-primary-200 transition-all',
-                  )}
-                >
+                <div className="stars-avatar h-[104px] w-[104px] overflow-hidden rounded-full border-2 p-0.5">
                   <img
                     src={org.avatar}
-                    alt={org.name}
-                    className="w-full h-full object-cover"
+                    alt=""
+                    className="h-full w-full rounded-full object-cover"
                     loading="lazy"
                   />
                 </div>
                 {org.verified && (
                   <span
-                    className={ui(
-                      'absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm',
-                    )}
+                    className="stars-verified absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2"
+                    aria-label="Verified organizer"
                   >
-                    <BadgeCheck size={18} className="text-primary-600 fill-primary-100" />
+                    <BadgeCheck size={17} />
                   </span>
                 )}
               </div>
-              <h3
-                className={ui(
-                  'text-sm font-bold text-ink-900 mb-1 line-clamp-1 group-hover:text-primary-700 transition-colors',
-                )}
-              >
-                {org.name}
-              </h3>
-              <div className={ui('flex items-center gap-2 text-xs text-ink-400')}>
-                <span className="font-medium">{org.eventCount} events</span>
-                <span className="w-1 h-1 rounded-full bg-ink-300" />
-                <span>{org.category}</span>
-              </div>
-            </button>
+              <h3 className="stars-name w-full truncate text-sm font-extrabold">{org.name}</h3>
+            </article>
           ))}
         </div>
       </div>

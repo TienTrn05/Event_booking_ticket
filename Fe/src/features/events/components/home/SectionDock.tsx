@@ -1,16 +1,25 @@
 import { ui } from '../../../../shared/styles/classes';
 import { useEffect, useState } from 'react';
+import {
+  Star,
+  Flame,
+  Compass,
+  Ticket,
+  MapPin,
+  Sparkles,
+  ShoppingBag,
+  BookOpen,
+} from 'lucide-react';
 
 const sectionLinks = [
-  { label: 'Feature Stars', href: '#stars' },
-  { label: 'Trending', href: '#featured' },
-  { label: 'Moments Await', href: '#discover' },
-  { label: 'Resale tickets.', href: '#resale' },
-  { label: 'Somewhere Worth Going', href: '#locations' },
-  { label: 'The Spotlight', href: '#spotlight' },
-  { label: 'Merchandise', href: '#merchandise' },
-  { label: 'Blog & Insights', href: '#blog' },
-  { label: 'Every Great Night Starts with an Idea', href: '#organizers' },
+  { label: 'Stars', href: '#stars', icon: Star },
+  { label: 'Trending', href: '#featured', icon: Flame },
+  { label: 'Explore', href: '#discover', icon: Compass },
+  { label: 'Resale', href: '#resale', icon: Ticket },
+  { label: 'Locations', href: '#locations', icon: MapPin },
+  { label: 'Spotlight', href: '#spotlight', icon: Sparkles },
+  { label: 'Merch', href: '#merchandise', icon: ShoppingBag },
+  { label: 'Blog', href: '#blog', icon: BookOpen },
 ] as const;
 
 export default function SectionDock() {
@@ -46,49 +55,42 @@ export default function SectionDock() {
     };
   }, []);
 
-  useEffect(() => {
-    const activeLink = document.querySelector<HTMLAnchorElement>(
-      `.catalog-floating [data-section-link="${active.slice(1)}"]`,
-    );
-    const rail = activeLink?.parentElement;
-    if (!activeLink || !rail) return;
-    rail.scrollTo({
-      left: activeLink.offsetLeft - (rail.clientWidth - activeLink.offsetWidth) / 2,
-      behavior: 'smooth',
-    });
-  }, [active]);
-
   return (
     <nav
       aria-label="Đi tới nội dung"
       aria-hidden={!visible}
       className={ui(
         visible
-          ? 'catalog-floating catalog-dock-visible fixed bottom-4 left-0 right-0 z-40 px-4 !animate-dock-arrive'
+          ? 'catalog-floating catalog-dock-visible fixed bottom-4 left-0 right-0 z-40 px-4'
           : 'catalog-floating catalog-dock-hidden fixed bottom-4 left-0 right-0 z-40 px-4',
       )}
     >
-      <div className="max-w-6xl mx-auto rounded-2xl border border-ink-200/80 bg-white/95 px-2 shadow-elevated backdrop-blur-xl">
-        <div className={ui('flex items-center gap-2 overflow-x-auto no-scrollbar py-3')}>
-          {sectionLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              data-section-link={link.href.slice(1)}
-              tabIndex={visible ? undefined : -1}
-              aria-current={active === link.href ? 'location' : undefined}
-              onClick={() => setActive(link.href)}
-              className={ui(
-                `inline-flex min-h-11 items-center px-4 py-2 text-sm font-semibold rounded-full whitespace-nowrap transition-all duration-300 ${
-                  active === link.href
-                    ? 'bg-home-accent-soft text-home-accent shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--home-accent)_35%,_transparent)]'
-                    : 'bg-home-card text-home-muted hover:bg-home-hover hover:text-home-text'
-                }`,
-              )}
-            >
-              {link.label}
-            </a>
-          ))}
+      <div className="mx-auto max-w-7xl rounded-2xl border border-ink-200/80 bg-white/95 px-1 shadow-elevated backdrop-blur-xl sm:px-2">
+        <div className="grid grid-cols-8 gap-0.5 py-2 sm:gap-1">
+          {sectionLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                aria-label={link.label}
+                title={link.label}
+                tabIndex={visible ? undefined : -1}
+                aria-current={active === link.href ? 'location' : undefined}
+                onClick={() => setActive(link.href)}
+                className={ui(
+                  `flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-full px-0.5 py-2 text-center text-xs font-semibold leading-none transition-colors duration-300 lg:px-1 ${
+                    active === link.href
+                      ? 'bg-home-accent-soft text-home-accent shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--home-accent)_35%,_transparent)]'
+                      : 'bg-home-card text-home-muted hover:bg-home-hover hover:text-home-text'
+                  }`,
+                )}
+              >
+                <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+                <span className="hidden whitespace-nowrap lg:inline">{link.label}</span>
+              </a>
+            );
+          })}
         </div>
       </div>
     </nav>

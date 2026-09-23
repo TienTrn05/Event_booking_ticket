@@ -1,19 +1,27 @@
 import { ui } from '../../../shared/styles/classes';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Ticket, Menu, X, ArrowUpRight, Search } from 'lucide-react';
+import { Ticket, Menu, X, ArrowUpRight, Search, UserRound } from 'lucide-react';
 import { ThemePicker } from '../../../shared/theme/ThemePicker';
+import { useAuthDialog } from '../../../features/auth/context/AuthDialogContext';
+import { scrollToTop } from '../../../shared/motion/scroll';
+import { useLocation } from 'react-router-dom';
 const links = [
-  { label: 'Discover', href: '#discover' },
   { label: 'Categories', href: '#categories' },
+  { label: 'Discover', href: '#discover' },
   { label: 'Merchandise', href: '#merchandise' },
   { label: 'For Organizers', href: '#organizers' },
 ];
 export default function Navbar() {
+  const location = useLocation();
+  const { openAuth } = useAuthDialog();
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [active, setActive] = useState('#discover');
   const lastY = useRef(0);
+  const directionDistance = useRef(0);
+  const lastDirection = useRef(0);
+  const lastToggle = useRef(0);
   const scrollFrame = useRef<number | null>(null);
   useEffect(() => {
     const onScroll = () => {
@@ -21,9 +29,23 @@ export default function Navbar() {
       scrollFrame.current = requestAnimationFrame(() => {
         const y = Math.max(0, window.scrollY);
         const delta = y - lastY.current;
-        if (y < 80) setHidden(false);
-        else if (y > 140 && delta > 16) setHidden(true);
-        else if (delta < -22) setHidden(false);
+        const direction = Math.sign(delta);
+        if (direction && direction !== lastDirection.current) directionDistance.current = 0;
+        if (direction) lastDirection.current = direction;
+        directionDistance.current += delta;
+        const canToggle = performance.now() - lastToggle.current > 450;
+        if (y < 100) {
+          setHidden(false);
+          directionDistance.current = 0;
+        } else if (canToggle && y > 180 && directionDistance.current > 110) {
+          setHidden(true);
+          directionDistance.current = 0;
+          lastToggle.current = performance.now();
+        } else if (canToggle && directionDistance.current < -65) {
+          setHidden(false);
+          directionDistance.current = 0;
+          lastToggle.current = performance.now();
+        }
         lastY.current = y;
         scrollFrame.current = null;
       });
@@ -59,15 +81,16 @@ export default function Navbar() {
     return () => window.removeEventListener('keydown', close);
   }, []);
   return (
-    <header
-      className={ui(
-        hidden && !open
-          ? 'home-navbar nav-hidden !animate-nav-arrive'
-          : 'home-navbar nav-visible !animate-nav-arrive',
-      )}
-    >
+    <header className={ui(hidden && !open ? 'home-navbar nav-hidden' : 'home-navbar nav-visible')}>
       <nav className={ui('home-nav')} aria-label="Main navigation">
-        <Link to="/" className={ui('brand-lockup home-brand')}>
+        <Link
+          to="/"
+          className={ui('brand-lockup home-brand')}
+          onClick={(e) => {
+            if (location.pathname === '/') e.preventDefault();
+            scrollToTop();
+          }}
+        >
           <span className={ui('brand-mark')} aria-hidden="true">
             <Ticket size={23} />
             <span className={ui('brand-mark-dot')} />
@@ -79,27 +102,41 @@ export default function Navbar() {
         </Link>
         <div className={ui('home-nav-links')}>
           {links.map((link) => (
-            <a
+            <Link
               key={link.href}
-              href={link.href}
+              to={`/${link.href}`}
               aria-current={active === link.href ? 'location' : undefined}
               onClick={() => setActive(link.href)}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
         <div className={ui('home-nav-actions')}>
-          <a className={ui('nav-search')} href="#discover" aria-label="Search events">
+          <Link className={ui('nav-search')} to="/#discover" aria-label="Search events">
             <Search size={19} />
-          </a>
+          </Link>
           <ThemePicker />
-          <Link className={ui('nav-tickets')} to="/my-tickets">
+          <button type="button" className={ui('nav-tickets')} onClick={() => openAuth('tickets')}>
             <Ticket size={17} /> My Tickets
-          </Link>
-          <Link className={ui('nav-create home-cta')} to="/organizer">
+          </button>
+          <button
+            type="button"
+            className={ui('nav-create home-cta')}
+            onClick={() => openAuth('organizer')}
+          >
             Create event <ArrowUpRight size={16} />
-          </Link>
+          </button>
+          <button type="button" className="auth-header-login" onClick={() => openAuth('login')}>
+            <UserRound size={16} /> Đăng nhập
+          </button>
+          <button
+            type="button"
+            className="auth-header-register"
+            onClick={() => openAuth('register')}
+          >
+            Đăng ký
+          </button>
         </div>
         <button
           className={ui('nav-menu')}
@@ -119,9 +156,9 @@ export default function Navbar() {
         )}
       >
         {links.map((link) => (
-          <a
+          <Link
             key={link.href}
-            href={link.href}
+            to={`/${link.href}`}
             tabIndex={open ? 0 : -1}
             aria-current={active === link.href ? 'location' : undefined}
             onClick={() => {
@@ -130,14 +167,48 @@ export default function Navbar() {
             }}
           >
             {link.label}
-          </a>
+          </Link>
         ))}
-        <Link tabIndex={open ? 0 : -1} to="/my-tickets">
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            setOpen(false);
+            openAuth('tickets');
+          }}
+        >
           My Tickets
-        </Link>
-        <Link tabIndex={open ? 0 : -1} to="/organizer">
+        </button>
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            setOpen(false);
+            openAuth('organizer');
+          }}
+        >
           Create event
-        </Link>
+        </button>
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            setOpen(false);
+            openAuth('login');
+          }}
+        >
+          Đăng nhập
+        </button>
+        <button
+          type="button"
+          tabIndex={open ? 0 : -1}
+          onClick={() => {
+            setOpen(false);
+            openAuth('register');
+          }}
+        >
+          Đăng ký
+        </button>
       </div>
     </header>
   );
