@@ -1,12 +1,14 @@
 flowchart LR
-    G["Khách vãng lai"] -->|"Tìm và xem sự kiện"| P
-    C["Khách mua vé"] -->|"Giữ ghế · Đặt vé · Xem QR"| P
-    O["Đại diện Organization<br/>Phiên email công ty được duyệt"] -->|"Sự kiện · Layout · Sales · Quầy / Admission"| P
-    A["Quản trị viên"] -->|"Duyệt tổ chức / event · Phiếu lý do · Report"| P
-    P["Event Ticketing Platform<br/>React + Express + MySQL"] --> M["Payment mock<br/>MVP · Không phải tiền thật"]
-    P -.->|"Sau MVP"| R["Cổng thanh toán thật"]
-    R -.->|"Webhook có xác thực"| P
-    P --> GID["Google Identity"]
-    P --> E["OTP điện thoại / Email công ty<br/>Adapter, bí mật ngoài DB"]
+    G["Khách vãng lai"] -->|"Tìm và xem sự kiện"| PUBLIC
+    C["Khách mua vé"] -->|"Giữ ghế · Đặt vé · Xem QR"| PUBLIC
+    O["Đại diện Organization<br/>Phiên email công ty được duyệt"] -->|"Workspace tổ chức sự kiện"| PUBLIC
+    A["Quản trị viên"] -->|"Duyệt · Report · Audit"| ADMIN
+    PUBLIC["Public Web<br/>Customer + Organizer<br/>Một frontend server"] -->|"/api/v1"| API
+    ADMIN["Admin Web<br/>Frontend server riêng"] -->|"/api/v1"| API
+    API["Một Backend Platform<br/>Express + MySQL"] --> M["Payment mock<br/>MVP · Không phải tiền thật"]
+    API -.->|"Sau MVP"| R["Cổng thanh toán thật"]
+    R -.->|"Webhook có xác thực"| API
+    API --> GID["Google Identity"]
+    API --> E["OTP điện thoại / Email công ty<br/>Adapter, bí mật ngoài DB"]
     classDef core fill:#dbeafe,stroke:#2563eb,color:#172554
-    class P core
+    class API core

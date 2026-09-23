@@ -5,7 +5,7 @@
 ## Các lớp kiểm thử
 
 | Lớp | Phạm vi | Dữ liệu/công cụ dự kiến |
-| --- | --- | --- |
+| ------------ | -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Unit | Giá tiền chính xác, state transition, policy ownership/refund, deadline boundary | Clock/adapter giả; không mô phỏng khóa DB để kết luận chống race |
 | Integration | Service–repository–MySQL, rollback, UQ/FK/CHECK, token rotation | MySQL thật cùng phiên bản/isolation mục tiêu; DB test riêng |
 | API | HTTP/schema/envelope/auth/permission/error/idempotency | Express test server và DB test; runner chọn Q-016 |
@@ -18,7 +18,7 @@
 ## Ma trận tình huống bắt buộc
 
 | Test | Tình huống và kết quả cần chứng minh | Tham chiếu |
-| --- | --- | --- |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | T-001 | Hai user cùng một ghế: đúng một hold; bên thua 409; DB một chủ | UC-005, BR-001/BR-002, NFR-001 |
 | T-002 | Hai nhóm ghế giao nhau, thứ tự request ngược nhau: không giữ một phần; retry deadlock không tạo bản ghi thừa | UC-005, ADR-004 |
 | T-003 | Hai session cùng vị trí ghế layout frozen: cả hai đặt được độc lập | FR-011, BR-001 |
@@ -67,11 +67,10 @@ CI tương lai: lint/typecheck → unit → migration/integration/API → concur
 
 Các ca T-027–T-031 là bổ sung đặc tả sau audit, **chưa được triển khai hoặc chạy**. T-027/T-028/T-031 thuộc nghiệm thu giữ ghế và tích hợp frontend; T-029 thuộc nghiệm thu staging; T-030 áp dụng cho refund MVP đã chốt. Không dùng kết quả 26 kiểm tra DDL lịch sử để đánh dấu các ca này pass.
 
-
 ## Kiểm thử bổ sung theo quyết định chủ dự án
 
 | Test | Tình huống và kết quả | Tham chiếu |
-| --- | --- | --- |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
 | T-032 | Google sai signature/aud/iss/exp/nonce, OTP sai purpose/target, brute force/resend, verify song song: từ chối đúng và một lần consume; không auto-link identity chỉ vì email giống nhau | FR-001/FR-003, 04 |
 | T-033 | Email công ty chưa verify, domain giả suffix, Organization chưa duyệt/membership bị thu hồi hoặc phone-only session: không quản lý; Organization A không sửa event/layout/refund B | Q-005/Q-006, BR-033 |
 | T-034 | Organizer không tự publish; Admin approve đúng version trong hạn; bản pending không sửa; hai approve/reject/withdraw cạnh tranh chỉ một chuyển hợp lệ | FR-007, BR-034 |
@@ -82,5 +81,6 @@ Các ca T-027–T-031 là bổ sung đặc tả sau audit, **chưa được tri�
 | T-039 | Online trước 24h, tại boundary, sau startsAt; sai tên/mã/ownership: kiểm tra đúng. Online/quầy đồng thời chỉ một CheckIn, Ticket vẫn VALID; admission hai thiết bị một USED; refund sau online còn kiểm tra policy bình thường | FR-018, BR-038/BR-039 |
 | T-040 | Admin can thiệp không report/report đóng/sai tài nguyên bị từ chối; review role/event không cần report; Organizer xử lý refund của mình; audit actor và Organization/report đúng | FR-029, BR-041 |
 | T-041 | Hai request cùng user/session giữ nhóm khác, hoặc checkout rồi hold tiếp: không vượt quota 1; tối đa 6 ghế, callback/expiry nhả quota nguyên tử; không giữ khóa User ngược protocol | Q-002, 11 |
+| T-042 | Public bundle/router không chứa page Admin; Customer và Organizer dùng cùng Public Web nhưng route Organizer bị chặn khi thiếu membership/phiên công ty. Admin Web ở origin riêng gọi cùng BE; origin lạ, Customer/Organizer gọi API Admin và Admin thiếu permission đều bị từ chối. Hai reverse proxy `/api/v1` cùng tới một backend, không có dữ liệu/API Admin song song | ADR-016; 12/14/22     |
 
-T-032–T-041 chưa chạy đầy đủ ở tầng API/E2E. 67 kiểm tra SQL hiện hành xác minh phần FK/UQ/CHECK và một số tranh chấp DB tương ứng; không chứng minh validator domain/hình học/tháng lịch, quyền, job hay UI/form đã được triển khai.
+T-032–T-042 chưa chạy đầy đủ ở tầng API/E2E. 67 kiểm tra SQL hiện hành xác minh phần FK/UQ/CHECK và một số tranh chấp DB tương ứng; không chứng minh validator domain/hình học/tháng lịch, quyền, topology frontend, job hay UI/form đã được triển khai.

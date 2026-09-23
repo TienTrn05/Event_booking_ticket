@@ -1,5 +1,6 @@
 flowchart TB
-    UI["React · TypeScript · Vite"] -->|"HTTPS /api/v1"| ROUTE["Route → Middleware → Controller"]
+    PUBLIC["Public Web<br/>Customer + Organizer"] -->|"HTTPS /api/v1"| ROUTE["Route → Middleware → Controller"]
+    ADMIN["Admin Web<br/>Frontend server riêng"] -->|"HTTPS /api/v1"| ROUTE
     ROUTE --> AUTH["Auth / User service<br/>JWT · Phiên · Quyền"]
     ROUTE --> EVENT["Event / Venue catalog / Layout / Session service"]
     ROUTE --> BOOK["Booking service<br/>Hold · Checkout · Expiry"]
@@ -19,4 +20,4 @@ flowchart TB
     WORKER --> PAY
     WORKER --> ORG
     WORKER --> DB
-    NOTE["Controller không có nghiệp vụ<br/>Repository không quyết định quyền<br/>Không gọi mạng trong transaction"]
+    NOTE["Hai frontend · Một backend<br/>Controller không có nghiệp vụ<br/>Không gọi mạng trong transaction"]

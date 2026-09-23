@@ -57,11 +57,12 @@ BE/
 Fe/
   src/
     app/                    # Router root và providers
-    features/               # auth, events, booking, tickets, organizer, admin
+    features/               # auth, events, booking, tickets, organizer
       <feature>/            # pages, components, hooks, api, types
     shared/                 # HTTP client, UI, styles, hooks, utils, constants
   .env                      # Chỉ cấu hình công khai
   .env.example
+AdminFe/                    # Đích frontend Admin độc lập; chưa scaffold/chưa vào workspace hiện tại
 Docs/                       # Đặc tả, kiến trúc, hướng dẫn và sơ đồ
 database/                   # DDL, seed, query hiện có
 BE/tooling/                 # Cấu hình chung, setup môi trường, secret guard
@@ -75,8 +76,9 @@ Các module nghiệp vụ là thư mục đã chuẩn bị, chưa có API giả.
 - `BE/.env` đã điền thông tin MySQL chủ dự án cung cấp. Không sao chép vào tài liệu, source, frontend hoặc `.env.example`.
 - Git bỏ qua `.env`, runtime, node_modules, log và build output; `.env.example` được lưu để hướng dẫn cấu hình. Secret guard kiểm tra nội dung staged trong Git và working tree không bị ignore; đây là lớp kiểm tra bổ sung, không thay review bí mật trong lịch sử Git.
 - Trên Windows, `setup:env` đặt ACL `.env` cho tài khoản hiện tại, SYSTEM và Administrators; trên Unix file mới có mode 0600. Người có quyền quản trị máy vẫn đọc được file; `.env` không phải kho bí mật mã hóa.
-- Vite chỉ đọc env trong `Fe/`; biến `VITE_*` là công khai. Filesystem dev server giới hạn `Fe/` và node_modules, chặn `.env`, key và `.git`. Không import code backend vào FE.
-- FE gọi `/api/v1` cùng origin qua Vite proxy tới BE cổng 3000. Chưa cần mở CORS. Nếu đổi port BE, cập nhật proxy tương ứng trong `Fe/vite.config.ts`. Production phải cấu hình reverse proxy/TLS trước khi triển khai.
+- Vite hiện chỉ đọc env trong `Fe/`; biến `VITE_*` là công khai. Filesystem dev server giới hạn `Fe/` và node_modules, chặn `.env`, key và `.git`. Không import code backend vào frontend. Khi scaffold `AdminFe/`, nó phải có envDir/filesystem root riêng và không import runtime từ `Fe/` hoặc `BE/`.
+- Public FE gọi `/api/v1` cùng origin qua Vite proxy tới BE cổng 3000. Workspace Organizer nằm trong Public FE và dùng cùng proxy/session. Khi có `AdminFe/`, cấu hình một dev server/port và proxy `/api/v1` riêng nhưng vẫn trỏ tới chính BE cổng 3000; không nhét route Admin vào `Fe/` để tiết kiệm một dev server.
+- Local ưu tiên proxy cùng origin nên chưa cần CORS. Production cấu hình hai reverse proxy/TLS riêng cho Public Web và Admin Web, cùng chuyển `/api/v1` tới một backend. Nếu topology thực dùng cross-origin, backend allowlist đúng hai origin theo [12](12-security.md)/[14](14-environment-deployment.md), không dùng wildcard với credentials.
 - BE không phục vụ file tĩnh từ thư mục dự án, không log request body/cookie/authorization/query string hoặc raw lỗi SQL. Log request chỉ có request ID do server tạo, method và status.
 - Không thay đổi grants hoặc nạp/xóa database khi chạy app. Tài khoản migration tách khỏi runtime khi triển khai; không suy ra quyền thực tế của user MySQL từ tên đăng nhập.
 
@@ -96,7 +98,7 @@ npm.cmd run db:check    # SELECT 1, không đổi schema/dữ liệu
 
 ## Rà soát nền tảng ngày 2026-09-13
 
-**Kết luận:** cấu trúc hiện tại đủ rõ để bắt đầu triển khai tính năng trong modular monolith. BE/tooling là cấu hình phát triển chung đặt tại BE theo bố cục chủ dự án chọn; Fe chỉ dùng cấu hình TypeScript chung, không phụ thuộc runtime backend. Không cần thêm tầng framework, ORM, service độc lập hoặc thư mục gốc mới ở giai đoạn này.
+**Kết luận:** cấu trúc hiện tại đủ rõ để tiếp tục Public Web/Organizer và backend modular monolith. `AdminFe/` là frontend deployable riêng bắt buộc khi bắt đầu triển khai màn hình Admin; hiện chưa scaffold nên không được mô tả như tính năng đang chạy. BE/tooling là cấu hình phát triển chung đặt tại BE; các frontend không phụ thuộc runtime backend. Không cần thêm backend service, ORM hoặc database riêng cho Admin.
 
 | Phát hiện                                                                       | Xử lý                                                                                                                                   |
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |

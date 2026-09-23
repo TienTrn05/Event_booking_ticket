@@ -2,11 +2,12 @@
 
 ## Cấu trúc tổng thể
 
-Modular Monolith, một ứng dụng backend triển khai chung, module theo nghiệp vụ. React gọi REST; Express điều phối; MySQL giữ dữ liệu có thẩm quyền. Worker có thể chạy cùng codebase bằng entrypoint riêng, chưa cần message broker. ADR-001/ADR-002/ADR-006 giải thích đánh đổi.
+Modular Monolith, một ứng dụng backend triển khai chung, module theo nghiệp vụ. Public Web (Customer + Organizer) và Admin Web độc lập cùng gọi một REST API; Express điều phối; MySQL giữ dữ liệu có thẩm quyền. Worker có thể chạy cùng codebase bằng entrypoint riêng, chưa cần message broker. ADR-001/ADR-002/ADR-006/ADR-016 giải thích đánh đổi.
 
 ```mermaid
 flowchart LR
-    UI[React + TypeScript + Vite] --> API[Express REST /api/v1]
+    PUBLIC[Public Web<br/>Customer + Organizer] --> API[Express REST /api/v1]
+    ADMIN[Admin Web<br/>Frontend server riêng] --> API
     API --> MW[Auth / Permission / Validation]
     MW --> C[Controller]
     C --> S[Service nghiệp vụ]
@@ -20,7 +21,7 @@ flowchart LR
 ## Trách nhiệm và phụ thuộc
 
 | Tầng | Được làm | Không được làm |
-| --- | --- | --- |
+| ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Route | Method/path, middleware, controller | SQL/nghiệp vụ |
 | Middleware | Request ID, auth/session, permission tổng quát, schema, rate limit | Thay thế kiểm tra ownership trong service |
 | Controller | Chuyển request đã validate thành DTO/actor, gọi service, map response | Tính giá, chuyển trạng thái, BEGIN/COMMIT |
@@ -56,14 +57,14 @@ BE/
   migrations/                 # hướng dẫn; chưa có runner tự chạy
 Fe/src/
   app/
-  features/                   # pages/components/hooks/api/types theo feature
+  features/                   # Customer + Organizer; không chứa Admin
   shared/
+AdminFe/                      # frontend Admin độc lập, sẽ scaffold khi triển khai
 Docs/
 database/
 ```
 
-
-Monorepo hai ứng dụng theo ADR-008/015 dùng npm workspaces, mysql2 SQL trực tiếp, Zod và Vitest; chưa chọn migration runner. Không tạo package shared trừ khi có hợp đồng thật cần dùng chung; không chia sẻ DB entity chứa password hash sang frontend.
+Workspace hiện có hai ứng dụng `BE/` và `Fe/` theo ADR-008/015; `AdminFe/` sẽ trở thành workspace/frontend thứ ba khi triển khai ADR-016. Cả hai frontend vẫn gọi một `BE/`; không tạo backend Admin riêng. Repo dùng mysql2 SQL trực tiếp, Zod và Vitest; chưa chọn migration runner. Không tạo package shared trừ khi có hợp đồng thật cần dùng chung; không chia sẻ DB entity chứa password hash sang frontend.
 
 ## Validation ba lớp
 
@@ -78,7 +79,6 @@ Ví dụ email hợp lệ về cú pháp có thể trùng; precheck không ngăn
 Transaction ghi outbox cùng trạng thái cần hậu xử lý. Worker claim theo lease ngắn rồi commit; gọi mạng ngoài transaction; đánh dấu DONE sau thành công. Crash sau gửi trước DONE có thể gửi lặp: consumer dùng dedupe/provider key, không tuyên bố exactly-once qua mạng. Các job hết hạn/đối soát chạy được nhiều lần, không phụ thuộc timer trong RAM. Worker và API cùng tuân thủ [11](11-booking-concurrency.md).
 
 Phát hành Ticket là ghi DB trong transaction xác nhận MVP; tạo hình QR, render PDF hoặc gửi email có thể làm sau. Nếu sau này chuyển phát vé sang worker, phải thêm trạng thái và cơ chế phục hồi bằng ADR, không âm thầm tạo khoảng trống PAID chưa có vé.
-
 
 ## Module phục vụ nghiệp vụ mới
 

@@ -2,10 +2,20 @@
 
 Đã có khung BE/FE, `.env.example`, parser và CI kiểm tra nền tảng theo ADR-015/[24](24-local-development.md). Chưa có Dockerfile hoặc đích triển khai; các cấu hình cho tính năng chưa viết bên dưới vẫn là hợp đồng dự kiến.
 
+## Topology frontend/backend đã chốt
+
+Production có **hai frontend deployable và một backend deployable**:
+
+1. **Public Web (`Fe/`)** phục vụ Guest, Customer và workspace Organizer trên cùng server/origin. Organizer chỉ có thêm shell và route quản lý sự kiện sau khi backend xác nhận membership/phiên công ty.
+2. **Admin Web (`AdminFe/`)** là build, server và origin riêng. Bundle này không được gộp vào Public Web; Public Web không khai báo route Admin.
+3. **Backend (`BE/`)** là một Express API duy nhất phục vụ cả hai frontend, cùng worker và một nguồn dữ liệu MySQL. Không tách API/DB Admin hoặc sao chép business rule vào frontend.
+
+Ưu tiên đặt reverse proxy trước từng frontend để browser gọi `/api/v1` cùng origin của portal đang mở; cả hai proxy chuyển request tới cùng cụm `BE/`. Nếu buộc gọi API cross-origin, backend chỉ allowlist đúng Public Web và Admin Web, bật credentials có chủ đích và kiểm tra CSRF/Origin cho từng origin. Admin ở origin riêng vẫn phải qua authentication/authorization backend; phân tách host không thay permission.
+
 ## Môi trường
 
 | Môi trường | Mục đích | Dữ liệu và adapter |
-| --- | --- | --- |
+| ----------- | ------------------------------------ | ------------------------------------------------------------------------- |
 | Development | Phát triển trên máy | MySQL local, seed giả, mock payment, email sink |
 | Testing | Unit/integration/API/concurrency CI | DB riêng có thể reset, không kết nối production; clock/adapter điều khiển |
 | Staging | Thử cấu hình giống production | Dữ liệu giả/đã ẩn danh, TLS, payment/email sandbox, kiểm tra webhook |
@@ -20,12 +30,12 @@ MVP có thể demo ở staging với mock và nhãn mô phỏng rõ ràng. Muố
 Không có secret thật trong tài liệu. Parser hiện dùng NODE_ENV, APP_ENV, HOST, PORT, DB_HOST/PORT/USER/PASSWORD/NAME, DATABASE_POOL_MAX, DB_LOCK_TIMEOUT_SECONDS và LOG_LEVEL. Các tên khác bên dưới dành cho tính năng tương lai, chưa được parser sử dụng. Không điền bí mật tương lai vào frontend.
 
 | Biến | Mục đích / validation |
-| --- | --- |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV` | development/test/production cho runtime Node |
 | `APP_ENV` | development/testing/staging/production để phân biệt staging có NODE_ENV=production |
 | `PORT` | Cổng API hợp lệ |
-| `PUBLIC_APP_URL`, `API_PUBLIC_URL` | URL tuyệt đối; HTTPS ngoài local |
-| `CORS_ALLOWED_ORIGINS` | Allowlist origin, không wildcard với credentials |
+| `PUBLIC_APP_URL`, `ADMIN_APP_URL`, `API_PUBLIC_URL`                  | URL tuyệt đối, HTTPS ngoài local. Public và Admin phải có origin riêng; API có thể cùng origin qua proxy hoặc có URL dùng chung được allowlist rõ ràng |
+| `CORS_ALLOWED_ORIGINS`                                               | Allowlist chính xác origin Public Web và Admin Web khi có cross-origin; không wildcard với credentials                                               |
 | `TRUST_PROXY` | Cấu hình proxy đáng tin theo topology, không tự bật true |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Biến kết nối riêng trong BE/.env; đã có parser, không log; quyền runtime cần giới hạn khi triển khai |
 | `DATABASE_POOL_MAX` | Giới hạn connection theo tải và số instance |
@@ -67,9 +77,9 @@ Không có `JWT_REFRESH_SECRET` vì refresh token là opaque và DB lưu hash. N
 ## Luồng triển khai dự kiến
 
 1. Chốt Q-012/Q-016; pin runtime/DB/package manager trong repo khi bắt đầu code; lockfile commit.
-2. CI chạy kiểm thử cần thiết, build artifact cố định; quét secret/dependency; không chạy migration bằng user ứng dụng.
+2. CI chạy kiểm thử cần thiết, build ba artifact cố định: Public Web, Admin Web và Backend/worker; quét secret/dependency; không chạy migration bằng user ứng dụng. Khi `AdminFe/` chưa được scaffold, pipeline phải ghi rõ artifact Admin chưa tồn tại thay vì gộp tạm vào `Fe/`.
 3. Backup và kiểm tra restore gần nhất; chạy migration có review bằng danh tính riêng. Schema thay đổi ưu tiên expand/contract để code trước/sau cùng hoạt động.
-4. Deploy staging, chạy smoke: login, giữ ghế, mua mock/sandbox, replay callback, check-in và job expiry.
+4. Deploy staging theo topology hai frontend/một backend; chạy smoke riêng cho Public Web, workspace Organizer và Admin Web, sau đó kiểm tra cả ba cùng đọc/ghi qua một API. Tiếp tục kiểm tra login, giữ ghế, mua mock/sandbox, replay callback, check-in và job expiry.
 5. Triển khai production chỉ khi trong phạm vi được giao và đã đủ điều kiện kinh doanh/kỹ thuật; theo dõi error rate/latency/đối soát. Thay schema phá hủy dữ liệu phải có kế hoạch cụ thể.
 6. Rollback code bằng artifact trước nếu schema tương thích; không chạy down migration phá dữ liệu tự động. Với migration dữ liệu, ưu tiên forward fix hoặc restore có đánh giá RPO.
 
@@ -83,7 +93,6 @@ Docker có thể thêm để tái lập môi trường trước staging, không 
 - Dashboard: latency p50/p95, 5xx, DB pool, lock wait/deadlock, số hold hết hạn chưa xử lý, outbox backlog, payment PENDING lâu và reconciliation REQUIRED.
 - Runbook: provider timeout → giữ pending/đối soát; DB lỗi → fail request/rollback; worker chết → restart/reclaim; lộ key → xoay key/thu hồi session và audit.
 - Đồng bộ đồng hồ máy; expiry vẫn dựa DB. Retention/ẩn danh theo Q-013, không xóa sổ giao dịch bằng cleanup thông thường.
-
 
 ## Cấu hình theo nghiệp vụ đã chốt
 

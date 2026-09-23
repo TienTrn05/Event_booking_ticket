@@ -3,14 +3,14 @@
 ## Quy tắc kiểm soát
 
 | Rủi ro | Biện pháp bắt buộc |
-| --- | --- |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Google/OTP giả hoặc bị dò | Verify Google proof ở backend, OTP HMAC/expiry/attempt limit/consume một lần theo 04; không có mật khẩu nội bộ |
 | JWT giả/hết hạn | Allowlist thuật toán/key; kiểm tra exp/iss/aud; đối chiếu session và authVersion |
 | Đánh cắp refresh | Cookie HttpOnly/Secure, DB chỉ hash, rotation và thu hồi family khi reuse |
 | SQL injection | Query có tham số; allowlist sort/field; tài khoản DB quyền tối thiểu |
 | XSS | React escape mặc định; tránh dangerouslySetInnerHTML; sanitize rich text nếu được cho phép; CSP và kiểm soát script ngoài |
 | CSRF | Cookie endpoint kiểm tra Origin/Referer hợp lệ + CSRF token; SameSite chỉ là lớp bổ sung; không mutation qua GET |
-| CORS sai | Allowlist origin cụ thể; credentials không đi với `*`; production ưu tiên cùng origin |
+| CORS sai                   | Allowlist đúng Public Web và Admin Web khi gọi chéo origin; credentials không đi với `*`; production ưu tiên `/api/v1` cùng origin qua reverse proxy của từng portal |
 | Brute force/chiếm hold | Rate limit IP + tài khoản/route, quota nghiệp vụ; backoff, log giảm nhận dạng |
 | IDOR/broken access control | Ownership service, scope query, deny mặc định; test chéo tài khoản/Organizer |
 | Mass assignment | DTO allowlist; cấm client gán role, ownerId, price cuối, payment status |
@@ -21,6 +21,8 @@
 | Lỗi cấu hình | Validate env khi startup; production fail nếu mock payment bật hoặc thiếu secret |
 
 Login Google/OTP và mail công ty theo [04](04-authentication-authorization.md). Không log OTP/token, không auto-link identity từ email giống nhau. Domain email công ty không tự cấp Organizer; membership/Organization phải được Admin duyệt. Admin dùng identity bootstrap có kiểm soát, xác thực lại trước thao tác nhạy cảm.
+
+Public Web phục vụ Customer và Organizer; Admin Web chạy trên origin riêng theo [22](22-frontend-architecture.md). Không chia sẻ bundle hoặc route Admin sang Public Web. Nếu mỗi portal proxy `/api/v1` cùng origin, refresh cookie nên là host-only để phiên Public/Organizer và phiên Admin không tự lan qua host khác; Admin đăng nhập lại trên Admin Web. Nếu chọn cookie domain dùng chung hoặc API cross-site, phải có threat model và kiểm thử CSRF/session fixation riêng trước khi triển khai. Dù theo topology nào, backend vẫn kiểm tra Admin permission cho từng request và audit thao tác nhạy cảm; origin/host không phải bằng chứng phân quyền.
 
 Helmet cấu hình header phù hợp, không coi mặc định của thư viện là đủ; kiểm thử CSP cho web và HSTS ở HTTPS. Reverse proxy phải có `trust proxy` theo topology thật, nếu sai IP spoof có thể làm rate limit vô dụng. Rate limit memory chỉ chấp nhận dev/single-instance demo; trước nhiều instance phải có shared store hoặc enforcement tại gateway (Q-012), không dùng nó làm khóa tồn kho.
 
@@ -39,7 +41,7 @@ Application log phục vụ vận hành/debug: thời gian, level, request ID, r
 Audit log ghi ai thực hiện thay đổi nghiệp vụ nào, trên tài nguyên nào, lúc nào và vì sao. Audit thành công về tiền/quyền/trạng thái được ghi cùng transaction nghiệp vụ; audit thất bại/login thất bại ghi qua luồng riêng sau rollback để không mất dấu. Audit append-only ở ứng dụng, quyền DB riêng chỉ insert/read cần thiết; nếu cần chống sửa bởi quản trị DB phải bổ sung lưu trữ độc lập, không tự tuyên bố log bất biến tuyệt đối.
 
 | Sự kiện | Application log | Audit |
-| --- | --- | --- |
+| ---------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
 | Login thành công/thất bại, reuse refresh | Mã kết quả, request ID, định danh đã giảm nhận dạng | user/session khi biết, loại hành động, kết quả |
 | Tạo/sửa/publish/block event | Duration, error code | Actor, event, version, thay đổi đã lọc, lý do |
 | Hold/booking/expiry | Transaction outcome, lock metrics | Booking/hold, actor System/Customer, trạng thái |
@@ -52,7 +54,6 @@ Không bao giờ log mật khẩu, password hash, access/refresh/reset/verify to
 ## Kiểm tra trước phát hành
 
 Chạy kiểm thử IDOR, token hết hạn/thu hồi/reuse, CSRF/CORS, SQL injection, payload thừa, brute force, mock bị tắt và callback sai. Quét bí mật/dependency; phân loại findings dựa khả năng khai thác. Có quy trình thay khóa và thu hồi phiên khi lộ secret; production thật cần chốt Q-006/Q-012/Q-013 trước vận hành.
-
 
 ## Bảo vệ model tổ chức/review/layout/check-in
 
