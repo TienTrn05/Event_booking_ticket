@@ -1,6 +1,6 @@
 # Bộ sơ đồ hệ thống
 
-**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014 ngày 2026-09-13, gồm Organization, review, layout, Google/OTP và CheckIn riêng. Bốn ERD đối chiếu 38 bảng và các FK vật lý của schema.sql. Chưa phải ứng dụng đã triển khai.
+**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014 và topology frontend ADR-016 cập nhật ngày 2026-09-23, gồm Organization, review, layout, Google/OTP và CheckIn riêng. Bốn ERD đối chiếu 38 bảng và các FK vật lý của schema.sql. Chưa phải ứng dụng đã triển khai.
 
 Mở [trang xem sơ đồ offline](index.html), hoặc xem các ảnh SVG dưới đây. Nguồn Mermaid là file cùng tên đuôi .mmd; ERD được sinh từ [schema SQL](../../database/schema.sql).
 

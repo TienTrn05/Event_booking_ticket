@@ -11,7 +11,7 @@ Vấn đề cốt lõi là cùng một ghế có thể được nhiều người
 ## Phạm vi
 
 | Nhóm | Nội dung |
-| --- | --- |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Nền tảng đã xác định | React + TypeScript + Vite; Express + TypeScript trên Node.js; MySQL; JWT; REST; Modular Monolith |
 | MVP kỹ thuật | Tài khoản, phiên đăng nhập, quyền/ownership; sự kiện, địa điểm, suất diễn, ghế đánh số; giữ ghế; booking; thanh toán mock; QR và check-in online; audit và kiểm thử đồng thời |
 | Nghiệp vụ đã chốt | Organizer là tổ chức dùng mail công ty, Admin duyệt role/event; đăng nhập Google/OTP trước mua, đa thiết bị; một session/booking, hold 5 phút, tối đa 6 ghế; tên/mã từng vé; self check-in từ 24h trước diễn hoặc tại quầy; venue catalog và editor layout. Xem [23](23-organization-review-seatmap.md) |
@@ -20,10 +20,14 @@ Vấn đề cốt lõi là cùng một ghế có thể được nhiều người
 
 Nhóm người dùng: Guest, Customer, Organizer, Admin; System là tác nhân tự động, không phải tài khoản có thể đăng nhập.
 
+## Ranh giới ứng dụng theo vai trò
+
+Guest, Customer và Organizer dùng chung Public Web. Organizer đăng nhập cùng nền tảng và được mở thêm workspace quản lý sự kiện khi backend xác nhận Organization/membership/phiên công ty; đây không phải website hoặc backend riêng. Admin dùng một Admin Web được build và triển khai trên frontend server/origin riêng. Public Web và Admin Web đều gọi cùng một backend `BE/` và cùng nguồn dữ liệu; không có API/DB Admin song song. Chi tiết và hệ quả CORS/session/deploy nằm ở [22](22-frontend-architecture.md), [14](14-environment-deployment.md) và ADR-016.
+
 ## Thuật ngữ
 
 | Thuật ngữ | Ý nghĩa |
-| --- | --- |
+| ------------ | ------------------------------------------------------------------------------- |
 | Event | Nội dung sự kiện, thuộc một Organizer |
 | EventSession | Một lần tổ chức cụ thể, có địa điểm và thời gian |
 | Seat | Vị trí ghế trong một layout của event tại venue, có ID/nhãn/hình học ổn định |

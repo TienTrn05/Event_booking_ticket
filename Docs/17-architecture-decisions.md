@@ -111,7 +111,6 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Thay thế:** chỉ kiểm tra scope/duplicate ticket trong service; unique mọi receipt thành công theo booking và cách ly khoản thừa ở inbox; inbox chỉ giữ hash; lease chỉ dùng deadline.
 - **Đánh đổi/hệ quả:** thêm cột lặp/index được FK bảo vệ, thêm nhánh reconciliation; DB vẫn không kiểm tra được toàn bộ nghiệp vụ liên bảng hoặc lịch sử state transition. API chỉ xác nhận đơn một lần dưới khóa; nhiều receipt không đồng nghĩa cấp nhiều vé. Thay đổi chi tiết ở [20](20-physical-sql-design.md); dữ liệu/chính sách thật cần review trước migration.
 
-
 ## ADR-013 — Tổ chức, Google/OTP, review có hạn và layout tự thiết kế
 
 - **Trạng thái:** yêu cầu nghiệp vụ đã xác nhận bởi chủ dự án ngày 2026-09-12, gồm câu trả lời làm rõ trong cùng hội thoại. Thiết kế kỹ thuật Markdown đã cập nhật. SQL/ERD được hoàn tất tiếp tại ADR-014; app chưa triển khai.
@@ -142,7 +141,16 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 
 - **Trạng thái:** triển khai khung theo yêu cầu chủ dự án; bố cục `BE/`, `Fe/`, `Docs/`, `database/` được chủ dự án chỉ định trong hội thoại.
 - **Lựa chọn:** npm workspaces, Node 24.21.0 cài portable riêng trên Windows, npm 11.19.0; Express 5, React/Vite, React Router, TypeScript 5.9 strict, mysql2 không ORM, Zod, Pino, Helmet/rate limit, ESLint 10, Prettier, Vitest/Supertest. Dependency pin và lockfile được lưu; không đổi Node toàn máy.
-- **Ranh giới:** health endpoints hoạt động; các module nghiệp vụ mới có thư mục. Không tạo auth/payment/worker/migration giả. FE cùng origin qua proxy; không mở CORS wildcard. FE dev filesystem không được đọc BE, envDir chỉ Fe. DB chỉ kiểm tra SELECT 1; không đổi schema/grants hoặc dữ liệu có sẵn.
+- **Ranh giới:** health endpoints hoạt động; các module nghiệp vụ mới có thư mục. Không tạo auth/payment/worker/migration giả. Public FE hiện gọi cùng origin qua proxy; không mở CORS wildcard. FE dev filesystem không được đọc BE, envDir chỉ Fe. DB chỉ kiểm tra SELECT 1; không đổi schema/grants hoặc dữ liệu có sẵn. Topology Admin frontend được chốt sau tại ADR-016.
 - **Bí mật:** BE/.env riêng máy, Git ignore và ACL Windows; mẫu không chứa credentials thật. Keys dự phòng được tạo bằng crypto, chưa dùng để tuyên bố auth hoạt động. Không log raw DB errors/env/headers/body/query string. Secret guard và CI là lớp bổ sung, không thay secret manager production.
 - **Kiểm chứng:** 7 test HTTP/config, lint, typecheck, build, format; kết nối MySQL local chỉ đọc. SQL 67 kiểm tra trước đây là kết quả độc lập, không phải test nghiệp vụ ứng dụng mới.
 - **Còn lại:** migration runner, Google/SMS/email/payment integration và nghiệp vụ theo roadmap; các biến chưa được parser tiêu thụ vẫn là hợp đồng tương lai. Runtime/tool dependencies được giữ theo yêu cầu setup; helper và process kiểm thử được dọn.
+
+## ADR-016 — Customer/Organizer chung frontend, Admin tách frontend
+
+- **Trạng thái:** đã xác định theo yêu cầu chủ dự án ngày 2026-09-23.
+- **Bối cảnh:** Customer cần trải nghiệm public/mua vé; Organizer dùng cùng tài khoản và nền tảng nhưng cần workspace quản lý sự kiện chuyên biệt. Admin có phạm vi vận hành, dữ liệu và rủi ro khác, cần giao diện và bề mặt triển khai riêng. Cả ba vai trò vẫn dùng cùng nghiệp vụ backend.
+- **Quyết định:** `Fe/` là một ứng dụng/server cho Guest, Customer và Organizer. Organizer có `OrganizerLayout` và route riêng trong `Fe/`; không tạo frontend Organizer độc lập. `AdminFe/` là ứng dụng/build/server/origin độc lập và không nằm trong bundle `Fe/`. Cả hai frontend gọi duy nhất `BE/` qua `/api/v1`; backend/worker/MySQL vẫn là modular monolith và nguồn sự thật chung.
+- **Biên bảo mật:** tách origin Admin giảm bề mặt UI nhưng không cấp quyền. Backend xác thực role/permission/scope trên từng request và audit thao tác Admin. Ưu tiên reverse proxy `/api/v1` cùng origin cho từng portal với session host-only; nếu cross-origin thì allowlist chính xác hai origin, không dùng `*` với credentials và kiểm thử CSRF/CORS.
+- **Hệ quả:** CI/CD tạo artifact Public Web, Admin Web và Backend/worker riêng; deploy Admin không buộc phát hành lại Public Web nếu API contract tương thích. Không import page/router Admin vào `Fe/`; không dựng API hoặc DB riêng cho Admin. Các DTO dùng chung phải đến từ OpenAPI/schema hoặc package contract không chứa UI/runtime/DB entity.
+- **Tham khảo giao diện:** workspace Organizer có thể học cách nhóm tác vụ từ Ticketbox Organizer (thông tin sự kiện, thời gian/loại vé, cài đặt, thông tin thanh toán), nhưng không sao chép nội dung pháp lý/nhận diện và không dùng hành vi của trang tham khảo thay hợp đồng nghiệp vụ trong Docs.

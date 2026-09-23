@@ -13,17 +13,17 @@ Nguồn đối chiếu: [vai trò](03-user-roles-permissions.md), [xác thực](
 ## 1. Các hướng thiết kế
 
 | Lựa chọn | Đặc điểm | Phù hợp khi |
-| --- | --- | --- |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | A — Chuyên nghiệp, có bản sắc **(đề xuất)** | Nền sáng, chữ tối, một màu nhấn xanh ngọc; poster tạo cảm xúc ở khu khách hàng; bảng và form rõ ràng ở khu vận hành | Muốn phục vụ nhiều loại sự kiện và dùng lâu dài |
 | B — Năng động, thiên về giải trí | Typography lớn, hình sự kiện nổi bật, hero tối và điểm nhấn mạnh; khu vận hành vẫn sáng, tiết chế | Định hướng chính là âm nhạc, lễ hội |
 | C — Tối giản, thiên về công việc | Xanh lam/slate, ít trang trí, ưu tiên nội dung và thao tác | Muốn MVP dễ phát triển, phù hợp hội nghị/hội thảo |
 
-Nên chọn A làm bản đầu tiên. Một hệ component chung cho cả ba nhóm người dùng; không biến Organizer/Admin thành hai sản phẩm có phong cách rời rạc. Màu xanh ở trang scaffold hiện tại chưa phải nhận diện thương hiệu được duyệt.
+Nên chọn A làm bản đầu tiên. Customer và Organizer dùng chung Public Web/component runtime. Admin Web được build/deploy độc lập nhưng dùng cùng đặc tả token, typography và quy tắc component để sản phẩm nhất quán; không chia sẻ router/bundle Admin sang Public Web. Màu xanh ở trang scaffold hiện tại chưa phải nhận diện thương hiệu được duyệt.
 
 ## 2. Dùng công cụ nào?
 
 | Phương án | Cách dùng cho dự án này | Lưu ý bàn giao |
-| --- | --- | --- |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Chuyên gia thiết kế trực tiếp trong Figma Design **(đề xuất)** | Nhận brief, làm luồng và wireframe, thống nhất hướng A rồi dựng component và màn hình | Yêu cầu source editable, Auto Layout, variants và prototype; dùng [Dev Mode](https://www.figma.com/dev-mode/) để hỗ trợ bàn giao cho lập trình viên |
 | Figma AI hỗ trợ bản nháp | Dùng prompt theo từng nhóm màn hình rồi để chuyên gia chỉnh cấu trúc và tương tác | [Figma AI](https://www.figma.com/ai/) hỗ trợ thiết kế; không coi kết quả tự sinh là đã đáp ứng nghiệp vụ hoặc accessibility |
 | Google Stitch để thử concept | So sánh nhanh bố cục/phong cách từ mô tả trước khi đầu tư hoàn thiện | [Stitch](https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-updates/) hỗ trợ tạo UI từ đầu vào mô tả; cần thống nhất cách dựng lại/chuyển sang source Figma, không mặc định có xuất Figma editable đầy đủ |
@@ -64,12 +64,20 @@ Tổ chức tự quản lý sự kiện, vé và sơ đồ ghế. Admin duyệt 
 soạn phiếu lý do và xử lý report. Thiết kế phải làm rõ trạng thái và hành động
 tiếp theo, kể cả khi hết hạn, thất bại hoặc đang chờ xử lý.
 
+RANH GIỚI GIAO DIỆN VÀ TRIỂN KHAI
+Customer và Organizer ở cùng Public Web; Organizer có workspace/shell riêng trong cùng ứng dụng.
+Tham khảo cách Ticketbox Organizer nhóm thông tin sự kiện, thời gian/loại vé, cài đặt và
+thanh toán, nhưng không sao chép brand hoặc nội dung pháp lý. Admin dùng Admin Web trên
+frontend server/origin riêng. Cả hai frontend gọi cùng một backend; thiết kế không tạo
+backend hoặc database riêng cho Admin.
+
 HƯỚNG HÌNH ẢNH
 Đề xuất hướng A: hiện đại, sáng, dễ đọc; nền trung tính sáng, chữ đậm màu,
 một màu nhấn xanh ngọc. Poster là điểm nổi bật của trang khám phá sự kiện.
 Khu vận hành dùng bảng, form và thông tin trạng thái rõ ràng, không lạm dụng card.
 Ưu tiên font hỗ trợ tiếng Việt tốt, ví dụ Be Vietnam Pro hoặc Inter.
-Dùng một hệ token/component cho Customer, Organizer và Admin.
+Dùng cùng đặc tả token/component cho Customer, Organizer và Admin; Customer/Organizer dùng
+chung component runtime, còn Admin triển khai component trong bundle độc lập.
 Đề xuất kích thước tham chiếu desktop 1440, tablet 768, mobile 390 và kiểm tra
 không tràn ngang ở 320px. Đây là mục tiêu thiết kế, chưa là brand được phê duyệt.
 
@@ -221,7 +229,7 @@ Prototype hồ sơ hết hạn → phiếu → gửi → tổ chức đọc thô
 Các nhóm có thể dùng nhiều frame hoặc variants; không nhất thiết một dòng bằng một trang riêng.
 
 | Khu vực | Màn hình/nhóm màn hình cần có |
-| --- | --- |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Public | Trang chủ đa danh mục; sáu trang danh mục/tìm kiếm/lọc; kết quả rỗng; chi tiết sự kiện, suất, venue; menu mobile đủ tám mục |
 | Nội dung và mở rộng | Blog: danh sách/chi tiết; Vé bán lại: hồ sơ nhiều nguyên nhân; khối không đánh số: chọn loại vé/số lượng; feedback/sao và uy tín |
 | Xác thực | Google/OTP điện thoại; OTP lỗi/hết hạn; email công ty; chờ duyệt/từ chối; mất quyền truy cập |
@@ -251,7 +259,7 @@ Không gửi `.env`, mật khẩu database, token, thông tin khách thật ho�
 Yêu cầu bổ sung của chủ dự án ngày 2026-09-13, kèm ảnh header Ticketbox. Dùng ảnh để tham khảo cách nhóm tìm kiếm, hành động tài khoản và điều hướng; xây nhận diện riêng cho dự án. Không cần thêm carousel chỉ vì ảnh có banner.
 
 | Thứ tự | Nhãn điều hướng | Điểm đến và nội dung minh họa |
-| --- | --- | --- |
+| ------ | ----------------------- | -------------------------------------------------------------------------------------- |
 | 1 | Nhạc sống | Danh sách concert, acoustic, biểu diễn trực tiếp |
 | 2 | Thể thao | Danh sách trận đấu, giải đấu; chi tiết có thông tin môn/đội khi phù hợp |
 | 3 | Sân khấu & Nghệ thuật | Kịch, múa, chương trình nghệ thuật; thông tin tác phẩm/đơn vị biểu diễn |
@@ -282,7 +290,7 @@ Các trường đặc thù như môn thể thao, đội, diễn giả, thời l�
 Đây là kiểm tra **độ bao phủ của brief**, không phải nghiệm thu một file Figma đã dựng. Chưa có bản thiết kế trực quan hoặc prototype để kiểm tra pixel, usability và accessibility thực tế.
 
 | Tiêu chí | Kết quả rà soát | Điều kiện trước khi nghiệm thu UI |
-| --- | --- | --- |
+| ------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------ |
 | Sản phẩm đa loại sự kiện | Đã bổ sung sáu danh mục, nội dung mẫu và template thích ứng | Kiểm tra đủ sáu ví dụ, không dùng toàn concert/sơ đồ sân khấu |
 | Điều hướng theo yêu cầu | Đã mô tả đủ tám mục và header desktop/mobile | Mọi mục có điểm đến, active state và truy cập bằng bàn phím |
 | Vé bán lại | Luồng chung nhiều nguyên nhân, không chỉ tăng sức chứa | Có lý do, tác động người mua và xét duyệt phù hợp |
@@ -342,7 +350,7 @@ Admin xem điểm/bằng chứng rồi quyết định hồ sơ với lý do.
 ```
 
 | Tiêu chí bổ sung | Màn/flow cần bàn giao | Trạng thái hiện tại |
-| --- | --- | --- |
+| ---------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
 | Mở bán lại nhiều nguyên nhân | Form yêu cầu chung, trước/sau, xét duyệt và kết quả | Đã có yêu cầu UI; ma trận chính sách chưa chốt |
 | Organizer hủy sự kiện | Xác nhận ảnh hưởng, thông báo khách, tình trạng xử lý từng đơn | Đã có yêu cầu UI; hạn/luồng tiền cần chốt |
 | Feedback có sao | Hệ thống và sự kiện tách biệt, xác thực giao dịch, kiểm duyệt/khiếu nại | Đã có yêu cầu; chưa triển khai |
@@ -392,7 +400,7 @@ merchandise đã được triển khai.
 ```
 
 | Tiêu chí bổ sung | Kiểm tra trong bản thiết kế |
-| --- | --- |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Nhận diện công khai | Tag PMC, tên Fanmeeting PMC và tên công ty đúng vị trí, không nhầm với danh mục |
 | Hàng hóa theo sự kiện | Trang sản phẩm và quản lý luôn giữ ngữ cảnh sự kiện/Organization |
 | Biến thể và tồn kho | Chọn đúng biến thể, có hết hàng/thay đổi tồn kho; không trừ sức chứa vé |

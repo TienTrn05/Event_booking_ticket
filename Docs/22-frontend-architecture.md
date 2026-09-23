@@ -22,6 +22,17 @@ Các nguồn fixture của Home được chuẩn hóa qua `features/events/data/
 
 Click một item trên Home đặt `preview` và `previewId` vào query hiện tại rồi mở `QuickPreviewDialog`; đóng dialog xóa hai query này và giữ nguyên bộ lọc/hash. Nút **Xem toàn bộ** điều hướng tới route chi tiết. Các page chi tiết được khai báo bằng `React.lazy` trong `app/routes.tsx`, vì vậy browser chỉ tải chunk JavaScript của page sau khi người dùng yêu cầu xem đầy đủ. Query chỉ chứa loại và ID công khai, không chứa token, giá tin cậy hay dữ liệu xác thực.
 
+## Ranh giới ba giao diện và hai frontend server
+
+Đây là quyết định kiến trúc bắt buộc:
+
+- **Customer và Organizer dùng chung ứng dụng `Fe/`, cùng một frontend server và cùng design system.** Một tài khoản có thể dùng các chức năng Customer và, khi có membership/phiên công ty hợp lệ, mở thêm workspace Organizer trong chính ứng dụng này. Không dựng một website Organizer độc lập.
+- **Organizer có shell và route riêng trong `Fe/`** cho tạo sự kiện, thông tin sự kiện, thời gian/loại vé, layout, cài đặt, thanh toán, bán hàng, check-in và báo cáo. Shell này có điều hướng làm việc riêng nhưng vẫn dùng session, theme, component và API client của web Customer/Organizer.
+- **Admin là một ứng dụng frontend độc lập**, dự kiến đặt tại `AdminFe/`, build và triển khai trên một frontend server/origin riêng. Không đưa page, route, asset hoặc code nghiệp vụ Admin vào bundle public `Fe/`.
+- **Cả `Fe/` và `AdminFe/` chỉ giao tiếp với một backend `BE/` duy nhất qua `/api/v1`.** Tách frontend Admin không tạo backend Admin thứ hai, database thứ hai hoặc logic nghiệp vụ song song. Backend vẫn là nơi kiểm tra role, permission, ownership, trạng thái và audit.
+
+Trang [Ticketbox Organizer — Legal document](https://ticketbox.vn/organizer/legal-document) chỉ là nguồn tham khảo sơ bộ cho cách tổ chức workspace Organizer. [Tài liệu hướng dẫn công khai của Ticketbox](https://static.ticketbox.vn/static-page/landingpages/vba-quychehoatdong-v2/docs/quy-che-hoat-dong.pdf) cho thấy luồng chỉnh sửa có các nhóm như thông tin sự kiện, thời gian và loại vé, cài đặt và thông tin thanh toán. Dự án học cách chia khu vực công việc này, không sao chép nhận diện, nội dung pháp lý hoặc coi hành vi Ticketbox là hợp đồng nghiệp vụ của hệ thống.
+
 ## Nguyên tắc bắt buộc
 
 - **Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.** Mọi giá trị nhạy cảm lấy từ server response, không tự tính hoặc cache dài hạn.
@@ -133,19 +144,6 @@ Fe/src/
         organizer.api.ts
       types/
         organizer.types.ts
-    admin/
-      pages/
-        UserManagePage.tsx
-        EventReviewQueuePage.tsx
-        ReviewReasonFormPage.tsx
-        SupportReportsPage.tsx
-        RefundApprovalPage.tsx
-        AuditLogPage.tsx
-        StatisticsPage.tsx
-      api/
-        admin.api.ts
-      types/
-        admin.types.ts
   shared/
     api/
       client.ts                 — HTTP client (fetch/axios wrapper)
@@ -159,7 +157,6 @@ Fe/src/
         AuthLayout.tsx
         CustomerLayout.tsx
         OrganizerLayout.tsx
-        AdminLayout.tsx
     hooks/
       useAuth.ts                — đọc context từ AuthProvider
       usePermission.ts          — check permission code (UX only)
@@ -171,6 +168,26 @@ Fe/src/
     constants/
       routes.ts                 — path constants, tránh string literal rải rác
       permissions.ts            — permission code constants
+
+AdminFe/src/                    — frontend Admin độc lập, chưa scaffold
+  main.tsx
+  app/
+    routes.tsx
+    providers/
+  features/
+    auth/
+    users/
+    organizations/
+    event-reviews/
+    reports/
+    refunds/
+    audit/
+    statistics/
+  shared/
+    api/                        — gọi cùng BE /api/v1
+    ui/
+    layouts/
+      AdminLayout.tsx
 ```
 
 ---
@@ -267,7 +284,7 @@ Xóa metadata khi hoàn tất chuyển sang booking đã biết ID, nhả hold h
   /organizer/sessions/:sessionId/checkin — CounterCheckInPage
   /organizer/sessions/:sessionId/admissions — AdmissionScanPage
 
-/ (AdminLayout — yêu cầu auth + Admin role)
+AdminFe — router và origin riêng (AdminLayout — yêu cầu auth + Admin role)
   /admin/users          — UserManagePage
   /admin/event-reviews  — EventReviewQueuePage
   /admin/event-reviews/:reviewId/reason — ReviewReasonFormPage
@@ -277,7 +294,7 @@ Xóa metadata khi hoàn tất chuyển sang booking đã biết ID, nhả hold h
   /admin/statistics     — StatisticsPage
 ```
 
-**Protected route:** Component wrapper kiểm tra `useAuth()` → redirect `/login` nếu chưa auth, redirect `/` nếu sai role. Đây chỉ là UX — server vẫn kiểm tra lại mọi request.
+**Protected route:** Trong `Fe/`, wrapper Customer/Organizer kiểm tra `useAuth()` và membership để điều hướng UX. Trong `AdminFe/`, wrapper chỉ cho mở shell Admin sau khi tải lại actor/permission từ backend. Mọi guard frontend chỉ phục vụ UX; backend kiểm tra lại role, permission, organization scope và ownership trên từng request. Việc biết URL hoặc truy cập được frontend server Admin không cấp quyền Admin.
 
 **Google/OTP:** trang đăng nhập dùng Google proof hoặc challenge OTP PHONE/COMPANY_EMAIL theo [04](04-authentication-authorization.md); không có form mật khẩu/reset-password nội bộ. Mã nhập chỉ trong memory, không URL/storage/log; countdown resend chỉ UX, backend enforce limit. AuthProvider khôi phục refresh session sau reload và tải quyền/membership từ server.
 

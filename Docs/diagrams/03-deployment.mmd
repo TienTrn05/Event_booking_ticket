@@ -1,17 +1,21 @@
 flowchart LR
-    B["Trình duyệt"] -->|"HTTPS"| P["Reverse proxy<br/>Cùng origin cho web và API"]
-    subgraph HOST["Mô hình triển khai đề xuất · Q-012"]
-      P --> WEB["Static web assets"]
-      P --> API["Express API process"]
-      WORKER["Worker process<br/>Cùng phiên bản codebase"]
+    PC["Browser<br/>Guest · Customer · Organizer"] -->|"HTTPS"| PP["Public reverse proxy"]
+    PA["Browser<br/>Admin"] -->|"HTTPS"| AP["Admin reverse proxy"]
+    subgraph WEB["Hai frontend deployable"]
+      PP --> PWEB["Public Web assets<br/>Customer + Organizer"]
+      AP --> AWEB["Admin Web assets<br/>Server/origin riêng"]
+    end
+    PP -->|"/api/v1"| API["Một Express API"]
+    AP -->|"/api/v1"| API
+    subgraph CORE["Một backend platform"]
       API --> DB[("MySQL<br/>Mạng riêng")]
-      WORKER --> DB
+      WORKER["Worker<br/>Cùng codebase BE"] --> DB
       SECRETS["Secret/config ngoài repo"] --> API
       SECRETS --> WORKER
       API --> LOG["Log · Metric · Health"]
       WORKER --> LOG
     end
-    DB --> BACKUP["Backup mã hóa<br/>Ngoài máy DB · Kiểm tra restore"]
-    API -.-> PSP["Provider thật sau MVP<br/>Staging dùng sandbox/mock"]
+    DB --> BACKUP["Backup mã hóa<br/>Kiểm tra restore"]
+    API -.-> PSP["Provider thật sau MVP<br/>Staging sandbox/mock"]
     WORKER -.-> PSP
-    NOTE["Chưa yêu cầu Docker/Kubernetes<br/>Tăng instance cần shared rate limit<br/>MySQL vẫn quyết định tồn kho"]
+    NOTE["Không có backend/DB Admin riêng<br/>Role và scope luôn do API kiểm tra"]
