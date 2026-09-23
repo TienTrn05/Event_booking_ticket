@@ -1,0 +1,123 @@
+import type { HomeMerchandiseProduct } from '../types';
+
+export const merchandise: HomeMerchandiseProduct[] = [
+  {
+    id: 'm1',
+    name: 'Sơn Tùng M-TP Tour 2026 T-Shirt',
+    image:
+      'https://images.pexels.com/photos/13632832/pexels-photo-13632832.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 350000,
+    currency: 'VND',
+    organizer: 'Sơn Tùng M-TP',
+    organizerId: 'o1',
+    badge: 'Best Seller',
+    eventTitle: 'Sơn Tùng M-TP Live Concert 2026',
+  },
+  {
+    id: 'm2',
+    name: 'Sơn Tùng M-TP Hoodie — Sky Tour',
+    image:
+      'https://images.pexels.com/photos/14389775/pexels-photo-14389775.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 650000,
+    currency: 'VND',
+    organizer: 'Sơn Tùng M-TP',
+    organizerId: 'o1',
+    badge: 'Limited',
+    eventTitle: 'Sơn Tùng M-TP Live Concert 2026',
+  },
+  {
+    id: 'm3',
+    name: 'Sơn Tùng M-TP Lightstick V2',
+    image:
+      'https://images.pexels.com/photos/29755921/pexels-photo-29755921.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 420000,
+    currency: 'VND',
+    organizer: 'Sơn Tùng M-TP',
+    organizerId: 'o1',
+    badge: 'New',
+    eventTitle: 'Sơn Tùng M-TP Live Concert 2026',
+  },
+  {
+    id: 'm4',
+    name: 'Đen Vâu Vinyl — Trời Làm Trời Mưa',
+    image:
+      'https://images.pexels.com/photos/5764281/pexels-photo-5764281.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 680000,
+    currency: 'VND',
+    organizer: 'Đen Vâu',
+    organizerId: 'o2',
+    badge: 'Limited',
+    eventTitle: 'Đen Vâu Live Concert',
+  },
+  {
+    id: 'm5',
+    name: 'Đen Vâu Tote Bag — Làm',
+    image:
+      'https://images.pexels.com/photos/1214212/pexels-photo-1214212.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 180000,
+    currency: 'VND',
+    organizer: 'Đen Vâu',
+    organizerId: 'o2',
+    badge: null,
+    eventTitle: 'Đen Vâu Live Concert',
+  },
+  {
+    id: 'm6',
+    name: 'Monsoon Festival 2026 Wristband',
+    image:
+      'https://images.pexels.com/photos/27694129/pexels-photo-27694129.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 120000,
+    currency: 'VND',
+    organizer: 'Monsoon Festival',
+    organizerId: 'o3',
+    badge: 'New',
+    eventTitle: 'Monsoon Music Festival 2026',
+  },
+  {
+    id: 'm7',
+    name: 'Monsoon Festival Vinyl Edition',
+    image:
+      'https://images.pexels.com/photos/31805824/pexels-photo-31805824.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 580000,
+    currency: 'VND',
+    organizer: 'Monsoon Festival',
+    organizerId: 'o3',
+    badge: 'Best Seller',
+    eventTitle: 'Monsoon Music Festival 2026',
+  },
+  {
+    id: 'm8',
+    name: 'V.League Official T-Shirt 2026',
+    image:
+      'https://images.pexels.com/photos/20248584/pexels-photo-20248584.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 290000,
+    currency: 'VND',
+    organizer: 'V.League Official',
+    organizerId: 'o5',
+    badge: 'New',
+    eventTitle: 'V.League Championship Final 2026',
+  },
+  {
+    id: 'm9',
+    name: 'Saigon Creative Art Print Set',
+    image:
+      'https://images.pexels.com/photos/908965/pexels-photo-908965.jpeg?auto=compress&cs=tinysrgb&h=600&w=600',
+    price: 420000,
+    currency: 'VND',
+    organizer: 'Saigon Creative',
+    organizerId: 'o7',
+    badge: null,
+    eventTitle: 'Street Art & Culture Festival',
+  },
+  {
+    id: 'm10',
+    name: 'Craft Vietnam Pottery DIY Kit',
+    image: '/images/art.jpg',
+    price: 290000,
+    currency: 'VND',
+    organizer: 'Craft Vietnam',
+    organizerId: 'o8',
+    badge: 'New',
+    eventTitle: 'Masterclass: Modern Pottery Techniques',
+  },
+];

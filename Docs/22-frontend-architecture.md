@@ -1,10 +1,20 @@
 # 22. Kiến trúc Frontend
 
-Liên quan: ADR-001/ADR-008, FR-001–FR-031, NFR-012, [05-user-flows](05-user-flows.md), [09-api-design](09-api-design.md), [04-authentication-authorization](04-authentication-authorization.md).
+## Home và hệ theme đã dựng trong repo
 
-Stack đã xác định: **React + TypeScript + Vite**. Khung dùng React Router và fetch theo ADR-015; chưa thêm state/form/query library khi chưa có use case triển khai. Doc này đặc tả **phân tầng, ranh giới trách nhiệm và ràng buộc bắt buộc** độc lập với lựa chọn thư viện.
+Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Giữ fixture và thứ tự nghiệp vụ hiện có; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này chỉ thuộc giao diện, không thay đổi quyền hoặc quy trình giao dịch.
 
----
+### Đồng bộ giao diện trực tiếp với project/
+
+Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, fixture, Tailwind CSS và Lucide từ project/, được chuyển vào cấu trúc app/features/shared của Fe. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
+
+Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đổi hợp đồng nghiệp vụ hoặc xác nhận đối tác/tài khoản/giao dịch thật. Bộ lọc trang chủ dùng state theo mẫu; /reopening giữ lọc URL từ trước. Xem [Fe/README.md](../Fe/README.md) cho phạm vi triển khai hiện tại.
+
+### Phạm vi Fe hiện đã triển khai
+
+`app/routes.tsx` khai báo route; `app/layout/AppShell.tsx` dùng chung Navbar/Footer cho Home và các trang nội dung. `app/SiteLayout.tsx` chỉ giới hạn typography legacy. Giao diện đăng nhập hiện là `features/auth/components/AuthDialog.tsx`, còn context mở dialog ở `features/auth/context`: các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở dialog theo ngữ cảnh. Đây chỉ là UI xem trước, chưa tạo phiên đăng nhập, vé hoặc quyền truy cập. Khi API auth sẵn sàng, triển khai luồng Google/OTP và route bảo vệ theo phần hợp đồng bên dưới.
+
+Các fixture và component của Blog, merchandise và organizer nằm trong feature tương ứng; `events` chỉ giữ sự kiện, danh mục và vé bán lại. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
 
 ## Nguyên tắc bắt buộc
 
@@ -16,7 +26,7 @@ Stack đã xác định: **React + TypeScript + Vite**. Khung dùng React Router
 
 ---
 
-## Cấu trúc thư mục
+## Cấu trúc thư mục đích khi các API nghiệp vụ được triển khai
 
 ```text
 Fe/src/
@@ -219,7 +229,7 @@ Xóa metadata khi hoàn tất chuyển sang booking đã biết ID, nhả hold h
 
 ---
 
-## Routing và protected routes
+## Routing và protected routes đích
 
 ```
 / (PublicLayout)
