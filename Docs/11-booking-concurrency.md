@@ -2,11 +2,11 @@
 
 Đây là giao thức bắt buộc cho FR-013–FR-023, BR-001–BR-019, NFR-001–NFR-003. Mục tiêu là một nguồn tồn kho có thẩm quyền, không giữ khóa xuyên thời gian thao tác của khách.
 
-## Lựa chọn MySQL
+## Lựa chọn PostgreSQL
 
-Tạo sẵn SessionSeat cho mọi ghế trước mở bán; UQ `(session_id,seat_id)`. MVP dùng pessimistic locking trên các hàng này trong InnoDB. `SELECT ... FOR UPDATE` chỉ có ý nghĩa giữ khóa cho chuỗi thao tác khi được dùng trong transaction; khóa được giải phóng khi commit/rollback. Tham khảo [MySQL — Locking Reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html).
+Tạo sẵn SessionSeat cho mọi ghế trước mở bán; UQ `(session_id,seat_id)`. MVP dùng khóa hàng của PostgreSQL. `SELECT ... FOR UPDATE` chỉ giữ khóa cho chuỗi thao tác trong transaction; khóa được giải phóng khi commit/rollback. Tham khảo [PostgreSQL — Row-Level Locks](https://www.postgresql.org/docs/current/explicit-locking.html#LOCKING-ROWS).
 
-Đề xuất isolation `READ COMMITTED` cho transaction đặt vé để hạn chế phạm vi khóa; mọi quyết định ghi phải đọc locking/current read, không dựa SELECT snapshot trước đó. `REPEATABLE READ` mặc định của InnoDB cũng có thể đúng với giao thức này nhưng cần hiểu next-key/gap locks; `SERIALIZABLE` tăng tranh chấp không cần thiết. Cấu hình isolation phải kiểm thử trên phiên bản DB đã chọn Q-016; không thay isolation toàn hệ thống mà thiếu đánh giá.
+PostgreSQL mặc định dùng `READ COMMITTED`; transaction đặt vé khai báo mức này rõ ràng. Mọi quyết định ghi phải đọc lại dưới khóa, không dựa vào snapshot trước đó. `REPEATABLE READ` có thể phát sinh serialization failure khi dữ liệu thay đổi đồng thời; `SERIALIZABLE` còn yêu cầu retry chặt hơn. Cấu hình isolation phải được kiểm thử trên phiên bản DB mục tiêu.
 
 UQ là bảo vệ cấu trúc, không tự ngăn hai service cùng bán nếu bỏ qua kiểm tra dưới khóa. Optimistic locking dùng `version` và conditional UPDATE là lựa chọn tốt cho sửa nội dung; giữ nhiều ghế nóng bằng optimistic locking thường cần retry/rollback nhiều hơn. Không dùng mutex process vì nhiều instance không chia sẻ nó; Redis/realtime chưa cần cho tính đúng.
 
@@ -80,7 +80,7 @@ Block/cancel lấy Event UPDATE trước, đổi trạng thái và outbox rồi 
 
 ## Deadlock, timeout và vận hành
 
-Deadlock vẫn có thể xuất hiện dù thứ tự nhất quán do FK/index. Bắt lỗi deadlock/lock timeout, rollback toàn transaction, retry toàn operation với cùng idempotency key và jitter. Đề xuất tối đa 3 lần, giới hạn tổng thời gian; không retry lỗi nghiệp vụ. Không giả định MySQL luôn rollback toàn transaction khi chỉ có statement timeout.
+Deadlock vẫn có thể xuất hiện dù thứ tự nhất quán do FK/index. Bắt SQLSTATE `40P01`, `40001` và lock timeout, rollback toàn transaction, rồi retry toàn operation với cùng idempotency key và jitter. Đề xuất tối đa 3 lần, giới hạn tổng thời gian; không retry lỗi nghiệp vụ.
 
 Không dùng SKIP LOCKED để chọn ghế người dùng đã yêu cầu vì có thể giữ thiếu nhóm. Có thể dùng cho claim hàng outbox độc lập với lease và giao thức riêng. Giữ transaction ngắn, không gửi email/gọi mạng/render QR bên trong. Metric cần có lock wait, deadlock, retry count, hold expired backlog, payment reconciliation age; bài kiểm thử bắt buộc ở [13](13-testing-strategy.md).
 

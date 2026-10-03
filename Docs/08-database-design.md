@@ -2,7 +2,7 @@
 
 ## Quy ước
 
-Thiết kế logic đã cập nhật Organization/review/layout/Google-OTP/check-in theo [23](23-organization-review-seatmap.md). [database/schema.sql](../database/schema.sql) có 38 bảng và ERD đã đồng bộ theo ADR-014; DDL cho database rỗng, chi tiết vật lý tại [20](20-physical-sql-design.md). MySQL/InnoDB; phiên bản production cần chốt Q-016, phải hỗ trợ CHECK được thực thi; DDL đã kiểm tra trên MySQL 8.0.46. PK mặc định `id BIGINT UNSIGNED`; API biểu diễn ID thành chuỗi để tránh mất chính xác JavaScript. Các bảng dùng timestamp UTC; PaymentWebhook dùng received_at thay created_at. FK được index; FK lịch sử dùng RESTRICT, không cascade xóa giao dịch.
+Thiết kế logic đã cập nhật Organization/review/layout/Google-OTP/check-in theo [23](23-organization-review-seatmap.md). [database/schema.sql](../database/schema.sql) có 44 bảng: 38 bảng lõi theo ADR-014 và 6 bảng catalog public theo ADR-017; database lõi cũ nâng cấp bằng `database/migrations/001-public-catalog.sql`. PostgreSQL; phiên bản production cần chốt Q-016 và phải thực thi CHECK. PK mặc định `id BIGINT`; API biểu diễn ID và tiền thành chuỗi để tránh mất chính xác JavaScript. Các bảng dùng timestamp UTC; FK được index và FK lịch sử dùng RESTRICT.
 
 Tiền `BIGINT` đơn vị nhỏ nhất + currency `CHAR(3)`, API dùng chuỗi số; CHECK amount >= 0, xử lý BigInt/decimal chính xác. Không mặc định mọi currency có hai chữ số thập phân. Identity unique theo provider/subject; không unique email User hoặc tự merge theo email. Token hash kiểu binary với unique index. Trạng thái dùng chuỗi có CHECK/lookup được quản lý bằng migration. Các giá trị bắt buộc NOT NULL, optional được ghi rõ bên dưới; không dùng NULL để biểu diễn trạng thái chưa được thiết kế.
 

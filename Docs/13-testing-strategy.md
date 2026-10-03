@@ -1,13 +1,13 @@
 # 13. Chiến lược kiểm thử
 
-Đã có khung ứng dụng và 20 test nền tảng chính thức (HTTP/config, HTTP client FE, transaction và secret guard) theo ADR-015; bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. DDL hiện hành 38 bảng đã qua 67 kiểm tra trên MySQL 8.0.46 ngày 2026-09-13, gồm ràng buộc, seed/query và race hai connection cho ghế/OTP/admission. Chi tiết ở [database README](../database/README.md). Công cụ/script và báo cáo máy sinh của lần kiểm tra đã được dọn theo yêu cầu, không kèm runner trong repo. Kết quả này không chứng minh toàn bộ các test API/E2E/concurrency dưới đây đã pass.
+Hiện có 18 test Vitest trong 5 file cho HTTP/config, OpenAPI/Swagger, catalog API, transaction và secret guard theo ADR-015/017; bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. Bộ 67 kiểm tra ngày 2026-09-13 là kết quả lịch sử trên MySQL và không được tính là bằng chứng cho PostgreSQL. Ngày 2026-09-24, PostgreSQL 18 đã chạy thành công schema 44 bảng, migration catalog, seed lặp, bốn query mẫu và catalog repository. Chi tiết ở [database README](../database/README.md).
 
 ## Các lớp kiểm thử
 
 | Lớp | Phạm vi | Dữ liệu/công cụ dự kiến |
 | ------------ | -------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Unit | Giá tiền chính xác, state transition, policy ownership/refund, deadline boundary | Clock/adapter giả; không mô phỏng khóa DB để kết luận chống race |
-| Integration | Service–repository–MySQL, rollback, UQ/FK/CHECK, token rotation | MySQL thật cùng phiên bản/isolation mục tiêu; DB test riêng |
+| Integration | Service–repository–PostgreSQL, rollback, UQ/FK/CHECK, token rotation | PostgreSQL thật cùng phiên bản/isolation mục tiêu; DB test riêng |
 | API | HTTP/schema/envelope/auth/permission/error/idempotency | Express test server và DB test; runner chọn Q-016 |
 | Database | Migration lên từ rỗng và bản trước; seed; index/EXPLAIN; timezone | Dữ liệu nhỏ để assertion + tập gần thực để đo truy vấn |
 | Concurrency | Nhiều connection/process giữ cùng ghế, expiry/callback/refund/check-in | Barrier đồng bộ để ép overlap, không chỉ Promise.all chạy tình cờ |
@@ -61,7 +61,7 @@ Kiểm thử boundary bằng giờ DB hoặc expiry fixture được điều khi
 
 Đề xuất workload để review Q-011: 100 khách đồng thời, 1 session có 1.000 ghế, kết hợp đọc/giữ/checkout; thêm case 100 request tranh một ghế. Đo riêng tỷ lệ xung đột dự kiến (409) và lỗi hệ thống (5xx), không coi thua ghế là lỗi availability. Ghi cấu hình máy, phiên bản DB, isolation, pool size, thời lượng warmup và sample count.
 
-Definition of Done của booking: T-001–T-012, T-015/T-018 pass trên MySQL thật; T-016/T-017 bắt buộc vì full refund mock đã được giữ trong MVP; policy deadline cụ thể cần Q-004. Không vi phạm bất biến sau stress; retry hữu hạn; không giữ transaction khi gọi mạng; tài liệu/API khớp implementation. Toàn MVP còn cần kiểm thử auth/security/E2E và các quyết định policy liên quan đã chốt. Không đặt tỷ lệ coverage tùy ý thay cho kiểm thử rủi ro.
+Definition of Done của booking: T-001–T-012, T-015/T-018 pass trên PostgreSQL thật; T-016/T-017 bắt buộc vì full refund mock đã được giữ trong MVP; policy deadline cụ thể cần Q-004. Không vi phạm bất biến sau stress; retry hữu hạn; không giữ transaction khi gọi mạng; tài liệu/API khớp implementation. Toàn MVP còn cần kiểm thử auth/security/E2E và các quyết định policy liên quan đã chốt. Không đặt tỷ lệ coverage tùy ý thay cho kiểm thử rủi ro.
 
 CI tương lai: lint/typecheck → unit → migration/integration/API → concurrency có kiểm soát → build → smoke/E2E phù hợp. Test ngẫu nhiên phải có seed tái lập; test flaky cần xử lý nguyên nhân, không chỉ tăng retry.
 
@@ -83,4 +83,4 @@ Các ca T-027–T-031 là bổ sung đặc tả sau audit, **chưa được tri�
 | T-041 | Hai request cùng user/session giữ nhóm khác, hoặc checkout rồi hold tiếp: không vượt quota 1; tối đa 6 ghế, callback/expiry nhả quota nguyên tử; không giữ khóa User ngược protocol | Q-002, 11 |
 | T-042 | Public bundle/router không chứa page Admin; Customer và Organizer dùng cùng Public Web nhưng route Organizer bị chặn khi thiếu membership/phiên công ty. Admin Web ở origin riêng gọi cùng BE; origin lạ, Customer/Organizer gọi API Admin và Admin thiếu permission đều bị từ chối. Hai reverse proxy `/api/v1` cùng tới một backend, không có dữ liệu/API Admin song song | ADR-016; 12/14/22     |
 
-T-032–T-042 chưa chạy đầy đủ ở tầng API/E2E. 67 kiểm tra SQL hiện hành xác minh phần FK/UQ/CHECK và một số tranh chấp DB tương ứng; không chứng minh validator domain/hình học/tháng lịch, quyền, topology frontend, job hay UI/form đã được triển khai.
+T-032–T-042 chưa chạy đầy đủ ở tầng API/E2E. Bộ kiểm tra PostgreSQL hiện tại xác minh DDL, seed, query và catalog repository; chưa kiểm tra đầy đủ tranh chấp ghế/OTP/admission, validator domain/hình học/tháng lịch, quyền, job hay UI/form.

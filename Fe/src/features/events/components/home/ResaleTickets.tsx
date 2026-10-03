@@ -1,175 +1,62 @@
+import { ArrowRight, CalendarClock, FileCheck2, RefreshCw } from 'lucide-react';
 import { ui } from '../../../../shared/styles/classes';
-import { ShieldCheck, Clock, MapPin, Calendar, ArrowRight, TicketCheck, Flame } from 'lucide-react';
-import { resaleTickets } from '../../data/mockData';
-import Badge from '../../../../shared/ui/Badge';
-import Button from '../../../../shared/ui/Button';
-import { formatPrice } from '../../../../shared/utils/format';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
 
+const typeLabel: Record<string, string> = {
+  CAPACITY: 'Điều chỉnh sức chứa',
+  NEW_SALE_WAVE: 'Đợt mở bán mới',
+  SALES_CONFIG: 'Điều chỉnh bán vé',
+  RESUME_SALES: 'Mở bán trở lại',
+};
+
 export default function ResaleTickets() {
+  const { catalog } = useCatalog();
   const { openPreview } = useQuickPreview();
-
   return (
-    <section
-      id="resale"
-      className={ui(
-        'home-chapter chapter-resale py-16 lg:py-24 bg-ink-900 relative overflow-hidden',
-      )}
-    >
-      <div
-        className={ui(
-          'absolute -top-32 -right-20 w-[500px] h-[500px] rounded-full bg-primary-600/20 blur-[110px] pointer-events-none',
-        )}
-      />
-      <div
-        className={ui(
-          'absolute -bottom-48 left-1/4 w-[420px] h-[420px] rounded-full bg-primary-400/10 blur-[100px] pointer-events-none',
-        )}
-      />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+    <section id="resale" className={ui('home-chapter chapter-resale bg-ink-900 py-16 lg:py-24')}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-8 flex items-end justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-500/15 border border-primary-400/20 mb-4">
-              <Flame size={14} className="text-primary-300 animate-pulse" />
-              <span className={ui('text-xs font-bold text-primary-200 uppercase tracking-wide')}>
-                One more chance
-              </span>
-            </div>
-            <div className="flex items-center gap-4 lg:gap-6">
-              <div className={ui('resale-ticket-art')} aria-hidden="true">
-                <TicketCheck size={48} strokeWidth={1.4} />
-                <span>
-                  <ShieldCheck size={22} />
-                </span>
-              </div>
-
-              <h2
-                data-reveal="heading"
-                className={ui(
-                  'text-3xl lg:text-5xl font-extrabold text-primary-400 tracking-tight leading-tight',
-                )}
-              >
-                Resale tickets.
-              </h2>
-            </div>
+            <span className="inline-flex items-center gap-2 text-sm font-bold text-primary-300">
+              <RefreshCw size={16} /> Cơ hội gặp lại
+            </span>
+            <h2 className="mt-3 text-3xl font-extrabold text-white lg:text-5xl">Đợt mở bán lại.</h2>
+            <p className="mt-3 max-w-2xl text-white/65">
+              Hồ sơ do nhà tổ chức gửi và đã được duyệt. Đây không phải thị trường chuyển nhượng vé
+              cá nhân.
+            </p>
           </div>
         </div>
-        <div
-          className={ui(
-            'flex gap-5 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x snap-mandatory',
-          )}
-        >
-          {resaleTickets.map((ticket) => (
+        <div className="grid gap-5 md:grid-cols-2">
+          {catalog.reopeningRequests.map((request) => (
             <article
-              data-reveal
-              key={ticket.id}
+              key={request.id}
               role="button"
               tabIndex={0}
-              onClick={() => openPreview('resale', ticket.id)}
+              onClick={() => openPreview('resale', request.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  openPreview('resale', ticket.id);
+                  openPreview('resale', request.id);
                 }
               }}
-              className={ui(
-                'group flex-shrink-0 w-[310px] sm:w-[350px] bg-white rounded-2xl overflow-hidden shadow-elevated transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(232,93,44,0.25)] animate-slide-up snap-start',
-              )}
+              className="group overflow-hidden rounded-3xl border border-white/15 bg-white/10 backdrop-blur-sm transition hover:-translate-y-1 hover:border-primary-300/60"
             >
-              <div className={ui('relative aspect-[16/10] overflow-hidden bg-ink-100')}>
-                <img
-                  src={ticket.image}
-                  alt={ticket.eventTitle}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
-                <div
-                  className={ui(
-                    'absolute inset-0 bg-gradient-to-t from-ink-900/75 via-transparent to-transparent',
-                  )}
-                />
-                <div className={ui('absolute top-3 left-3')}>
-                  <Badge variant="success" className="shadow-lg">
-                    <ShieldCheck size={12} /> Verified resale
-                  </Badge>
-                </div>
-                <div
-                  className={ui(
-                    'absolute bottom-3 left-3 right-3 flex items-center justify-between text-white',
-                  )}
-                >
-                  <span className={ui('flex items-center gap-1.5 text-xs font-bold')}>
-                    <Clock size={14} className="text-primary-300" />
-                    {ticket.timeLeft}
+              <div className="grid sm:grid-cols-[180px_1fr]">
+                <img className="h-full min-h-48 w-full object-cover" src={request.image} alt="" />
+                <div className="p-6">
+                  <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-primary-300">
+                    <FileCheck2 size={15} /> {typeLabel[request.type] ?? request.type}
                   </span>
-                  <span
-                    className={ui(
-                      'text-[11px] font-semibold text-white/70 uppercase tracking-wide',
-                    )}
-                  >
-                    Secondary market
+                  <h3 className="mt-3 text-xl font-extrabold text-white">{request.eventTitle}</h3>
+                  <p className="mt-2 text-sm text-white/60">{request.organizer}</p>
+                  <p className="mt-4 line-clamp-2 text-sm leading-6 text-white/75">
+                    {request.reason}
+                  </p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-primary-300">
+                    <CalendarClock size={16} /> Xem hồ sơ <ArrowRight size={15} />
                   </span>
-                </div>
-              </div>
-              <div className={ui('p-5')}>
-                <div className={ui('flex items-center gap-2 text-xs text-ink-400 mb-2')}>
-                  <Calendar size={14} className="text-primary-500" />
-                  <span className="font-semibold">{ticket.dateLabel}</span>
-                </div>
-                <h3
-                  className={ui(
-                    'text-base font-extrabold text-ink-900 leading-snug mb-2 line-clamp-2 group-hover:text-primary-700 transition-colors',
-                  )}
-                >
-                  {ticket.eventTitle}
-                </h3>
-                <div className={ui('flex items-center gap-1.5 text-sm text-ink-500 mb-3')}>
-                  <MapPin size={14} className="flex-shrink-0" />
-                  <span className="truncate">
-                    {ticket.venue}, {ticket.city}
-                  </span>
-                </div>
-                <div
-                  className={ui(
-                    'flex items-center justify-between gap-3 bg-ink-50 rounded-xl px-3 py-2.5 mb-4',
-                  )}
-                >
-                  <div className="min-w-0">
-                    <span
-                      className={ui(
-                        'block text-[11px] text-ink-400 font-semibold uppercase tracking-wide',
-                      )}
-                    >
-                      Your seat
-                    </span>
-                    <span className={ui('block text-xs text-ink-700 font-bold truncate')}>
-                      {ticket.seatInfo}
-                    </span>
-                  </div>
-                  {ticket.sellerVerified && (
-                    <ShieldCheck size={18} className="text-emerald-500 flex-shrink-0" />
-                  )}
-                </div>
-                <div className={ui('flex items-end justify-between pt-3 border-t border-ink-100')}>
-                  <div className="flex flex-col">
-                    <span className={ui('text-xs text-ink-400 font-medium line-through')}>
-                      Original {formatPrice(ticket.originalPrice, ticket.currency)}
-                    </span>
-                    <span className={ui('text-xl font-extrabold text-primary-600')}>
-                      {formatPrice(ticket.resalePrice, ticket.currency)}
-                    </span>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openPreview('resale', ticket.id);
-                    }}
-                    className="group-hover:shadow-lg group-hover:shadow-primary-500/20"
-                  >
-                    Buy ticket <ArrowRight size={14} />
-                  </Button>
                 </div>
               </div>
             </article>

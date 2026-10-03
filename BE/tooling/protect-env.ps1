@@ -1,9 +1,8 @@
 $ErrorActionPreference = 'Stop'
-$projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$appRoot = Split-Path $PSScriptRoot -Parent
 $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-foreach ($relativePath in @('BE\.env', 'Fe\.env')) {
-    $envFile = Join-Path $projectRoot $relativePath
-    if (-not (Test-Path -LiteralPath $envFile)) { continue }
+$envFile = Join-Path $appRoot '.env'
+if (Test-Path -LiteralPath $envFile) {
     # Modify only the DACL, without requesting ownership/SACL privileges.
     $currentGrant = '*' + $currentSid.Value + ':(F)'
     & icacls.exe $envFile /inheritance:r /grant:r $currentGrant '*S-1-5-18:(F)' '*S-1-5-32-544:(F)' | Out-Null
@@ -17,4 +16,4 @@ foreach ($relativePath in @('BE\.env', 'Fe\.env')) {
         }
     }
 }
-Write-Output 'Local .env permissions restricted to current user, SYSTEM and administrators.'
+Write-Output 'BE/.env permissions restricted to current user, SYSTEM and administrators.'

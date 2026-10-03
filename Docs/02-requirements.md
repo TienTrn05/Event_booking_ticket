@@ -76,7 +76,7 @@ MVP dùng SQL có tham số, tìm tiêu đề dạng prefix với quy tắc dấ
 
 ## Thông báo và thời gian thực
 
-Phần thông báo MVP của FR-024 có bản ghi trong tài khoản người nhận và outbox ghi cùng transaction quyết định/expiry; xem [23](23-organization-review-seatmap.md). Email gửi thêm qua adapter khi được cấu hình; email bán vé/nhắc lịch vẫn sau MVP. Email thất bại không rollback đơn đã xác nhận. Mỗi loại thông báo có khóa dedupe `(type, aggregate_id, version, recipient)`; retry có backoff và giới hạn. Worker MySQL đủ ban đầu, chưa cần RabbitMQ. Nhà cung cấp email và nội dung/opt-in: Q-006/Q-013.
+Phần thông báo MVP của FR-024 có bản ghi trong tài khoản người nhận và outbox ghi cùng transaction quyết định/expiry; xem [23](23-organization-review-seatmap.md). Email gửi thêm qua adapter khi được cấu hình; email bán vé/nhắc lịch vẫn sau MVP. Email thất bại không rollback đơn đã xác nhận. Mỗi loại thông báo có khóa dedupe `(type, aggregate_id, version, recipient)`; retry có backoff và giới hạn. Worker PostgreSQL đủ ban đầu, chưa cần RabbitMQ. Nhà cung cấp email và nội dung/opt-in: Q-006/Q-013.
 
 FR-025 thuộc giai đoạn sau MVP: client đăng ký room session sau kiểm tra quyền; thông điệp chỉ có session-seat ID, trạng thái, version. Không phát PII hoặc chủ hold. Websocket không khóa ghế, không đảm bảo client đã nhận mọi sự kiện; reconnect tải lại API. MVP refresh/poll có backoff và chỉ báo dữ liệu có thể thay đổi.
 

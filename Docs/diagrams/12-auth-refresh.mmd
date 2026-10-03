@@ -3,7 +3,7 @@ sequenceDiagram
     participant UI as React / Thiết bị
     participant API as Auth service
     participant ID as Google / OTP adapter
-    participant DB as MySQL
+    participant DB as PostgreSQL
     UI->>API: Google proof hoặc challenge + OTP
     API->>ID: Xác minh Google hoặc HMAC OTP và binding
     API->>DB: Consume OTP một lần / lookup provider-subject

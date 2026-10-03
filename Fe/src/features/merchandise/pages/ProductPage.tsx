@@ -1,12 +1,12 @@
 import { ui } from '../../../shared/styles/classes';
 import { Link, useParams } from 'react-router-dom';
-import { ProductArtwork } from '../components/ProductArtwork';
-import { formatPrice } from '../../events/data/discovery';
-import { getMerchandiseById } from '../data/merchandiseCatalog';
+import { formatPrice } from '../../../shared/utils/format';
+import { useCatalog } from '../../catalog/hooks/useCatalog';
 
 export function ProductPage() {
   const { productId } = useParams();
-  const product = getMerchandiseById(productId);
+  const { catalog } = useCatalog();
+  const product = catalog.merchandise.find((item) => item.id === productId);
   if (!product)
     return (
       <main id="main" className={ui('container content-page')}>
@@ -22,13 +22,9 @@ export function ProductPage() {
         <Link to={`/events/${product.eventId}`}>{product.eventTitle}</Link>
       </div>
       <div className={ui('detail-grid')}>
-        {product.artwork ? (
-          <ProductArtwork product={product.artwork} />
-        ) : (
-          <div className="aspect-[1.4] overflow-hidden rounded-2xl border border-home-line bg-home-elevated">
-            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-          </div>
-        )}
+        <div className="aspect-[1.4] overflow-hidden rounded-2xl border border-home-line bg-home-elevated">
+          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+        </div>
         <div className={ui('detail-copy')}>
           <span className={ui('eyebrow')}>
             {product.badge ?? 'MERCHANDISE'} · SẢN PHẨM MINH HỌA
@@ -50,7 +46,8 @@ export function ProductPage() {
               product.organizer
             )}
           </p>
-          <h2>{formatPrice(product.priceVnd)}</h2>
+          <p>{product.description}</p>
+          <h2>{formatPrice(product.price, product.currency)}</h2>
           <div className={ui('notice')}>
             {product.requiresTicket
               ? 'Organizer yêu cầu người mua có vé sự kiện. Điều kiện sẽ được hệ thống kiểm tra trước thanh toán.'

@@ -1,9 +1,13 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+  encoding: 'utf8',
+}).trim();
 const files = execFileSync(
   'git',
   ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
-  { encoding: 'utf8' },
+  { cwd: repositoryRoot, encoding: 'utf8' },
 )
   .split('\0')
   .filter(Boolean);
@@ -25,7 +29,10 @@ function inspect(file, text) {
     failures.push(file);
 }
 // A clean working file does not mean its staged version is safe to commit.
-const stagedFiles = execFileSync('git', ['ls-files', '-z', '--cached'], { encoding: 'utf8' })
+const stagedFiles = execFileSync('git', ['ls-files', '-z', '--cached'], {
+  cwd: repositoryRoot,
+  encoding: 'utf8',
+})
   .split('\0')
   .filter(Boolean);
 for (const file of new Set(stagedFiles)) {
@@ -33,6 +40,7 @@ for (const file of new Set(stagedFiles)) {
     inspect(
       file,
       execFileSync('git', ['show', `:${file}`], {
+        cwd: repositoryRoot,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       }),
@@ -43,7 +51,7 @@ for (const file of new Set(stagedFiles)) {
 }
 for (const file of new Set(files)) {
   try {
-    inspect(file, readFileSync(file, 'utf8'));
+    inspect(file, readFileSync(join(repositoryRoot, file), 'utf8'));
   } catch (error) {
     // Staged deletions are absent from the working tree; other read failures fail closed.
     if (error.code !== 'ENOENT') failures.push(file);

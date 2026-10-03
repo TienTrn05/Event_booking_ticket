@@ -1,57 +1,58 @@
-import { randomUUID } from 'node:crypto';
 import express from 'express';
-import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
-import { errorHandler } from './shared/middleware/error-handler.js';
-import { AppError } from './shared/errors/app-error.js';
 
-interface AppDependencies {
+import { registerSecurityMiddleware } from './shared/middleware/security.js';
+import { registerRequestContext } from './shared/middleware/request-context.js';
+import { registerRateLimit } from './shared/middleware/rate-limit.js';
+
+import { registerSystemRoutes } from './shared/http/system.routes.js';
+import { registerSwagger } from './shared/http/swagger.js';
+
+import {
+  registerModules,
+  type ModuleDependencies,
+} from './modules/index.js';
+
+import { AppError } from './shared/errors/app-error.js';
+import { errorHandler } from './shared/middleware/error-handler.js';
+
+export interface AppDependencies extends ModuleDependencies {
   checkDatabase: () => Promise<void>;
-  logRequest?: (fields: { requestId: string; method: string; statusCode: number }) => void;
+
+  logRequest?: (fields: {
+    requestId: string;
+    method: string;
+    statusCode: number;
+  }) => void;
 }
+
 export function createApp(deps: AppDependencies) {
   const app = express();
-  app.disable('x-powered-by');
-  app.set('trust proxy', false);
-  app.use(helmet());
-  app.use((req, res, next) => {
-    // Generate locally instead of accepting untrusted IDs into logs.
-    const requestId = randomUUID();
-    res.locals.requestId = requestId;
-    res.setHeader('X-Request-Id', requestId);
-    res.setHeader('Cache-Control', 'no-store');
-    res.on('finish', () =>
-      deps.logRequest?.({ requestId, method: req.method, statusCode: res.statusCode }),
-    );
-    next();
-  });
-  app.use(
-    '/api',
-    rateLimit({
-      windowMs: 60_000,
-      limit: 120,
-      standardHeaders: 'draft-8',
-      legacyHeaders: false,
-      handler: (_req, res) =>
-        res.status(429).json({
-          error: { code: 'RATE_LIMITED', message: 'Vui lòng thử lại sau.' },
-          meta: { requestId: res.locals.requestId },
-        }),
-    }),
-  );
+
+  registerSecurityMiddleware(app);
+  registerRequestContext(app, deps.logRequest);
+  registerRateLimit(app);
+
   app.use(express.json({ limit: '32kb' }));
-  app.get('/api/v1/health/live', (_req, res) => {
-    res.json({ data: { status: 'ok' }, meta: { requestId: res.locals.requestId } });
+
+  registerSystemRoutes(app, {
+    checkDatabase: deps.checkDatabase,
   });
-  app.get('/api/v1/health/ready', async (_req, res) => {
-    try {
-      await deps.checkDatabase();
-    } catch {
-      throw new AppError(503, 'SERVICE_UNAVAILABLE', 'Dịch vụ chưa sẵn sàng.');
-    }
-    res.json({ data: { status: 'ready' }, meta: { requestId: res.locals.requestId } });
+
+  registerSwagger(app);
+
+  registerModules(app, deps);
+
+  app.use((_req, _res, next) => {
+    next(
+      new AppError(
+        404,
+        'NOT_FOUND',
+        'Không tìm thấy tài nguyên.',
+      ),
+    );
   });
-  app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Không tìm thấy tài nguyên.')));
+
   app.use(errorHandler);
+
   return app;
 }

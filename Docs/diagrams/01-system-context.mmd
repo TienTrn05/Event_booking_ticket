@@ -5,7 +5,7 @@ flowchart LR
     A["Quản trị viên"] -->|"Duyệt · Report · Audit"| ADMIN
     PUBLIC["Public Web<br/>Customer + Organizer<br/>Một frontend server"] -->|"/api/v1"| API
     ADMIN["Admin Web<br/>Frontend server riêng"] -->|"/api/v1"| API
-    API["Một Backend Platform<br/>Express + MySQL"] --> M["Payment mock<br/>MVP · Không phải tiền thật"]
+    API["Một Backend Platform<br/>Express + PostgreSQL"] --> M["Payment mock<br/>MVP · Không phải tiền thật"]
     API -.->|"Sau MVP"| R["Cổng thanh toán thật"]
     R -.->|"Webhook có xác thực"| API
     API --> GID["Google Identity"]

@@ -1,5 +1,5 @@
 erDiagram
-    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    %% ADR-014/017: physical FK groups; full columns and constraints in schema.sql.
     event_categories {
         bigint id PK
     }
@@ -22,6 +22,27 @@ erDiagram
         bigint approved_review_id FK
         int approved_event_version FK
         varchar approval_status FK
+    }
+    event_publications {
+        bigint event_id PK,FK
+        varchar public_id UK
+        bigint starting_price_minor
+        varchar catalog_status
+    }
+    event_change_requests {
+        bigint id PK
+        bigint event_id FK
+        bigint organization_id FK
+        bigint requested_by FK
+        bigint decided_by FK
+        varchar status
+    }
+    merchandise_products {
+        bigint id PK
+        bigint event_id FK
+        bigint organization_id FK
+        bigint price_minor
+        varchar status
     }
     layout_rows {
         bigint id PK
@@ -73,6 +94,13 @@ erDiagram
     event_categories ||..o{ events : "category_id"
     users ||..o{ events : "created_by"
     organizations ||..o{ events : "organization_id"
+    events ||--|| event_publications : "event_id"
+    events ||..o{ event_change_requests : "event_id,organization_id"
+    organizations ||..o{ event_change_requests : "organization_id"
+    users ||..o{ event_change_requests : "requested_by"
+    users |o..o{ event_change_requests : "decided_by"
+    events ||..o{ merchandise_products : "event_id,organization_id"
+    organizations ||..o{ merchandise_products : "organization_id"
     seat_layouts ||..o{ layout_rows : "layout_id"
     layout_sections ||..o{ layout_rows : "section_id,layout_id"
     seat_layouts ||..o{ layout_sections : "layout_id"

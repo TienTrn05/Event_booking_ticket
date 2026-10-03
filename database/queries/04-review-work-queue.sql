@@ -2,7 +2,7 @@
 -- Phiếu DRAFT tiếp tục xuất hiện kể cả khi hồ sơ không còn PENDING.
 SELECT r.id AS review_id,r.event_id,e.title,r.event_version,r.status,
        r.submitted_at,r.expires_at,n.id AS reason_notice_id,n.status AS notice_status,
-       CASE WHEN r.status='PENDING' AND r.expires_at<=UTC_TIMESTAMP(6)
+       CASE WHEN r.status='PENDING' AND r.expires_at<=CURRENT_TIMESTAMP
             THEN 'EXPIRY_DUE' WHEN n.status='DRAFT' THEN 'REASON_REQUIRED'
             ELSE 'REVIEW_REQUIRED' END AS work_type
 FROM event_reviews r JOIN events e ON e.id=r.event_id

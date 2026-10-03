@@ -1,6 +1,6 @@
 # 21. SQL và ranh giới transaction
 
-**Phiên bản:** mẫu dùng DDL 38 bảng theo ADR-014. Service vẫn phải kiểm tra scope/quota theo 11 và policy theo 23; DDL không tự thực thi các bước kiểm tra bằng văn bản.
+**Phiên bản:** mẫu giao dịch dùng 38 bảng lõi theo ADR-014; 6 bảng catalog ADR-017 không thay khóa/transaction booking. Service vẫn phải kiểm tra scope/quota theo 11 và policy theo 23; DDL không tự thực thi các bước kiểm tra bằng văn bản.
 
 Các đoạn bên dưới là **mẫu prepared SQL cho service**, ký hiệu `:name` cần driver/query builder bind. Không chạy nguyên tài liệu như batch SQL. Bước “kiểm tra” là nhánh bắt buộc ở service; không COMMIT nếu assertion thất bại. Không đặt nghiệp vụ vào stored procedure/trigger.
 
@@ -19,7 +19,7 @@ SELECT id, session_id, status, hold_id, current_booking_id,
        hold_expires_at, price_minor, currency
 FROM session_seats WHERE id = :session_seat_id FOR UPDATE;
 
-SELECT UTC_TIMESTAMP(6) AS decision_time;
+SELECT clock_timestamp() AS decision_time;
 ```
 
 Service dùng decision_time đọc **sau lúc đã lấy đủ khóa** để kiểm tra hạn mở bán và tính expiry bằng TTL được duyệt. Ghi hold/item snapshot và cập nhật từng ghế:
@@ -31,7 +31,7 @@ SET status='HELD', hold_id=:hold_id, hold_expires_at=:expires_at,
 WHERE id=:session_seat_id AND session_id=:session_id AND status='AVAILABLE';
 ```
 
-Mỗi update phải affectedRows = 1, tổng số item đúng số ghế. Ghi kết quả idempotency cùng transaction → COMMIT. Chưa gọi payment hoặc email.
+Mỗi update phải có `rowCount = 1`, tổng số item đúng số ghế. Ghi kết quả idempotency cùng transaction → COMMIT. Chưa gọi payment hoặc email.
 
 ## 2. Checkout
 
@@ -57,7 +57,7 @@ WHERE id=:session_seat_id AND status='HELD'
   AND hold_id=:hold_id AND current_booking_id=:booking_id;
 ```
 
-Service kiểm tra số hàng từng bước, INSERT Ticket cho mỗi BookingItem với token/ciphertext do server tạo, ghi audit/outbox và inbox PROCESSED → COMMIT nguyên tử. Nếu callback lặp, đọc trạng thái đã áp dụng trước để trả kết quả, không yêu cầu UPDATE lần hai phải affectedRows=1.
+Service kiểm tra số hàng từng bước, INSERT Ticket cho mỗi BookingItem với token/ciphertext do server tạo, ghi audit/outbox và inbox PROCESSED → COMMIT nguyên tử. Nếu callback lặp, đọc trạng thái đã áp dụng trước để trả kết quả, không yêu cầu UPDATE lần hai phải `rowCount=1`.
 
 Nhánh muộn: ghi nhận receipt SUCCESS, reconciliation REQUIRED, giữ booking EXPIRED/CANCELLED; không đổi ghế của đơn khác. Khi có khoản SUCCESS ngoài dự kiến, không overwrite `confirmed_payment_id`; tạo đối soát theo ADR-011. Không coi redirect frontend là bằng chứng tiền.
 
@@ -78,7 +78,7 @@ SET status='USED', admission_check_in_id=:check_in_id,
 WHERE id=:ticket_id AND status='VALID';
 ```
 
-affectedRows=1 mới thành công, ghi audit cùng transaction. Refund approval dùng cùng lock order; chỉ policy vé chưa dùng được duyệt mới đổi vé VALID → CANCELLED và refund PROCESSING. Gọi hoàn tiền ngoài transaction bằng key ổn định. Callback hoàn thành đổi Refund SUCCESS, Payment REFUNDED và booking/vé tương ứng trong transaction mới. Compensation cho đơn EXPIRED/CANCELLED không chuyển đơn đó REFUNDED: booking chưa từng được xác nhận; trạng thái tiền nằm ở Payment/Refund.
+`rowCount=1` mới thành công, ghi audit cùng transaction. Refund approval dùng cùng lock order; chỉ policy vé chưa dùng được duyệt mới đổi vé VALID → CANCELLED và refund PROCESSING. Gọi hoàn tiền ngoài transaction bằng key ổn định. Callback hoàn thành đổi Refund SUCCESS, Payment REFUNDED và booking/vé tương ứng trong transaction mới. Compensation cho đơn EXPIRED/CANCELLED không chuyển đơn đó REFUNDED: booking chưa từng được xác nhận; trạng thái tiền nằm ở Payment/Refund.
 
 ## 6. Outbox và lease fencing
 
@@ -90,7 +90,7 @@ SET status='DONE', lease_until=NULL, lease_token=NULL
 WHERE id=:job_id AND status='PROCESSING' AND lease_token=:my_lease_token;
 ```
 
-affectedRows=0 nghĩa đã mất ownership; không ack hoặc ghi đè retry của worker khác. Lease hết hạn có thể reclaim với token mới. Chưa có exactly-once qua mạng: provider/consumer vẫn phải dedupe bằng key ổn định.
+`rowCount=0` nghĩa đã mất ownership; không ack hoặc ghi đè retry của worker khác. Lease hết hạn có thể reclaim với token mới. Chưa có exactly-once qua mạng: provider/consumer vẫn phải dedupe bằng key ổn định.
 
 ## 7. Retry và lỗi
 
@@ -112,7 +112,7 @@ Sau idempotency record, khóa hàng quota trước Event. Cùng protocol áp d�
 ```sql
 INSERT INTO reservation_quotas (customer_id,session_id)
 VALUES (:customer_id,:session_id)
-ON DUPLICATE KEY UPDATE customer_id=reservation_quotas.customer_id;
+ON CONFLICT (customer_id, session_id) DO NOTHING;
 SELECT customer_id,session_id FROM reservation_quotas
 WHERE customer_id=:customer_id AND session_id=:session_id FOR UPDATE;
 ```
@@ -137,7 +137,7 @@ SELECT id,status,version,organization_id FROM events
 WHERE id=:event_id FOR UPDATE;
 SELECT id,event_id,event_version,status,expires_at FROM event_reviews
 WHERE id=:review_id AND event_id=:event_id FOR UPDATE;
-SELECT UTC_TIMESTAMP(6) AS decision_time;
+SELECT clock_timestamp() AS decision_time;
 ```
 
 Approve chỉ khi event PENDING_REVIEW, version đúng snapshot và `decision_time < expires_at`. Cập nhật review trước pointer event trong cùng transaction; mỗi update phải một hàng:
@@ -164,7 +164,7 @@ INSERT INTO notifications (recipient_user_id,type,review_id,payload_redacted)
 VALUES (:recipient_id,'REVIEW_EXPIRED',:review_id,:notification_json);
 ```
 
-Kiểm tra affectedRows mỗi bước và insert audit/outbox trước COMMIT. Hủy **hồ sơ xin đăng**, không hủy event đã bán vé. UQ notice/review và recipient/type/review bảo vệ dedupe; job lặp đọc trạng thái đã đóng rồi kết thúc. Không gọi email trong transaction.
+Kiểm tra `rowCount` mỗi bước và insert audit/outbox trước COMMIT. Hủy **hồ sơ xin đăng**, không hủy event đã bán vé. UQ notice/review và recipient/type/review bảo vệ dedupe; job lặp đọc trạng thái đã đóng rồi kết thúc. Không gọi email trong transaction.
 
 ## 11. Form phiếu lý do và phiên OTP
 
@@ -179,6 +179,6 @@ INSERT INTO notifications (recipient_user_id,type,review_id,reason_notice_id,pay
 VALUES (:recipient_id,'REASON_NOTICE',:review_id,:notice_id,:notification_json);
 ```
 
-affectedRows=1, audit/outbox cùng commit; SENT bất biến tại service, không phải trigger DB. Chưa có form frontend được triển khai trong phạm vi SQL.
+`rowCount=1`, audit/outbox cùng commit; SENT bất biến tại service, không phải trigger DB. Chưa có form frontend được triển khai trong phạm vi SQL.
 
 OTP: kiểm tra rate limit, challenge/channel/purpose/target/browser binding; dùng key phiên bản tương ứng tính HMAC rồi so constant-time. Khóa challenge, ghi attempts cả khi sai và **commit lần thử sai**, không rollback để xóa bộ đếm. Khi đúng, consume bằng điều kiện used_at/revoked_at NULL, attempts < max_attempts, expires_at > giờ DB mới; tạo/link identity đúng purpose và AuthSession/RefreshToken cùng transaction. Replay không tạo phiên thứ hai. Không lưu/log OTP hoặc proof Google trong audit/outbox.

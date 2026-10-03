@@ -1,6 +1,6 @@
 # 20. Thiết kế SQL vật lý hiện hành
 
-[schema.sql](../database/schema.sql) có **38 bảng**, đã đồng bộ yêu cầu Organization/review/layout/Google-OTP/CheckIn theo [23](23-organization-review-seatmap.md), ADR-014 ngày 2026-09-13. Đây là DDL cho **database rỗng để review và triển khai migration sau này**, không phải script nâng cấp dữ liệu cũ hoặc database production đã triển khai.
+[schema.sql](../database/schema.sql) có **44 bảng**: 38 bảng lõi Organization/review/layout/Google-OTP/CheckIn theo ADR-014 và 6 bảng catalog public theo ADR-017. Đây là DDL cho database rỗng; database 38 bảng trước đây dùng [migration catalog](../database/migrations/001-public-catalog.sql), không chạy lại toàn bộ schema.
 
 ## Bản đồ bảng
 
@@ -13,15 +13,15 @@
 
 ## Quyết định vật lý
 
-ID là BIGINT UNSIGNED, API trả chuỗi. Tiền BIGINT đơn vị nhỏ nhất, CHECK không âm và currency bắt buộc ba chữ hoa; service chỉ chấp nhận currency đã duyệt và giá lớn hơn 0 trong MVP. Không tự chọn currency hoặc cấu hình cửa sổ quầy/vào cửa. Datetime UTC microsecond; connection phải SET time_zone='+00:00'. Timezone IANA được lưu để service tính lịch và hiển thị.
+ID là BIGINT, API trả chuỗi. Tiền BIGINT đơn vị nhỏ nhất, CHECK không âm và currency bắt buộc ba chữ hoa; service chỉ chấp nhận currency đã duyệt và giá lớn hơn 0 trong MVP. Không tự chọn currency hoặc cấu hình cửa sổ quầy/vào cửa. Thời điểm dùng `TIMESTAMPTZ(6)`; connection chạy `SET TIME ZONE 'UTC'`. Timezone IANA được lưu để service tính lịch và hiển thị.
 
-Text dùng utf8mb4_0900_as_cs; mã/status/provider dùng ascii_bin. Identity unique theo `(provider,subject)`, không unique email trên User và không tự gộp Google account theo email. Phone dùng E.164; service chuẩn hóa domain/email theo [04](04-authentication-authorization.md). `email_verified_at` tách khỏi `verified_at`: xác minh Google sub không tự chứng minh mọi email có thể dùng cho tổ chức.
+PostgreSQL lưu text theo encoding UTF-8 của database; so sánh mã/status/provider dùng giá trị chính xác theo ràng buộc và truy vấn, không áp dụng collation MySQL. Identity unique theo `(provider,subject)`, không unique email trên User và không tự gộp Google account theo email. Phone dùng E.164; service chuẩn hóa domain/email theo [04](04-authentication-authorization.md). `email_verified_at` tách khỏi `verified_at`: xác minh Google sub không tự chứng minh mọi email có thể dùng cho tổ chức.
 
 Email công ty của đại diện nằm ở ExternalIdentity, liên kết đúng User/provider bằng composite FK ở Organization/Membership. Provider phải GOOGLE hoặc COMPANY_EMAIL. Service kiểm tra email đã xác minh, domain công ty, trạng thái identity, Admin duyệt, membership và phiên công ty. Seed role chỉ cấp tập permission cho role; không tạo UserRole hoặc biến domain thành quyền tự động. Catalog không có owner Organizer; tổ chức lưu layout riêng và snapshot giới hạn venue.
 
 Một credential ngẫu nhiên cho mỗi vé, nhập tay hoặc biểu diễn trong QR: `ticket_code_hash`, `ticket_code_ciphertext`, `ticket_key_version`. Không có mã thẻ ngân hàng/giấy tờ, không lưu thêm một QR secret độc lập. Key mã hóa/HMAC nằm ngoài DB. OTP dùng keyed MAC và browser binding, không hash trần mã ngắn.
 
-FK mặc định RESTRICT/NO ACTION; không cascade xóa lịch sử tiền/vé. Mọi khóa tham chiếu có PK/UQ rõ ràng. Ba vòng Booking→Payment, Ticket→CheckIn và Event→EventReview được thêm bằng ALTER sau CREATE; không tắt foreign_key_checks. DDL MySQL có implicit commit nên không coi transaction bọc file là rollback được toàn schema.
+FK mặc định RESTRICT/NO ACTION; không cascade xóa lịch sử tiền/vé. Mọi khóa tham chiếu có PK/UQ rõ ràng. Ba vòng Booking→Payment, Ticket→CheckIn và Event→EventReview được thêm bằng ALTER sau khi các bảng liên quan đã tồn tại. PostgreSQL hỗ trợ transactional DDL; migration catalog được bọc trong `BEGIN`/`COMMIT` và dừng ngay khi có lỗi.
 
 ## DB bảo vệ trực tiếp
 
@@ -44,7 +44,7 @@ FK mặc định RESTRICT/NO ACTION; không cascade xóa lịch sử tiền/vé.
 | Một full refund đang tồn tại mỗi receipt | Generated full_refund_guard + UQ; REJECTED trả guard NULL |
 | Refresh chỉ một con và cùng phiên | UQ parent_id + FK(parent_id,session_id) |
 | Một hồ sơ PENDING và một bản gửi mỗi version | pending_event_guard UQ, UQ(event_id,event_version) |
-| Hạn hồ sơ chính xác 15×24h | CHECK expires_at=submitted_at+15 DAY; decision trước hạn, EXPIRED từ hạn trở đi |
+| Hạn hồ sơ chính xác 15×24h | `CHECK (expires_at = submitted_at + INTERVAL '15 days')`; decision trước hạn, EXPIRED từ hạn trở đi |
 | Published phải trỏ hồ sơ APPROVED đúng event/version ghi nhận | FK(approved_review_id,id,approved_event_version,approval_status) và CHECK pointer/status |
 | Phiếu gửi phải có tác giả/nội dung/thời điểm | CHECK ReasonNotice SENT, UQ review_id |
 | Không lặp thông báo chính; phiếu đúng review | UQ(recipient,type,review), composite FK notice/review |
@@ -68,10 +68,10 @@ Không có successful_booking_guard: mọi khoản tiền thực nhận phải l
 
 ## Seed, truy vấn, sơ đồ và kiểm chứng
 
-[Seed quyền](../database/seeds/001-reference-data.sql): 3 role, 29 permission và ánh xạ theo 03; chạy lại không tạo lặp hoặc cấp UserRole. [Venue demo](../database/seeds/002-demo-venues.sql) là dữ liệu giả tùy chọn, không phải thông tin giới hạn địa điểm thật. Bốn [truy vấn](../database/README.md) đọc tồn kho từ layout, sales theo tổ chức/đại diện, audit liên bảng và hàng đợi duyệt/phiếu lý do.
+[Seed quyền](../database/seeds/001-reference-data.sql): 3 role, 29 permission và ánh xạ theo 03; chạy lại không tạo lặp hoặc cấp UserRole. [Seed catalog](../database/seeds/002-public-catalog.sql) là dữ liệu giả tùy chọn cho local/demo, gồm cả venue và không phải thông tin giới hạn địa điểm thật. Bốn [truy vấn](../database/README.md) đọc tồn kho từ layout, sales theo tổ chức/đại diện, audit liên bảng và hàng đợi duyệt/phiếu lý do.
 
 Sales aggregate refund trước join, chỉ tính receipt được chọn xác nhận booking. Audit chỉ phát hiện các bất biến được liệt kê, gồm bounds chữ nhật, capacity và cửa sổ check-in/admission; không thay validator polygon/permission. Chạy audit trong read-only consistent snapshot. Mọi tham số query phải được bind từ service, không ghép chuỗi từ client.
 
-67 kiểm tra đạt trên MySQL **8.0.46**, database tạm riêng ngày 2026-09-13: DDL, seed chạy lại, các FK/UQ/CHECK, bốn query và tranh chấp hai connection cho ghế/OTP/admission. Kết quả này là kiểm tra DB, không đánh dấu T-032–T-041 API/E2E đã pass. Chi tiết phạm vi ở [database README](../database/README.md), [13](13-testing-strategy.md). ERD được đối chiếu 38 bảng và FK từ information_schema, SVG/gallery đã xuất lại.
+67 kiểm tra ngày 2026-09-13 là kết quả lịch sử trên MySQL 8.0.46 cho 38 bảng lõi. Sau ADR-019, PostgreSQL **18** đã tạo thành công 44 bảng, chạy migration catalog, seed lặp, bốn query và repository catalog; kiểm thử tranh chấp hai connection trên PostgreSQL vẫn cần triển khai. Chi tiết ở [database README](../database/README.md), [13](13-testing-strategy.md).
 
 Các lựa chọn vật lý nằm ở ADR-014. Currency, hạ tầng production và tham số nghiệp vụ còn mở vẫn theo [18](18-open-questions.md); không tự điền bằng dữ liệu test.

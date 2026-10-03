@@ -2,7 +2,7 @@
 
 ## Cấu trúc tổng thể
 
-Modular Monolith, một ứng dụng backend triển khai chung, module theo nghiệp vụ. Public Web (Customer + Organizer) và Admin Web độc lập cùng gọi một REST API; Express điều phối; MySQL giữ dữ liệu có thẩm quyền. Worker có thể chạy cùng codebase bằng entrypoint riêng, chưa cần message broker. ADR-001/ADR-002/ADR-006/ADR-016 giải thích đánh đổi.
+Modular Monolith, một ứng dụng backend triển khai chung, module theo nghiệp vụ. Public Web (Customer + Organizer) và Admin Web độc lập cùng gọi một REST API; Express điều phối; PostgreSQL giữ dữ liệu có thẩm quyền. Worker có thể chạy cùng codebase bằng entrypoint riêng, chưa cần message broker. ADR-001/ADR-002/ADR-006/ADR-016 giải thích đánh đổi.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
     MW --> C[Controller]
     C --> S[Service nghiệp vụ]
     S --> R[Repository]
-    R --> DB[(MySQL InnoDB)]
+    R --> DB[(PostgreSQL)]
     S --> PA[Payment adapter]
     W[Worker cùng codebase] --> S
     W --> DB
@@ -64,7 +64,7 @@ Docs/
 database/
 ```
 
-Workspace hiện có hai ứng dụng `BE/` và `Fe/` theo ADR-008/015; `AdminFe/` sẽ trở thành workspace/frontend thứ ba khi triển khai ADR-016. Cả hai frontend vẫn gọi một `BE/`; không tạo backend Admin riêng. Repo dùng mysql2 SQL trực tiếp, Zod và Vitest; chưa chọn migration runner. Không tạo package shared trừ khi có hợp đồng thật cần dùng chung; không chia sẻ DB entity chứa password hash sang frontend.
+Repository hiện có hai package độc lập `BE/` và `Fe/` theo ADR-008/018; `AdminFe/` sẽ là package/frontend độc lập thứ ba khi triển khai ADR-016. Cả hai frontend vẫn gọi một `BE/`; không tạo backend Admin riêng. Repo dùng pg SQL trực tiếp, Zod và Vitest; chưa chọn migration runner. Không tạo package shared trừ khi có hợp đồng thật cần dùng chung; không chia sẻ DB entity chứa password hash sang frontend.
 
 ## Validation ba lớp
 

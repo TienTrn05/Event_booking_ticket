@@ -1,5 +1,5 @@
 erDiagram
-    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    %% ADR-014/017: physical FK groups; full columns and constraints in schema.sql.
     auth_sessions {
         bigint id PK
         bigint user_id FK
@@ -27,6 +27,12 @@ erDiagram
         varchar company_identity_provider FK
         varchar status
         bigint reviewed_by FK
+    }
+    organization_profiles {
+        bigint organization_id PK,FK
+        varchar public_id UK
+        varchar category_label
+        smallint featured_rank UK
     }
     otp_challenges {
         bigint id PK
@@ -66,6 +72,7 @@ erDiagram
     users ||..o{ organization_memberships : "approved_by"
     external_identities ||..o{ organization_memberships : "company_identity_id,user_id,company_identity_provider"
     organizations ||..o{ organization_memberships : "organization_id"
+    organizations ||--|| organization_profiles : "organization_id"
     users ||..o{ organization_memberships : "user_id"
     users ||..o{ organizations : "applicant_user_id"
     external_identities ||..o{ organizations : "company_identity_id,applicant_user_id,company_identity_provider"

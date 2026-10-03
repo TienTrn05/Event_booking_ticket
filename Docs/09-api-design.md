@@ -1,6 +1,6 @@
 # 09. Thiết kế REST API
 
-Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014. API chưa được triển khai.
+Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014 và catalog public theo ADR-017. Nhóm API đọc catalog đã được triển khai; auth, booking, payment và mutation Organizer vẫn là hợp đồng đích.
 
 ## Quy ước chung
 
@@ -31,6 +31,26 @@ Currency và giá ví dụ không chốt chính sách Q-003. Lỗi:
 `details` chỉ chứa dữ liệu an toàn, không lộ chủ hold, SQL, token hoặc stack trace. Client xử lý bằng code ổn định, không parse câu tiếng Việt.
 
 ## Endpoint đề xuất
+
+### Endpoint catalog đã triển khai
+
+| Method / path | Phạm vi | Kết quả |
+| --- | --- | --- |
+| GET `/catalog/home` | Công khai | Graph Home gồm category, event, organizer, merchandise, article, địa điểm và hồ sơ mở bán lại đã duyệt |
+| GET `/event-categories` | Công khai | Danh mục đang hoạt động và số event `PUBLISHED` |
+| GET `/events`, `/events/:id` | Công khai | Lọc `q/category/city/featured/spotlight`, phân trang tối đa 100; chi tiết theo public ID |
+| GET `/organizers`, `/organizers/:id` | Công khai | Organization `APPROVED`, hồ sơ hiển thị và sự kiện sắp tới |
+| GET `/venues`, `/venues/:id` | Công khai | Venue `ACTIVE`, có thể lọc city |
+| GET `/merchandise`, `/merchandise/:id` | Công khai | Sản phẩm `PUBLISHED` thuộc event và Organization tương ứng |
+| GET `/articles`, `/articles/:id` | Công khai | Bài viết `PUBLISHED` |
+| GET `/event-change-requests` | Công khai | Chỉ hồ sơ `APPROVED` được phép hiện catalog; không phải marketplace cá nhân |
+| GET `/locations` | Công khai | Thành phố, ảnh đại diện và số event công khai |
+
+Các endpoint này đọc PostgreSQL qua repository/service, dùng envelope chung và validation Zod. Giá hiển thị là chuỗi minor unit; `starting_price_minor` chỉ phục vụ catalog, không được dùng thay giá tồn kho lúc hold/checkout.
+
+OpenAPI 3.0 của phần đã triển khai được phục vụ tại `GET /api/v1/openapi.json`; Swagger UI ở `GET /api/docs/`. Tài liệu chỉ mô tả endpoint đang chạy, không đưa các endpoint nghiệp vụ đích chưa triển khai vào Swagger để tránh tạo cảm giác chúng đã sẵn sàng.
+
+### Endpoint nghiệp vụ đích
 
 Các đường dẫn sau đều có prefix `/api/v1`. “Chủ” luôn kiểm tra ở service. Chỉ phần Q còn mở mới cần chốt thêm; quy tắc đã duyệt ở 18 không cần xin duyệt lại.
 

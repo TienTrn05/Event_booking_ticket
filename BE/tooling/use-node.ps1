@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
-$projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$appRoot = Split-Path $PSScriptRoot -Parent
 $nodeVersion = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '.node-version') -Raw).Trim()
-$runtimeRoot = Join-Path $projectRoot 'BE\.local'
+$runtimeRoot = Join-Path $appRoot '.local'
 $runtimeDirectory = Join-Path $runtimeRoot "node-v$nodeVersion-win-x64"
 $nodeExecutable = Join-Path $runtimeDirectory 'node.exe'
 if (-not (Test-Path -LiteralPath $nodeExecutable)) {

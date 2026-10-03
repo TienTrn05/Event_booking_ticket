@@ -2,11 +2,11 @@
 
 ## Home và hệ theme đã dựng trong repo
 
-Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Giữ fixture và thứ tự nghiệp vụ hiện có; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này chỉ thuộc giao diện, không thay đổi quyền hoặc quy trình giao dịch.
+Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Catalog runtime lấy từ backend; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này không trao quyền hoặc quyết định trạng thái giao dịch ở frontend.
 
 ### Đồng bộ giao diện trực tiếp với project/
 
-Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, fixture, Tailwind CSS và Lucide từ project/, được chuyển vào cấu trúc app/features/shared của Fe. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
+Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, Tailwind CSS và Lucide, được chuyển vào cấu trúc app/features/shared của Fe. Dữ liệu runtime đến từ catalog API/PostgreSQL theo ADR-017. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
 
 Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đổi hợp đồng nghiệp vụ hoặc xác nhận đối tác/tài khoản/giao dịch thật. Bộ lọc trang chủ dùng state theo mẫu; /reopening giữ lọc URL từ trước. Xem [Fe/README.md](../Fe/README.md) cho phạm vi triển khai hiện tại.
 
@@ -14,11 +14,11 @@ Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đ
 
 `app/routes.tsx` khai báo route; `app/layout/AppShell.tsx` dùng chung Navbar/Footer cho Home và các trang nội dung. `app/SiteLayout.tsx` chỉ giới hạn typography legacy. Giao diện đăng nhập hiện là `features/auth/components/AuthDialog.tsx`, còn context mở dialog ở `features/auth/context`: các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở dialog theo ngữ cảnh. Đây chỉ là UI xem trước, chưa tạo phiên đăng nhập, vé hoặc quyền truy cập. Khi API auth sẵn sàng, triển khai luồng Google/OTP và route bảo vệ theo phần hợp đồng bên dưới.
 
-Các fixture và component của Blog, merchandise và organizer nằm trong feature tương ứng; `events` chỉ giữ sự kiện, danh mục và vé bán lại. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
+`features/catalog` chứa API schema, provider và kiểu graph dùng chung. Blog, merchandise, event và organizer chỉ giữ UI/domain của feature; không còn file fixture runtime riêng. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
 
 ### Xem nhanh và liên kết catalog
 
-Các nguồn fixture của Home được chuẩn hóa qua `features/events/data/eventCatalog.ts` và `features/merchandise/data/merchandiseCatalog.ts`. Quan hệ organizer, sự kiện, merchandise và vé bán lại dùng ID; component không tự đối chiếu bằng tiêu đề hiển thị. `features/preview` là feature điều phối thẻ xem nhanh dùng chung cho event, organizer, merchandise, bài viết và vé bán lại.
+`CatalogProvider` gọi `GET /api/v1/catalog/home`, validate dữ liệu không tin cậy bằng Zod và cung cấp một graph dùng chung cho Home, preview và page chi tiết. Quan hệ organizer, event, merchandise và hồ sơ mở bán lại dùng public ID; component không tự đối chiếu bằng tiêu đề hiển thị. `features/preview` điều phối thẻ xem nhanh dùng chung cho event, organizer, merchandise, bài viết và hồ sơ mở bán lại.
 
 Click một item trên Home đặt `preview` và `previewId` vào query hiện tại rồi mở `QuickPreviewDialog`; đóng dialog xóa hai query này và giữ nguyên bộ lọc/hash. Nút **Xem toàn bộ** điều hướng tới route chi tiết. Các page chi tiết được khai báo bằng `React.lazy` trong `app/routes.tsx`, vì vậy browser chỉ tải chunk JavaScript của page sau khi người dùng yêu cầu xem đầy đủ. Query chỉ chứa loại và ID công khai, không chứa token, giá tin cậy hay dữ liệu xác thực.
 

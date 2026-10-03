@@ -2,12 +2,12 @@
 -- Permission không thay kiểm tra membership/company session hoặc report tại service.
 -- Admin event.cancel_own/refund.approve chỉ trong report liên quan OPEN/IN_REVIEW.
 -- Nạp lại không ghi đè mô tả hay xóa cấu hình đã có; thay policy cần migration riêng.
-USE event_ticketing;
-SET NAMES utf8mb4;
-START TRANSACTION;
+SET client_encoding = 'UTF8';
+SET TIME ZONE 'UTC';
+BEGIN;
 INSERT INTO roles (code,name) VALUES
 ('CUSTOMER','Khách mua vé'),('ORGANIZER','Đại diện tổ chức'),('ADMIN','Quản trị viên')
-ON DUPLICATE KEY UPDATE code=roles.code;
+ON CONFLICT (code) DO NOTHING;
 INSERT INTO permissions (code,description) VALUES
 ('audit.read','audit.read — phạm vi theo docs/03'),
 ('booking.create','booking.create — phạm vi theo docs/03'),
@@ -38,17 +38,17 @@ INSERT INTO permissions (code,description) VALUES
 ('ticket_type.manage_own','ticket_type.manage_own — phạm vi theo docs/03'),
 ('user.block','user.block — phạm vi theo docs/03'),
 ('venue.read_catalog','venue.read_catalog — phạm vi theo docs/03')
-ON DUPLICATE KEY UPDATE code=permissions.code;
+ON CONFLICT (code) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
 WHERE r.code='CUSTOMER' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','seat.hold','booking.create','booking.read_self','ticket.read_self','ticket.checkin_self','refund.request_self','report.create','organization.apply')
-ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
 WHERE r.code='ORGANIZER' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','event.create','event.update_own','event.submit_own','event.cancel_own','layout.manage_own','ticket_type.manage_own','sales.read_own','ticket.checkin_own','refund.approve','report.create','report.handle')
-ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
 WHERE r.code='ADMIN' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
-ON DUPLICATE KEY UPDATE role_id=role_permissions.role_id;
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 COMMIT;

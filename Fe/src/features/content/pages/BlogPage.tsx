@@ -1,13 +1,11 @@
 import { ui } from '../../../shared/styles/classes';
 import { Link, useParams } from 'react-router-dom';
-import { articles } from '../data/articles';
+import { useCatalog } from '../../catalog/hooks/useCatalog';
 
 export function BlogPage() {
   const { articleId } = useParams();
-  const article =
-    articleId && Object.hasOwn(articles, articleId)
-      ? articles[articleId as keyof typeof articles]
-      : null;
+  const { catalog } = useCatalog();
+  const article = catalog.articles.find((item) => item.id === articleId) ?? null;
   return (
     <main id="main" className={ui('container content-page reading-page')}>
       <div className={ui('breadcrumb')}>
@@ -38,8 +36,8 @@ export function BlogPage() {
           <h1>Trước khi mình lên đường</h1>
           <p>Một chút chuẩn bị để cuộc hẹn trọn vẹn hơn.</p>
           <div className={ui('article-list')}>
-            {Object.entries(articles).map(([id, item], index) => (
-              <Link className={ui('journal-card')} to={`/blog/${id}`} key={id}>
+            {catalog.articles.map((item, index) => (
+              <Link className={ui('journal-card')} to={`/blog/${item.id}`} key={item.id}>
                 <span className={ui('journal-number')}>0{index + 1}</span>
                 <h2>{item.title}</h2>
               </Link>

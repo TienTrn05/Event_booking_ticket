@@ -4,10 +4,10 @@ Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-q
 
 | Phase | Bàn giao | Phụ thuộc / nghiệm thu |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; DDL/seed/query/ERD cho Organization/review/layout/Google-OTP/CheckIn | Markdown, DDL 38 bảng và ERD/SVG đã đồng bộ; 67 kiểm tra DB tạm đạt, xem 20. Khung ứng dụng đã có theo ADR-015; migration production và nghiệp vụ chưa triển khai. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu tương ứng |
+| 0 — Đặc tả và đồng bộ dữ liệu | 23 docs hiện hành; DDL/seed/query/ERD cho Organization/review/layout/Google-OTP/CheckIn và catalog public | DDL 44 bảng: 38 lõi đã qua 67 kiểm tra DB lịch sử, 6 catalog có migration/seed/API theo ADR-017. Chốt currency và các window/policy cụ thể trước cấu hình dữ liệu giao dịch |
 | 1 — Tài khoản và tổ chức         | Google, OTP PHONE/COMPANY_EMAIL, sessions đa thiết bị, Organization/membership; scaffold Admin FE độc lập và luồng Admin duyệt role qua cùng backend                     | Chọn công cụ Q-016 và adapter test; T-019/T-020/T-032/T-033, không auto-link sai identity; không đưa route Admin vào Public FE                                                                                                                |
 | 2 — Venue/editor và review event | Catalog có capacity/bounds, editor React/SVG, layout frozen, session/TicketType/giá, review queue, lead time 1 tháng, expiry 15 ngày, notification và form phiếu | T-034–T-037, quyền Organization/report, không tự publish hoặc approve quá hạn; app notifications là MVP |
-| 3 — Hold/booking | Quota 6 ghế/1 phân bổ, TTL 5 phút, row locking, attendee snapshot, recovery request/key qua reload | T-001–T-005/T-012/T-027/T-028/T-031/T-038/T-041 trên MySQL thật |
+| 3 — Hold/booking | Quota 6 ghế/1 phân bổ, TTL 5 phút, row locking, attendee snapshot, recovery request/key qua reload | T-001–T-005/T-012/T-027/T-028/T-031/T-038/T-041 trên PostgreSQL thật |
 | 4 — Tiền/vé/check-in/report | Mock adapter/inbox/outbox, confirm nguyên tử, code vé/QR, online 24h/quầy, admission một lần, Organizer refund và Admin hỗ trợ report | T-006–T-018 theo semantics admission mới, T-030/T-039/T-040; chốt deadline refund và window quầy/vào cửa |
 | 5 — Staging và ổn định MVP       | CI, hai frontend artifact/server, một backend/worker, backup/restore, security, health/metric/load tests, mock staging allowlist, Google/SMS/email cấu hình nếu thử live | T-029, smoke/E2E riêng Public/Organizer/Admin và kiểm tra cùng API, restore model mới; cần đích hosting/danh tính demo thực, không dùng secret trong frontend                                                                                 |
 | 6 — Sau MVP | Provider thanh toán thật, email bán vé/nhắc lịch, vận hành thật | Chính sách và nhà cung cấp được chốt; sandbox/reconciliation/security pass |
@@ -32,9 +32,9 @@ Audit trước quyết định tổ chức/editor kết luận GO cho kiến tr�
 
 ## Khi nào thêm công nghệ
 
-- Redis: chỉ khi cần chia sẻ rate limit/cache nhiều instance hoặc có nút thắt đã đo; không thay MySQL làm nguồn tồn kho.
+- Redis: chỉ khi cần chia sẻ rate limit/cache nhiều instance hoặc có nút thắt đã đo; không thay PostgreSQL làm nguồn tồn kho.
 - Websocket/Socket.IO: khi cần cập nhật ghế tức thời; sau MVP. Snapshot API và revalidation khi đặt vẫn bắt buộc.
-- RabbitMQ: khi outbox worker MySQL không đáp ứng throughput/routing/consumer độc lập; vẫn giữ transactional outbox.
+- RabbitMQ: khi outbox worker PostgreSQL không đáp ứng throughput/routing/consumer độc lập; vẫn giữ transactional outbox.
 - Elasticsearch: khi SQL search không đạt nhu cầu tìm kiếm đã đo; cần chiến lược đồng bộ và dữ liệu trễ.
 - Object storage: khi có upload/ảnh/vé xuất file thật cần lưu trữ, retention và signed URL.
 - Microservices: chỉ khi biên module ổn định và có yêu cầu triển khai/scale/tổ chức độc lập đủ bù chi phí consistency/ops. Không có trong kế hoạch hiện tại.
