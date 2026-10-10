@@ -23,7 +23,7 @@
 ## Bảo mật và chất lượng
 
 - Mặc định từ chối quyền; kiểm tra chủ sở hữu từng tài nguyên; Admin chỉ có quyền cấp rõ ràng, có audit.
-- Auth hiện hành dùng Google/OTP điện thoại, Organizer dùng email công ty theo [04](Docs/04-authentication-authorization.md); OTP lưu keyed hash có expiry/attempt limit, refresh lưu hash trong DB/cookie HttpOnly/Secure; không lưu credential vào localStorage.
+- Auth Customer dùng Google OAuth hoặc nhập email/SĐT và xác minh OTP email (SMTP Gmail). SĐT chỉ là alias chưa xác minh; phương thức mới liên kết sau login mới và proof, không tự gộp theo email. Organizer dùng email công ty theo [04](Docs/04-authentication-authorization.md); OTP lưu keyed hash có expiry/attempt limit, refresh lưu hash trong DB/cookie HttpOnly/Secure; không lưu credential vào localStorage.
 - Không commit bí mật; không log mật khẩu, hash mật khẩu, token, QR bí mật, dữ liệu thẻ hoặc stack trace trong phản hồi production.
 - Không cho client tự xác nhận đã trả tiền. Payment mock phải được cô lập và không thể bật trên production.
 - Lỗi xử lý tập trung; SQL có tham số; allowlist trường cập nhật và sort. Quyết định thay đổi quyền, tiền, trạng thái phải có audit phù hợp.

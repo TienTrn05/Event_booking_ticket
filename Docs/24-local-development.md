@@ -27,7 +27,7 @@ npm.cmd run dev
 - Swagger UI: `/api/docs/`; OpenAPI JSON: `/api/v1/openapi.json`.
 - Ctrl+C dừng app trong terminal tương ứng. API đóng HTTP server và pool, có giới hạn chờ shutdown.
 
-Node được cài riêng trong `BE/.local/...` hoặc `Fe/.local/...`, kiểm tra SHA256 theo bản phát hành chính thức. Mỗi script chỉ thêm PATH trong terminal hiện tại, không thay Node toàn máy. [Node releases](https://nodejs.org/en/about/previous-releases), [Vite runtime requirements](https://vite.dev/guide/).
+Từ 2026-10-09, theo yêu cầu chủ dự án, BE và FE dùng chung Node 24.21.0/npm 11.19.0 tại `D:\NVM\installs\v24.21.0`. Helper mỗi app đọc `tooling/.node-version`, chọn trực tiếp runtime chung và chỉ thêm PATH trong terminal hiện tại, không đổi symlink Node toàn máy. `.nvmrc` ở gốc giữ cùng phiên bản. Không còn runtime riêng hoặc fallback `.local` trong repository; helper báo lỗi nếu thiếu bản chung.
 
 ## Máy mới
 
@@ -53,7 +53,7 @@ npm.cmd run setup:env
 npm.cmd run dev
 ```
 
-Linux/macOS dùng Node theo `tooling/.node-version` trong từng app, rồi chạy `npm ci` tại chính `BE/` và `Fe/`. `BE/setup:env` tạo key ngẫu nhiên dành cho auth/OTP/ticket trong tương lai; `Fe/setup:env` chỉ sao chép cấu hình Vite công khai và không ghi đè file đã có.
+Linux/macOS dùng Node theo `tooling/.node-version` trong từng app, rồi chạy `npm ci` tại chính `BE/` và `Fe/`. `BE/setup:env` tạo khóa JWT hiện dùng cùng khóa OTP/ticket dành cho các module sau; `Fe/setup:env` chỉ sao chép cấu hình Vite công khai và không ghi đè file đã có.
 
 ## Cấu trúc và trách nhiệm
 
@@ -95,7 +95,7 @@ BE/tooling/                 # Cấu hình Backend, setup môi trường, secret 
 .github/workflows/ci.yml    # npm ci + check riêng trong BE và Fe
 ```
 
-Module `catalog` đã có route → service → repository và đọc dữ liệu công khai từ PostgreSQL. Các module auth/booking/payment/worker vẫn chưa được giả lập vì chưa triển khai nghiệp vụ tương ứng. Public Web hiện hiển thị event, organizer, merchandise, bài viết và hồ sơ thay đổi từ API; thao tác mua vé vẫn chưa hoạt động.
+Module `catalog` đã có route → service → repository và đọc dữ liệu công khai từ PostgreSQL. Google OAuth 2.0 Authorization Code + PKCE, JWT và refresh cookie đã có trong module auth; cần cấu hình OAuth client trước khi đăng nhập thực tế. Email OTP Customer và linking có mã nguồn ADR-021, cần SMTP/migration để chạy thật; email công ty/booking/payment/worker chưa triển khai. Public Web hiện hiển thị event, organizer, merchandise, bài viết và hồ sơ thay đổi từ API; thao tác mua vé vẫn chưa hoạt động.
 
 ## Bảo vệ cấu hình
 
@@ -144,4 +144,20 @@ Mỗi package có Prettier, ESLint và TypeScript strict/noUncheckedIndexedAcces
 
 Đã thực hiện: npm ci từ lockfile; npm audit báo 0 lỗ hổng được cơ sở dữ liệu advisory biết tại thời điểm kiểm tra; lint/typecheck/20 test/build/format đạt. 20 test gồm 7 HTTP/config, 6 HTTP client FE, 3 secret guard và 4 transaction unit. Đã chạy trực tiếp API/FE/proxy và PostgreSQL SELECT 1; kiểm tra private-file denial, bundle FE, Git ignore và ACL. Không thay schema, grants hoặc dữ liệu nghiệp vụ. GitHub Actions mới được kiểm tra cấu hình và lệnh tương đương local, chưa chạy trên runner GitHub.
 
-**Giới hạn:** test transaction mới kiểm tra hành vi helper bằng connection mock, không thay integration/concurrency trên PostgreSQL. Auth/authorization, payment, booking, editor, review, worker và migration chưa triển khai; chưa có load test, UI/E2E nghiệp vụ hoặc kiểm chứng production. Rate limit hiện dùng memory, proxy/TLS và secret manager production cần cấu hình theo topology thực. Không kết luận “không còn lỗi” chỉ từ lint hoặc audit. Các mục này nằm trong roadmap 13/16, không phải tính năng bị giả lập bởi scaffold.
+**Giới hạn:** Google auth có kiểm tra HTTP và refresh/reuse trên PostgreSQL tạm; chưa kiểm thử callback với OAuth client thật hoặc E2E trình duyệt. OTP, phân quyền nghiệp vụ, payment, booking, editor, review, worker và migration runner chưa triển khai; chưa có load test hoặc kiểm chứng production. Rate limit hiện dùng memory, proxy/TLS và secret manager production cần cấu hình theo topology thực. Không kết luận “không còn lỗi” chỉ từ lint hoặc audit. Các mục này nằm trong roadmap 13/16.
+
+## Chuyển từ Node installer sang nvm-windows
+
+1. Mở PowerShell mới sau khi cài nvm. `nvm version` và `nvm list` phải chạy được; nếu không, kiểm tra thư mục nvm/NVM_HOME/PATH trong installer. Không gọi npm cũ khi node chưa hiện.
+2. Cấu hình root nvm dùng chung là `D:\NVM\installs`, rồi chạy `nvm install 24.21.0`. Có thể dùng `nvm use 24.21.0` để chọn phiên bản mặc định theo operating mode hiện tại; helper của dự án chọn runtime trong phiên.
+3. Trong BE/ và Fe/, chạy `Set-ExecutionPolicy -Scope Process Bypass` nếu PowerShell chặn helper, rồi `. .\tooling\use-node.ps1`. Việc Bypass chỉ áp dụng terminal hiện tại. Kiểm tra `node --version`, `npm.cmd --version`, `Get-Command node,npm.cmd`.
+4. BE/ chạy `npm.cmd install --ignore-scripts` để cài dependency theo lock và thêm Nodemailer, Fe/ chạy `npm.cmd install --ignore-scripts`. Không xóa .env/database/node_modules do người khác tạo chỉ để sửa PATH. Sau đó `npm.cmd run dev` ở hai terminal; FE 5173, BE 3000.
+5. Gmail SMTP: cấu hình theo Docs/27; App Password ngoài Git. DB cũ cần review/backup migration 002; không chạy schema.sql trên dữ liệu hiện có.
+
+### Setup đã xác nhận với nvm-windows 2.0.1
+
+Theo yêu cầu mới ngày 2026-10-09, runtime chuyển sang nvm chung tại `D:\NVM\installs`. Cấu hình cũ từng ưu tiên `.local/nvm/installs` trong repository đã được thay thế; helper BE/FE không gọi nvm từ PATH cũ và không dùng fallback portable. Các thư mục runtime riêng `.local/nvm`, `BE/.local/node-v24.21.0-win-x64`, `Fe/.local/node-v24.21.0-win-x64` được dọn sau khi xác nhận bản chung chạy được. Dependency, lockfile, `.env` và database vẫn được giữ.
+
+Kiểm tra sau chuyển đổi: cả hai helper chọn `node.exe` và `npm.cmd` từ `D:\NVM\installs\v24.21.0`. BE đạt secret guard, lint, typecheck, 4 test, build và format check; 13 integration test được skip vì không bật `AUTH_TEST_DB`. FE đạt toàn bộ `npm run check`; build cần chạy ngoài sandbox để đọc `.env` hiện có. Đã xóa cả ba runtime riêng và các thư mục `.local` rỗng. Không đổi hợp đồng auth hoặc cấu hình bí mật.
+
+[Configuration nvm-windows 2.x](https://docs.nvm-windows.com/cfg/core/).

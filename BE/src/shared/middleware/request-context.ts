@@ -8,28 +8,17 @@ export interface RequestLogFields {
   statusCode: number;
 }
 
-type LogRequest = (
-  fields: RequestLogFields,
-) => void;
+type LogRequest = (fields: RequestLogFields) => void;
 
-export function registerRequestContext(
-  app: Express,
-  logRequest?: LogRequest,
-) {
+export function registerRequestContext(app: Express, logRequest?: LogRequest) {
   app.use((req, res, next) => {
     const requestId = randomUUID();
 
     res.locals.requestId = requestId;
 
-    res.setHeader(
-      'X-Request-Id',
-      requestId,
-    );
+    res.setHeader('X-Request-Id', requestId);
 
-    res.setHeader(
-      'Cache-Control',
-      'no-store',
-    );
+    res.setHeader('Cache-Control', 'no-store');
 
     res.on('finish', () => {
       logRequest?.({

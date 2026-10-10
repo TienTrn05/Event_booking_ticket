@@ -4,7 +4,7 @@ Thư mục này chỉ chứa cấu hình và script của `BE/`. Frontend có to
 
 | File | Mục đích |
 | --- | --- |
-| `use-node.ps1`, `.node-version` | Dùng Node riêng trong `BE/.local/` |
+| `use-node.ps1`, `.node-version` | Dùng Node chung tại `D:\NVM\installs`, chỉ đổi PATH phiên hiện tại |
 | `setup-env.mjs`, `protect-env.ps1` | Tạo `BE/.env` khi thiếu và bảo vệ quyền truy cập |
 | `check-secrets.mjs` | Kiểm tra file chuẩn bị đưa vào Git, không in giá trị bí mật |
 | `eslint.config.mjs` | Quy tắc lint Backend |

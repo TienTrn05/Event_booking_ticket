@@ -20,7 +20,7 @@
 | Lạm dụng nội bộ | Permission tường minh, audit lý do; không cấp quyền DB trực tiếp cho Organizer |
 | Lỗi cấu hình | Validate env khi startup; production fail nếu mock payment bật hoặc thiếu secret |
 
-Login Google/OTP và mail công ty theo [04](04-authentication-authorization.md). Không log OTP/token, không auto-link identity từ email giống nhau. Domain email công ty không tự cấp Organizer; membership/Organization phải được Admin duyệt. Admin dùng identity bootstrap có kiểm soát, xác thực lại trước thao tác nhạy cảm.
+Login Google/email OTP Customer và mail công ty theo [04](04-authentication-authorization.md). Không log OTP/token, không auto-link identity từ email giống nhau. Domain email công ty không tự cấp Organizer; membership/Organization phải được Admin duyệt. Admin dùng identity bootstrap có kiểm soát, xác thực lại trước thao tác nhạy cảm.
 
 Public Web phục vụ Customer và Organizer; Admin Web chạy trên origin riêng theo [22](22-frontend-architecture.md). Không chia sẻ bundle hoặc route Admin sang Public Web. Nếu mỗi portal proxy `/api/v1` cùng origin, refresh cookie nên là host-only để phiên Public/Organizer và phiên Admin không tự lan qua host khác; Admin đăng nhập lại trên Admin Web. Nếu chọn cookie domain dùng chung hoặc API cross-site, phải có threat model và kiểm thử CSRF/session fixation riêng trước khi triển khai. Dù theo topology nào, backend vẫn kiểm tra Admin permission cho từng request và audit thao tác nhạy cảm; origin/host không phải bằng chứng phân quyền.
 
@@ -62,3 +62,9 @@ Chạy kiểm thử IDOR, token hết hạn/thu hồi/reuse, CSRF/CORS, SQL inje
 - Reason form render text an toàn, cấm HTML/script; notification chỉ đến đại diện/người nhận được scope cho phép. Không nhân danh Admin tự tạo lý do đã ký.
 - TicketType code không là credential; ticketCode/QR riêng đủ entropy, tên/mã xác thực không fuzzy match; không thu giấy tờ hay thẻ ngân hàng. Online CheckIn không consume vé, admission vẫn recheck VALID.
 - Layout chỉ JSON schema/hình học được phép, giới hạn body/số phần tử, kiểm tra server-side bounds/capacity/collision và ownership/version. Không upload SVG chứa script hoặc tham chiếu URL tùy ý.
+
+## ADR-021 — email OTP Customer
+
+SĐT chỉ là alias, không dùng để xác minh/khôi phục. EMAIL OTP gửi SMTP Gmail TLS 465; App Password/HMAC ngoài Git, không log OTP, cookie, SMTP lỗi thô/body. Challenge chỉ active sau gửi thành công; binding riêng CSRF; hạn 5 phút, attempts tổng/target chống reset resend, quota DB và IP. Consume/tăng attempts commit; replay không mở session.
+
+Liên kết có login mới 5 phút + proof mới cùng email; revalidate dưới khóa, không auto merge email. EMAIL Customer không tạo company session/Organizer. JWT/refresh không đổi. SMTP unavailable không bypass; Gmail quota/khả năng gửi thật phải test riêng.

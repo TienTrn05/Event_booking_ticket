@@ -1,12 +1,8 @@
 import type { Express } from 'express';
 
-import {
-  rateLimit,
-} from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 
-export function registerRateLimit(
-  app: Express,
-) {
+export function registerRateLimit(app: Express) {
   app.use(
     '/api',
 
@@ -27,8 +23,7 @@ export function registerRateLimit(
           },
 
           meta: {
-            requestId:
-              res.locals.requestId,
+            requestId: res.locals.requestId,
           },
         });
       },

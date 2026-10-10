@@ -181,3 +181,21 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Transaction:** Backend đặt timezone UTC và `lock_timeout` trên connection. Transaction nghiệp vụ khai báo `READ COMMITTED`, dùng cùng một `PoolClient`, không tự retry khi kết quả COMMIT chưa rõ.
 - **Kiểm chứng:** PostgreSQL 18 tạm đã tạo đủ 44 bảng, nạp seed hai lần liên tiếp, chạy bốn query mẫu và toàn bộ catalog repository. Migration catalog được kiểm tra riêng trên schema lõi tối thiểu.
 - **Hệ quả:** ADR và đoạn tài liệu cũ đề cập MySQL được hiểu theo quyết định PostgreSQL này. Database MySQL cũ không được nâng cấp trực tiếp bằng các file hiện hành; nếu có dữ liệu thật phải có kế hoạch ETL riêng.
+
+## ADR-020 — Google Authorization Code + PKCE cho đăng nhập đầu tiên
+
+- **Ngày:** 2026-10-03
+- **Trạng thái:** chủ dự án đã chọn luồng và phạm vi; code Google + JWT đã triển khai, chưa kiểm thử Google live.
+- **Bối cảnh:** Docs/04 trước đây mô tả GIS credential đưa ID token từ frontend tới backend. Chủ dự án yêu cầu OAuth 2.0 + JWT và chọn Google Authorization Code + PKCE, làm Google + JWT trước OTP.
+- **Quyết định:** backend tạo state/nonce/code verifier, FE chuyển trình duyệt tới Google, callback cùng origin đổi code bằng backend và xác minh ID token Google. Dùng `sub` làm định danh; tạo Customer khi đăng nhập lần đầu. Access JWT 10 phút chỉ ở memory; refresh opaque token chỉ ở cookie HttpOnly, hash trong PostgreSQL, hạn tuyệt đối 7 ngày và xoay mỗi lần dùng. API cookie kiểm tra Origin/CSRF; replay refresh cũ thu hồi session.
+- **Lý do:** giữ Google client secret và code exchange ở backend; PKCE và state bảo vệ code/callback; phiên ứng dụng độc lập với Google token; PostgreSQL cho phép thu hồi theo thiết bị.
+- **Thay thế đã cân nhắc:** tiếp tục GIS ID token trực tiếp; lưu refresh token ở frontend; thêm OTP cùng đợt khi chưa có provider.
+- **Hệ quả:** cần OAuth Web client, redirect URI chính xác và HTTPS ngoài local. Callback đặt refresh cookie rồi redirect cố định về FE; FE gọi refresh để nhận access JWT, không đặt JWT trong URL. OTP, email công ty, linking và quyền Organizer/Admin tiếp tục theo 04/Q-006 ở đợt sau. Không tự cấp Organizer từ email hay Google `hd`. Xem [tiến độ auth](26-auth-progress.md).
+
+## ADR-021 — Google OAuth và email OTP dùng chung User qua liên kết
+
+- Ngày 2026-10-09, chủ dự án quyết định; trạng thái Accepted.
+- Customer dùng Google PKCE hoặc email OTP qua SMTP Gmail App Password. SĐT là alias chưa xác minh để tra email, thay SMS Customer; không dùng alias làm proof khôi phục hay quyền.
+- Google trước: login mới + OTP cùng email để link EMAIL; EMAIL trước: login mới + Google proof cùng email để link Google. Không auto merge/trùng User khi cùng email; identity thuộc User khác trả conflict. Linking trong 5 phút; JWT 10 phút, refresh 7 ngày tuyệt đối/rotation giữ nguyên.
+- EMAIL/channel EMAIL tách COMPANY_EMAIL; thêm phone_login_aliases, otp_challenges.login_phone/delivery_ready. Database cũ dùng migration 002 sau backup/review, không tự áp dụng lên DB người dùng. Google users/sessions được giữ.
+- Gmail cần 2-Step Verification, App Password và có quota; không có OTP Google cấp sẵn. ADR-020 tiếp tục cho Google/phiên, phần hoãn OTP Customer/linking được thay thế. Email công ty/Organizer và vận hành production còn mở.

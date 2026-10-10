@@ -1,9 +1,12 @@
 import { createContext, useContext } from 'react';
 
-export type AuthIntent = 'login' | 'register' | 'tickets' | 'organizer' | 'checkout';
+export type AuthIntent = 'login' | 'register' | 'tickets' | 'organizer' | 'checkout' | 'account';
 
 export const AuthDialogContext = createContext<{
   openAuth: (intent: AuthIntent) => void;
+  user: { id: string; displayName: string } | null;
+  accessToken: string | null;
+  logout: () => Promise<void>;
 } | null>(null);
 
 export function useAuthDialog() {

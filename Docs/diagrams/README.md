@@ -1,6 +1,6 @@
 # Bộ sơ đồ hệ thống
 
-**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014, topology ADR-016 và catalog ADR-017 cập nhật ngày 2026-09-23. Bốn ERD phản ánh 44 bảng của schema; 6 bảng catalog mới nằm trong sơ đồ Identity, Events và Operations.
+**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014, topology ADR-016 và catalog ADR-017 cập nhật ngày 2026-09-23. ERD identity bổ sung alias SĐT theo ADR-021, tổng schema mới 45 bảng; 6 bảng catalog mới nằm trong sơ đồ Identity, Events và Operations.
 
 Mở [trang xem sơ đồ offline](index.html), hoặc xem các ảnh SVG dưới đây. Nguồn Mermaid là file cùng tên đuôi .mmd; ERD được sinh từ [schema SQL](../../database/schema.sql).
 

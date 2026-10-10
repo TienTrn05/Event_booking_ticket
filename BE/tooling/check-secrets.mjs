@@ -20,7 +20,7 @@ function inspect(file, text) {
   if (!/\.(?:ts|tsx|js|mjs|json|md|ya?ml|example|ps1|sql|pem|key)$/.test(file)) return;
   if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(text)) failures.push(file);
   if (
-    /^\s*(?:DB_PASSWORD|JWT_ACCESS_SECRET|OTP_HMAC_KEY|TICKET_ENCRYPTION_KEY)\s*=\s*(?!replace_me\s*$|GENERATE_ME\s*$|$)[^\s#]+/m.test(
+    /^\s*(?:DB_PASSWORD|JWT_ACCESS_SECRET|OTP_HMAC_KEY|TICKET_ENCRYPTION_KEY|SMTP_PASSWORD|GOOGLE_CLIENT_SECRET)\s*=\s*(?!replace_me\s*$|GENERATE_ME\s*$|$)[^\s#]+/m.test(
       text,
     )
   )

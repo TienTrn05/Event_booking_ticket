@@ -12,6 +12,8 @@ README ở gốc giới thiệu sản phẩm và cách chạy. Thư mục này c
 | Chất lượng và vận hành  | [12 — Bảo mật](12-security.md), [13 — Kiểm thử](13-testing-strategy.md), [14 — Triển khai](14-environment-deployment.md), [15 — Quy tắc phát triển](15-development-rules.md), [24 — Local setup và rà soát](24-local-development.md)                      |
 | Sơ đồ                   | [19 — Hướng dẫn](19-system-diagrams.md), [Gallery offline](diagrams/index.html)                                                                                                                                                                           |
 
-Nguồn quy tắc làm việc: [PROJECT_RULES.md](../PROJECT_RULES.md). DDL và dữ liệu mẫu: [database](../database/README.md).
+Nguồn quy tắc làm việc: [PROJECT_RULES.md](../PROJECT_RULES.md), [AGENTS.md](../AGENTS.md). Tiến độ auth: [26 — Auth](26-auth-progress.md). DDL và dữ liệu mẫu: [database](../database/README.md).
 
 Cập nhật nghiệp vụ: [23 — Tổ chức, thay đổi sự kiện, feedback và uy tín](23-organization-review-seatmap.md). Prompt thiết kế: [25 — Brief UI](25-ui-design-brief.md).
+
+- [27 — Cấu hình Gmail SMTP và test auth](27-email-otp-setup.md).

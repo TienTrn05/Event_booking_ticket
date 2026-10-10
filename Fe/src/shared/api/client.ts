@@ -3,7 +3,10 @@ if (!baseUrl.startsWith('/') || baseUrl.startsWith('//') || baseUrl.includes('\\
   throw new Error('VITE_API_BASE_URL must be a same-origin path.');
 }
 export class ApiError extends Error {
-  constructor(public readonly status: number) {
+  constructor(
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
     super('Không thể hoàn tất yêu cầu.');
   }
 }
@@ -19,7 +22,15 @@ export async function apiRequest(path: string, options: RequestInit = {}): Promi
     credentials: 'same-origin',
     headers,
   });
-  if (!response.ok) throw new ApiError(response.status);
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => null);
+    const error = body && typeof body === 'object' && 'error' in body ? body.error : null;
+    const code =
+      error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+        ? error.code
+        : undefined;
+    throw new ApiError(response.status, code);
+  }
   if (response.status === 204) return undefined;
   return response.json() as Promise<unknown>;
 }

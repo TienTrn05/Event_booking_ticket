@@ -1,6 +1,6 @@
 # 13. Chiến lược kiểm thử
 
-Hiện có 18 test Vitest trong 5 file cho HTTP/config, OpenAPI/Swagger, catalog API, transaction và secret guard theo ADR-015/017; bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. Bộ 67 kiểm tra ngày 2026-09-13 là kết quả lịch sử trên MySQL và không được tính là bằng chứng cho PostgreSQL. Ngày 2026-09-24, PostgreSQL 18 đã chạy thành công schema 44 bảng, migration catalog, seed lặp, bốn query mẫu và catalog repository. Chi tiết ở [database README](../database/README.md).
+Hiện có 4 test Vitest trong `BE/tests/auth.test.ts`: hai kiểm tra HTTP Origin/CSRF/PKCE và hai kiểm tra PostgreSQL thật cho tạo Customer từ Google proof đã xác minh (provider được mock) cùng refresh rotation/reuse khi bật `AUTH_TEST_DB=1`. Lệnh `npm test` mặc định chạy hai test HTTP và bỏ qua hai test cần DB riêng; đợt auth ngày 2026-10-03 đã chạy cả bốn trên PostgreSQL 18 tạm. Các test HTTP/config, OpenAPI/Swagger, catalog API và transaction từng được ghi nhận trong tài liệu cũ hiện không còn trong workspace, nên không tính là bằng chứng hiện hành. Bộ test nghiệp vụ bên dưới vẫn là kế hoạch theo phase. Bộ 67 kiểm tra ngày 2026-09-13 là kết quả lịch sử trên MySQL và không được tính là bằng chứng cho PostgreSQL. Ngày 2026-09-24, PostgreSQL 18 đã chạy thành công schema 44 bảng, migration catalog, seed lặp, bốn query mẫu và catalog repository. Chi tiết ở [database README](../database/README.md).
 
 ## Các lớp kiểm thử
 
@@ -84,3 +84,5 @@ Các ca T-027–T-031 là bổ sung đặc tả sau audit, **chưa được tri�
 | T-042 | Public bundle/router không chứa page Admin; Customer và Organizer dùng cùng Public Web nhưng route Organizer bị chặn khi thiếu membership/phiên công ty. Admin Web ở origin riêng gọi cùng BE; origin lạ, Customer/Organizer gọi API Admin và Admin thiếu permission đều bị từ chối. Hai reverse proxy `/api/v1` cùng tới một backend, không có dữ liệu/API Admin song song | ADR-016; 12/14/22     |
 
 T-032–T-042 chưa chạy đầy đủ ở tầng API/E2E. Bộ kiểm tra PostgreSQL hiện tại xác minh DDL, seed, query và catalog repository; chưa kiểm tra đầy đủ tranh chấp ghế/OTP/admission, validator domain/hình học/tháng lịch, quyền, job hay UI/form.
+
+ADR-021: test PostgreSQL thật cho creation/linking hai chiều/trùng email/conflict/phiên cũ/alias SĐT, đúng/sai/hết hạn/replay OTP, binding, resend/attempt quota, SMTP thất bại không mở session. SMTP/Google dùng mock trong test; gửi Gmail thật/OAuth E2E là bước riêng.

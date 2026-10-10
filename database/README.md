@@ -1,12 +1,12 @@
 # PostgreSQL database
 
-Schema hiện hành có **44 bảng**: 38 bảng nghiệp vụ lõi và 6 bảng catalog public. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
+Schema hiện hành có **45 bảng**: 38 bảng lõi, 6 bảng catalog và 1 bảng alias SĐT ADR-021. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
 
 ## Các file
 
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | Tạo mới toàn bộ 44 bảng, PK/FK/UQ/CHECK, 106 index và trigger `updated_at` |
+| [schema.sql](schema.sql) | Tạo mới toàn bộ 45 bảng theo ADR-021, PK/FK/UQ/CHECK và index và trigger `updated_at` |
 | [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp 3 role, 29 permission và ánh xạ quyền |
 | [002-public-catalog.sql](seeds/002-public-catalog.sql) | Nạp dữ liệu demo liên kết đầy đủ cho Public Web, gồm cả venue |
 | [001-public-catalog.sql](migrations/001-public-catalog.sql) | Nâng schema PostgreSQL 38 bảng lõi theo ADR-014 lên 44 bảng |
@@ -69,7 +69,7 @@ Với database ADR-014 cũ, thay lệnh `schema.sql` bằng `migrations/001-publ
 SELECT COUNT(*) AS table_count
 FROM information_schema.tables
 WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
--- Kết quả mong đợi: 44
+-- Schema mới ADR-021: 45; database cũ trước migration 002: 44
 ```
 
 ## Kiểm chứng
@@ -82,3 +82,7 @@ WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
 - Backend kết nối bằng `pg`, kiểm tra schema và thực thi toàn bộ repository catalog thành công.
 
 Chi tiết thiết kế: [08 — Database design](../Docs/08-database-design.md), [20 — Physical SQL](../Docs/20-physical-sql-design.md), [21 — Transaction](../Docs/21-sql-transactions.md).
+
+## Nâng auth email OTP
+
+DB đang có 44 bảng: backup/review rồi chạy migrations/002-email-otp.sql trong DBeaver trên đúng DB. DB mới dùng schema.sql có 45 bảng; không chạy migration 002 lần nữa. Migration giữ Google users/identities/sessions. Chưa tự áp dụng lên DB người dùng. Sau khi có dữ liệu EMAIL, rollback bằng tắt SMTP/khôi phục app release và giữ dữ liệu, không drop identity/bảng. Xem Docs/27.

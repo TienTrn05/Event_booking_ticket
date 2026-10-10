@@ -6,10 +6,7 @@ interface SystemDependencies {
   checkDatabase: () => Promise<void>;
 }
 
-export function registerSystemRoutes(
-  app: Express,
-  deps: SystemDependencies,
-) {
+export function registerSystemRoutes(app: Express, deps: SystemDependencies) {
   app.get('/api/v1/health/live', (_req, res) => {
     res.json({
       data: {
@@ -34,13 +31,7 @@ export function registerSystemRoutes(
         },
       });
     } catch {
-      next(
-        new AppError(
-          503,
-          'SERVICE_UNAVAILABLE',
-          'Dịch vụ chưa sẵn sàng.',
-        ),
-      );
+      next(new AppError(503, 'SERVICE_UNAVAILABLE', 'Dịch vụ chưa sẵn sàng.'));
     }
   });
 }

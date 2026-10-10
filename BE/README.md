@@ -24,4 +24,6 @@ Tạo schema/seed bằng DBeaver theo [database README](../database/README.md), 
 - `GET /api/v1/articles`, `/articles/:id`
 - `GET /api/v1/event-change-requests`, `/locations`
 
-Catalog chỉ trả event `PUBLISHED` và hồ sơ mở bán lại `APPROVED`. ID và tiền được serialize thành chuỗi. Auth, booking, payment và mutation Organizer vẫn theo hợp đồng trong Docs/09, chưa được giả lập bằng endpoint thiếu xác thực. `src/shared/database/transaction.ts` cung cấp một connection cho toàn transaction; không gọi mạng trong transaction. Worker/migration tự động chưa bật.
+Catalog chỉ trả event `PUBLISHED` và hồ sơ mở bán lại `APPROVED`. ID và tiền được serialize thành chuỗi. Google Authorization Code + PKCE, JWT và refresh cookie đã có endpoint; cấu hình và giới hạn ở [module auth](src/modules/auth/README.md). OTP, booking, payment và mutation Organizer vẫn theo hợp đồng trong Docs/09. `src/shared/database/transaction.ts` cung cấp một connection cho toàn transaction; không gọi mạng trong transaction. Worker/migration tự động chưa bật.
+
+Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\tooling\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.

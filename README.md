@@ -2,11 +2,11 @@
 
 Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn vị tổ chức. Dự án hướng tới quy trình chọn ghế, thanh toán, nhận vé, check-in và quản lý sự kiện có kiểm soát.
 
-**Giai đoạn hiện tại:** đã có đặc tả, PostgreSQL schema, Swagger, backend catalog và FE khám phá sự kiện với theme Biển xanh/Vũ trụ. FE lấy event, organizer, venue, merchandise, bài viết và hồ sơ mở bán từ API thật; đăng nhập, mua vé, giao dịch merchandise, editor và duyệt sự kiện chưa được tích hợp. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
+**Giai đoạn hiện tại:** đã có đặc tả, PostgreSQL schema, Swagger, backend catalog, Google OAuth/JWT và FE khám phá sự kiện với theme Biển xanh/Vũ trụ. FE lấy event, organizer, venue, merchandise, bài viết và hồ sơ mở bán từ API thật; luồng Google cần cấu hình OAuth client và kiểm tra đăng nhập thật. Email OTP Customer có mã nguồn theo ADR-021, cần migration và SMTP trước khi gửi thật; mua vé, giao dịch merchandise, editor và duyệt sự kiện chưa được tích hợp. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
 
 ## Phạm vi sản phẩm
 
-- **Khách hàng:** đăng nhập Google/OTP, chọn ghế, mua vé, khai tên người tham dự và check-in bằng mã vé do hệ thống cấp.
+- **Khách hàng:** đăng nhập Google/email OTP, chọn ghế, mua vé, khai tên người tham dự và check-in bằng mã vé do hệ thống cấp.
 - **Tổ chức:** đăng ký bằng email công ty, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
 - **Admin:** duyệt tổ chức/vai trò, duyệt hồ sơ sự kiện và xử lý yêu cầu hỗ trợ theo report.
 
@@ -37,7 +37,7 @@ PROJECT_RULES.md     Quy tắc phát triển bắt buộc
 README.md           Giới thiệu và hướng dẫn bắt đầu
 ```
 
-BE và FE là hai package npm độc lập, không dùng npm workspaces và không có `node_modules` ở gốc. Mỗi app tự giữ lockfile, tooling và runtime Windows trong `.local`; toàn bộ dữ liệu cài đặt này được Git bỏ qua.
+BE và FE là hai package npm độc lập, không dùng npm workspaces và không có `node_modules` ở gốc. Mỗi app tự giữ lockfile và tooling; runtime Windows dùng chung nvm tại `D:\NVM\installs`, không giữ Node riêng hoặc fallback `.local` trong project. Dependency `node_modules` vẫn riêng cho từng app và được Git bỏ qua.
 
 ## Bắt đầu phát triển
 
@@ -61,7 +61,7 @@ npm.cmd ci
 npm.cmd run setup:env
 ```
 
-Mỗi script Node Windows x64 chỉ đổi PATH của terminal hiện tại. `setup:env` chỉ quản lý `.env` của app đang đứng. Trên Linux/macOS, cài đúng phiên bản Node ghi trong `tooling/.node-version` của từng app rồi dùng các lệnh npm tương ứng.
+Cài Node 24.21.0 trong nvm dùng chung tại `D:\NVM\installs` trước khi dùng helper. Helper chọn trực tiếp runtime chung và chỉ đổi PATH của terminal hiện tại. `setup:env` chỉ quản lý `.env` của app đang đứng. Trên Linux/macOS, cài đúng phiên bản Node ghi trong `tooling/.node-version` của từng app rồi dùng các lệnh npm tương ứng.
 
 ### 2. Tạo PostgreSQL bằng DBeaver
 
@@ -120,7 +120,7 @@ Chạy trong từng thư mục `BE/` hoặc `Fe/`:
 | Lệnh              | BE | FE |
 | ----------------- | -- | -- |
 | `npm run dev`     | API cổng 3000 | Vite cổng 5173 |
-| `npm run check`   | Secret guard, lint, typecheck, 18 test, build, format | Lint, typecheck, build, format |
+| `npm run check`   | Secret guard, lint, typecheck, test auth, build, format | Lint, typecheck, build, format |
 | `npm run format`  | Format source/config BE | Format source/config FE |
 | `npm run db:check`| Kiểm tra PostgreSQL chỉ đọc | Không áp dụng |
 
@@ -139,3 +139,5 @@ Không commit .env, token, khóa bí mật hoặc thông tin kết nối thật.
 - [Thiết kế backend](Docs/10-backend-architecture.md) · [Thiết kế frontend](Docs/22-frontend-architecture.md)
 - [SQL và cách nạp](database/README.md) · [Sơ đồ hệ thống](Docs/diagrams/index.html)
 - [Lộ trình](Docs/16-roadmap.md) · [Quyết định còn mở](Docs/18-open-questions.md)
+
+Auth Customer ADR-021: Google hoặc email/SĐT + OTP email SMTP Gmail; dùng chung User sau liên kết tường minh, SĐT alias chưa xác minh. DB cũ cần migration 002. Xem [cấu hình/test](Docs/27-email-otp-setup.md); email công ty/Organizer vẫn chưa triển khai.

@@ -1,26 +1,16 @@
 $ErrorActionPreference = 'Stop'
-$appRoot = Split-Path $PSScriptRoot -Parent
 $nodeVersion = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '.node-version') -Raw).Trim()
-$runtimeRoot = Join-Path $appRoot '.local'
-$runtimeDirectory = Join-Path $runtimeRoot "node-v$nodeVersion-win-x64"
+# Shared nvm installation configured by the project owner; no project-local fallback.
+$runtimeDirectory = Join-Path 'D:\NVM\installs' "v$nodeVersion"
 $nodeExecutable = Join-Path $runtimeDirectory 'node.exe'
+$npmExecutable = Join-Path $runtimeDirectory 'npm.cmd'
 if (-not (Test-Path -LiteralPath $nodeExecutable)) {
-    New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null
-    $archiveName = "node-v$nodeVersion-win-x64.zip"
-    $archivePath = Join-Path $runtimeRoot $archiveName
-    $releaseUrl = "https://nodejs.org/dist/v$nodeVersion"
-    try {
-        Invoke-WebRequest "$releaseUrl/$archiveName" -OutFile $archivePath -UseBasicParsing
-        $checksumText = (Invoke-WebRequest "$releaseUrl/SHASUMS256.txt" -UseBasicParsing).Content
-        $checksumLine = $checksumText -split "`n" | Where-Object { $_.Trim().EndsWith("  $archiveName") }
-        if (@($checksumLine).Count -ne 1) { throw 'Cannot identify official Node checksum.' }
-        $expectedHash = ($checksumLine.Trim() -split '\s+')[0]
-        $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
-        if ($actualHash -ne $expectedHash) { throw 'Node archive checksum mismatch.' }
-        Expand-Archive -LiteralPath $archivePath -DestinationPath $runtimeRoot
-    } finally {
-        if (Test-Path -LiteralPath $archivePath) { Remove-Item -LiteralPath $archivePath }
-    }
+    throw "Node $nodeVersion is missing from D:\NVM\installs. Install this version in the shared nvm root before running this helper."
 }
+$actualNode = (& $nodeExecutable --version).Trim()
+if ($LASTEXITCODE -ne 0 -or $actualNode -ne "v$nodeVersion") { throw "Expected Node v$nodeVersion; selected runtime does not match." }
+if (-not (Test-Path -LiteralPath $npmExecutable)) { throw 'The shared Node installation is missing npm.cmd.' }
+$actualNpm = (& $npmExecutable --version).Trim()
+if ($LASTEXITCODE -ne 0 -or $actualNpm -notmatch '^11\.') { throw 'This repository requires npm 11. Check the shared nvm Node installation.' }
 $env:Path = "$runtimeDirectory;$env:Path"
-Write-Output "Frontend Node $(& $nodeExecutable --version) active in this PowerShell session."
+Write-Output "Node $actualNode / npm $actualNpm from $runtimeDirectory active in this PowerShell session."

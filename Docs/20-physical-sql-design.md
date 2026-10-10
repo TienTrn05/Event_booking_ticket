@@ -75,3 +75,7 @@ Sales aggregate refund trước join, chỉ tính receipt được chọn xác n
 67 kiểm tra ngày 2026-09-13 là kết quả lịch sử trên MySQL 8.0.46 cho 38 bảng lõi. Sau ADR-019, PostgreSQL **18** đã tạo thành công 44 bảng, chạy migration catalog, seed lặp, bốn query và repository catalog; kiểm thử tranh chấp hai connection trên PostgreSQL vẫn cần triển khai. Chi tiết ở [database README](../database/README.md), [13](13-testing-strategy.md).
 
 Các lựa chọn vật lý nằm ở ADR-014. Currency, hạ tầng production và tham số nghiệp vụ còn mở vẫn theo [18](18-open-questions.md); không tự điền bằng dữ liệu test.
+
+## ADR-021 — EMAIL và alias SĐT
+
+Schema mới 45 bảng. EMAIL identity có subject=email_canonical đã xác minh; company FK vẫn chỉ GOOGLE/COMPANY_EMAIL. phone_login_aliases(phone PK,email_identity_id FK,created_at) không có verified_at; service chỉ trỏ EMAIL, không chuyển alias khác. otp_challenges thêm EMAIL/login_phone/delivery_ready mặc định false. Advisory target/email + row locks bảo vệ creation/linking/resend/consume. DB cũ nâng bằng migration 002 sau backup/review; giữ Google users/sessions, không chạy schema.sql trên dữ liệu thật.

@@ -34,10 +34,7 @@ export function registerShutdown(server: Server) {
           process.exitCode = exitCode;
         })
         .catch((error: unknown) => {
-          logger.error(
-            { error },
-            'Database shutdown failed',
-          );
+          logger.error({ error }, 'Database shutdown failed');
 
           process.exit(1);
         });
@@ -47,10 +44,7 @@ export function registerShutdown(server: Server) {
   }
 
   server.on('error', (error) => {
-    logger.error(
-      { error },
-      'API could not start; check host/port availability',
-    );
+    logger.error({ error }, 'API could not start; check host/port availability');
 
     shutdown(1);
   });
@@ -64,19 +58,13 @@ export function registerShutdown(server: Server) {
   });
 
   process.on('uncaughtException', (error) => {
-    logger.fatal(
-      { error },
-      'Uncaught exception; shutting down',
-    );
+    logger.fatal({ error }, 'Uncaught exception; shutting down');
 
     shutdown(1);
   });
 
   process.on('unhandledRejection', (reason) => {
-    logger.fatal(
-      { reason },
-      'Unhandled rejection; shutting down',
-    );
+    logger.fatal({ reason }, 'Unhandled rejection; shutting down');
 
     shutdown(1);
   });

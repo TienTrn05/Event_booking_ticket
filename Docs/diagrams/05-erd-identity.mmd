@@ -9,6 +9,9 @@ erDiagram
     external_identities {
         bigint id PK
         bigint user_id FK
+        varchar provider
+        varchar subject
+        varchar email_canonical
     }
     organization_memberships {
         bigint id PK
@@ -37,7 +40,15 @@ erDiagram
     otp_challenges {
         bigint id PK
         bigint user_id FK
+        varchar channel
+        varchar login_phone
+        boolean delivery_ready
         datetime expires_at
+    }
+    phone_login_aliases {
+        varchar phone PK
+        bigint email_identity_id FK
+        datetime created_at
     }
     permissions {
         bigint id PK
@@ -66,6 +77,7 @@ erDiagram
         bigint id PK
         varchar status
     }
+    external_identities ||..o{ phone_login_aliases : "email_identity_id (EMAIL only)"
     external_identities ||..o{ auth_sessions : "identity_id,user_id"
     users ||..o{ auth_sessions : "user_id"
     users ||..o{ external_identities : "user_id"

@@ -124,3 +124,5 @@ Mô hình hướng 3NF: venue/layout/section/row tách riêng, permission/role t
 Chỉ mục ghép đặt cột lọc bằng trước rồi khoảng thời gian/ID khi phù hợp. Không thêm index mọi cột: mỗi index làm ghi/khóa tốn hơn. Đo EXPLAIN với event nhiều suất/ghế và phân bố trạng thái thực. Dùng truy vấn phân trang tránh N+1; SQL thống kê không khóa bảng tồn kho lâu.
 
 QR là opaque token ngẫu nhiên; hash để lookup, ciphertext mã hóa bằng key riêng để chủ vé xem lại QR. Tách key khỏi DB, không log ciphertext/token và phải có phương án xoay key. Phương án token ký không cần ciphertext được xem trong ADR-007, chưa dùng đồng thời hai thiết kế.
+
+ADR-021 thêm EMAIL Customer và phone_login_aliases trỏ EMAIL identity, không proof PHONE. otp_challenges thêm EMAIL/login_phone/delivery_ready. Xem SQL, ERD identity, Docs 20 và migration 002.

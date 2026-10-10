@@ -26,12 +26,14 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
 
   if (error)
     return (
-      <main className="grid min-h-screen place-items-center bg-home-page px-6 text-center text-home-text">
+      <main className="reference-site grid min-h-screen place-items-center bg-home-page px-6 text-center text-home-text">
         <div>
           <h1 className="text-2xl font-extrabold">Không tải được dữ liệu sự kiện</h1>
-          <p className="mt-3 text-home-muted">Kiểm tra API và dữ liệu MySQL, sau đó thử lại.</p>
+          <p className="mt-3 text-home-muted">
+            Kiểm tra API và kết nối PostgreSQL, sau đó thử lại.
+          </p>
           <button
-            className="mt-6 rounded-xl bg-home-accent px-5 py-3 font-bold text-white"
+            className="mt-6 rounded-xl bg-home-button px-5 py-3 font-bold text-home-button-text"
             onClick={reload}
           >
             Thử lại
@@ -41,7 +43,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     );
   if (!catalog)
     return (
-      <div className="grid min-h-screen place-items-center bg-home-page text-sm font-bold text-home-muted">
+      <div className="reference-site grid min-h-screen place-items-center bg-home-page text-sm font-bold text-home-muted">
         Đang tải dữ liệu sự kiện…
       </div>
     );
