@@ -4,19 +4,24 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getPreviewItem } from '../data/previewCatalog';
 import { useQuickPreview } from '../hooks/useQuickPreview';
 import type { PreviewKind } from '../types';
+import { useCatalog } from '../../catalog/hooks/useCatalog';
 
 const previewKinds = new Set<PreviewKind>(['event', 'product', 'article', 'organizer', 'resale']);
 
 export function QuickPreviewDialog() {
   const [params] = useSearchParams();
   const { closePreview } = useQuickPreview();
+  const { catalog } = useCatalog();
   const closeButton = useRef<HTMLButtonElement>(null);
   const requestedKind = params.get('preview');
   const requestedId = params.get('previewId');
   const kind = previewKinds.has(requestedKind as PreviewKind)
     ? (requestedKind as PreviewKind)
     : null;
-  const item = useMemo(() => getPreviewItem(kind, requestedId), [kind, requestedId]);
+  const item = useMemo(
+    () => getPreviewItem(catalog, kind, requestedId),
+    [catalog, kind, requestedId],
+  );
 
   useEffect(() => {
     if (!item) return;

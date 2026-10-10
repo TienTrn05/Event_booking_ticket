@@ -80,7 +80,7 @@ MVP xây **editor 2D ngay trong trang quản lý bằng React + SVG**, không c�
 4. Chặn phần tử vượt bounds, ghế chồng ghế hoặc nằm trên sân khấu/vùng cấm, mã hàng/ghế trùng, tổng ghế vượt maxCapacity. Kiểm tra trên frontend để phản hồi nhanh và kiểm tra lại ở backend khi lưu/submit. Dữ liệu catalog quyết định giới hạn; canvas không cho người tổ chức tăng giới hạn đó.
 5. Lưu layout bằng JSON có schema (hình học sân khấu/vùng trống) và các hàng ghế có ID ổn định, version optimistic lock. Server không nhận SVG/HTML/script tùy ý hoặc URL ngoài. Ghế bán được là hàng quan hệ, không chỉ nằm trong một ảnh hoặc JSON vô danh.
 6. Preview ở chế độ khách để kiểm tra nhãn/hạng vé. Khi gửi duyệt, đóng băng bản layout; session-seat được sinh trong transaction cấu hình trước bán, unique theo session/seat. Kiểm tra capacity và số inventory thực tế khớp.
-7. Khách chỉ xem sân khấu/khu/ghế và chọn SessionSeat; không tải khả năng chỉnh sửa hoặc ownership nội bộ. Availability lấy từ API, giữ ghế vẫn dùng khóa MySQL. Không lấy số ghế trống từ canvas làm bằng chứng đặt thành công.
+7. Khách chỉ xem sân khấu/khu/ghế và chọn SessionSeat; không tải khả năng chỉnh sửa hoặc ownership nội bộ. Availability lấy từ API, giữ ghế vẫn dùng khóa PostgreSQL. Không lấy số ghế trống từ canvas làm bằng chứng đặt thành công.
 
 Một bản frozen không bị PATCH/DELETE; nếu cần sửa khi event còn nháp thì tạo revision mới, gắn lại các session chưa có hold/booking rồi sinh lại inventory trong transaction. Không đổi inventory đang được giữ hoặc đã bán. Giới hạn venue được snapshot theo version; cập nhật catalog không âm thầm dịch chuyển ghế đã duyệt.
 
@@ -88,7 +88,7 @@ Một bản frozen không bị PATCH/DELETE; nếu cần sửa khi event còn nh
 
 DDL đã bổ sung Organization/membership, ExternalIdentity/OTP challenge, EventReview/ReasonNotice/Notification, SupportReport, SeatLayout, TicketType và CheckIn; đổi ownership Event từ User sang Organization, thêm tên attendee và mã vé. Chi tiết logic ở [08](08-database-design.md); hợp đồng API ở [09](09-api-design.md).
 
-`database/schema.sql` hiện có 38 bảng; seed/query và ERD/SVG đã đồng bộ theo ADR-014 ngày 2026-09-13. [20](20-physical-sql-design.md) phân biệt ràng buộc DB với policy cần backend. 67 kiểm tra DB đã đạt trên MySQL 8.0.46; chưa có ứng dụng, validator editor hoặc form web chạy thực tế. DDL dùng cho database rỗng, không phải migration nâng cấp dữ liệu cũ.
+`database/schema.sql` hiện có 44 bảng PostgreSQL: 38 bảng lõi theo ADR-014 và 6 bảng catalog theo ADR-017. PostgreSQL 18 đã chạy thành công DDL/migration/seed/query/catalog repository; bộ 67 kiểm tra concurrency lịch sử thuộc MySQL và cần được viết lại cho PostgreSQL. Mutation Organizer/editor vẫn chưa triển khai. [20](20-physical-sql-design.md) phân biệt ràng buộc DB với policy cần backend.
 
 
 ## 8. Mẫu phiếu để dựng form Admin

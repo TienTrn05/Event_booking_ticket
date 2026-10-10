@@ -2,23 +2,23 @@
 
 ## Home và hệ theme đã dựng trong repo
 
-Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Giữ fixture và thứ tự nghiệp vụ hiện có; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này chỉ thuộc giao diện, không thay đổi quyền hoặc quy trình giao dịch.
+Home hiện có lớp thiết kế riêng ở `shared/styles/classes.ts`: semantic colors theo `.reference-site`, navbar responsive và hero mới, hàng sự kiện có hover giãn thẻ, icon section dùng `SectionEmblem`. Không dùng số thứ tự trang trí. Navbar ẩn khi cuộn xuống và hiện khi cuộn lên; bộ chọn theme dùng menu riêng hỗ trợ bàn phím. Catalog runtime lấy từ backend; Variant Tailwind `legacy:` của các trang cũ vẫn được giới hạn trong `.legacy-site`. Các thay đổi này không trao quyền hoặc quyết định trạng thái giao dịch ở frontend.
 
 ### Đồng bộ giao diện trực tiếp với project/
 
-Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, fixture, Tailwind CSS và Lucide từ project/, được chuyển vào cấu trúc app/features/shared của Fe. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
+Theo yêu cầu ưu tiên giống bản mẫu, trang chủ hiện dùng JSX, Tailwind CSS và Lucide, được chuyển vào cấu trúc app/features/shared của Fe. Dữ liệu runtime đến từ catalog API/PostgreSQL theo ADR-017. Navbar/Footer trang chủ nằm ở app/layout/home; style nguồn ở shared/styles/classes.ts. Không import project/ lúc chạy. Variant Tailwind `legacy:` của các trang chi tiết cũ giới hạn trong .legacy-site.
 
 Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đổi hợp đồng nghiệp vụ hoặc xác nhận đối tác/tài khoản/giao dịch thật. Bộ lọc trang chủ dùng state theo mẫu; /reopening giữ lọc URL từ trước. Xem [Fe/README.md](../Fe/README.md) cho phạm vi triển khai hiện tại.
 
 ### Phạm vi Fe hiện đã triển khai
 
-`app/routes.tsx` khai báo route; `app/layout/AppShell.tsx` dùng chung Navbar/Footer cho Home và các trang nội dung. `app/SiteLayout.tsx` chỉ giới hạn typography legacy. Giao diện đăng nhập hiện là `features/auth/components/AuthDialog.tsx`, còn context mở dialog ở `features/auth/context`: các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở dialog theo ngữ cảnh. Đây chỉ là UI xem trước, chưa tạo phiên đăng nhập, vé hoặc quyền truy cập. Khi API auth sẵn sàng, triển khai luồng Google/OTP và route bảo vệ theo phần hợp đồng bên dưới.
+`app/routes.tsx` khai báo route; `app/layout/AppShell.tsx` dùng chung Navbar/Footer cho Home và các trang nội dung. `app/SiteLayout.tsx` chỉ giới hạn typography legacy. Giao diện đăng nhập là `features/auth/components/AuthDialog.tsx`, còn context mở dialog ở `features/auth/context`: các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở dialog theo ngữ cảnh. Google Authorization Code + PKCE đã được nối với backend: FE bắt đầu luồng qua API, nhận access JWT bằng refresh sau callback và chỉ giữ token trong memory. OTP, vé và route bảo vệ theo quyền nghiệp vụ chưa triển khai.
 
-Các fixture và component của Blog, merchandise và organizer nằm trong feature tương ứng; `events` chỉ giữ sự kiện, danh mục và vé bán lại. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
+`features/catalog` chứa API schema, provider và kiểu graph dùng chung. Blog, merchandise, event và organizer chỉ giữ UI/domain của feature; không còn file fixture runtime riêng. `shared/ui` chỉ giữ thành phần dùng chung, còn card và badge có kiểu dữ liệu sự kiện nằm trong `features/events/components`. `shared/styles/tailwind.css` chỉ chứa ba directive; các selector cần trạng thái cha hoặc SVG con nằm ở `shared/styles/components.css` và được import trực tiếp sau Tailwind.
 
 ### Xem nhanh và liên kết catalog
 
-Các nguồn fixture của Home được chuẩn hóa qua `features/events/data/eventCatalog.ts` và `features/merchandise/data/merchandiseCatalog.ts`. Quan hệ organizer, sự kiện, merchandise và vé bán lại dùng ID; component không tự đối chiếu bằng tiêu đề hiển thị. `features/preview` là feature điều phối thẻ xem nhanh dùng chung cho event, organizer, merchandise, bài viết và vé bán lại.
+`CatalogProvider` gọi `GET /api/v1/catalog/home`, validate dữ liệu không tin cậy bằng Zod và cung cấp một graph dùng chung cho Home, preview và page chi tiết. Quan hệ organizer, event, merchandise và hồ sơ mở bán lại dùng public ID; component không tự đối chiếu bằng tiêu đề hiển thị. `features/preview` điều phối thẻ xem nhanh dùng chung cho event, organizer, merchandise, bài viết và hồ sơ mở bán lại.
 
 Click một item trên Home đặt `preview` và `previewId` vào query hiện tại rồi mở `QuickPreviewDialog`; đóng dialog xóa hai query này và giữ nguyên bộ lọc/hash. Nút **Xem toàn bộ** điều hướng tới route chi tiết. Các page chi tiết được khai báo bằng `React.lazy` trong `app/routes.tsx`, vì vậy browser chỉ tải chunk JavaScript của page sau khi người dùng yêu cầu xem đầy đủ. Query chỉ chứa loại và ID công khai, không chứa token, giá tin cậy hay dữ liệu xác thực.
 
@@ -216,7 +216,7 @@ AuthProvider (React Context)
   └── logout()              → POST /auth/logout → xóa state + cookie bị clear bởi server
 ```
 
-**Phối hợp refresh giữa nhiều tab:** Dùng `navigator.locks.request('token-refresh', ...)` để serialize refresh; `BroadcastChannel` có thể thông báo kết quả cho tab chờ nhưng tự nó không phải mutex. Giữ khóa đến khi response/cookie rotation được xử lý. Token nhận qua channel chỉ giữ trong memory, không persist/log. Trình duyệt mục tiêu và fallback cần được kiểm chứng khi chọn công cụ Q-016. Nếu không serialize, hai tab dùng cùng refresh token có thể kích hoạt thu hồi family theo [04 — Refresh và nhiều tab](04-authentication-authorization.md). Không nới replay policy backend để che lỗi phối hợp frontend.
+**Phối hợp refresh giữa nhiều tab:** FE hiện dùng `navigator.locks.request('eventix-auth-refresh', ...)` để serialize refresh đến khi response/cookie rotation được xử lý. Token chỉ giữ trong memory. Nếu trình duyệt không có Web Locks, FE chỉ gọi refresh ngay sau Google callback và không tự khôi phục phiên khi tải lại trang, tránh hai tab dùng cùng refresh token; người dùng cần đăng nhập lại. Fallback đa tab cho trình duyệt đó cần thiết kế/kiểm chứng trước khi tuyên bố hỗ trợ đầy đủ. Không nới replay policy backend để che lỗi phối hợp frontend.
 
 **Interceptor 401:** Khi API trả 401 và access token hết hạn, interceptor gọi `refresh()` một lần, retry request gốc với token mới. Nếu refresh thất bại → logout. Không retry vô hạn.
 
@@ -435,3 +435,13 @@ Organizer có NotificationList/NotificationDetail đọc thông báo trong tài 
 ## Phạm vi Admin và tổ chức trên UI
 
 Organizer shell yêu cầu role + membership + Organization APPROVED + phiên mail công ty; hiển thị tên tổ chức đang thao tác. Admin shell ưu tiên review tổ chức, review event, phiếu lý do và reports; hành động can thiệp booking/refund/block đi từ report detail, không cung cấp workflow sửa hàng loạt event thay Organizer. UI guard chỉ hướng dẫn UX; backend vẫn xác thực scope/report.
+
+## UI auth ADR-021
+
+Đăng nhập nhập email/SĐT; đăng ký nhập email + SĐT tùy chọn. Bước OTP 6 số có resend đếm ngược và đổi thông tin. Google vẫn riêng; tên người dùng trên navbar mở Tài khoản để linking sau login mới. Bỏ khối thông báo triển khai dưới Google; lỗi/status thao tác vẫn hiện. JWT memory, refresh cookie HttpOnly; không lưu OTP/email/SĐT vào storage. Provider enabled chỉ có nghĩa đủ config.
+
+## Hoàn thiện phiên — 2026-10-10
+
+FE refresh JWT sau 9 phút khi có phiên và Web Locks, serialize refresh bằng Web Locks như trước, không kéo dài hạn refresh 7 ngày hoặc authenticated_at. Epoch ngăn response refresh cũ phục hồi User sau logout; BroadcastChannel chỉ phát sự kiện logout, không credential, để các tab xóa state. Account hiển thị phương thức đã liên kết từ `/auth/methods`, tự điền email đã biết và ẩn nút liên kết Google khi đã có Google. Metadata không cấp quyền. Google lỗi/cancel hiển thị mã lỗi allowlist, không log token.
+
+OTP verify và logout cũng dùng cùng Web Lock với refresh để serialize refresh cookie; epoch chặn phản hồi cũ sau logout (cả metadata). Menu mobile ẩn/inert khi đóng và hiển thị Tài khoản/Đăng xuất khi đã login.

@@ -371,12 +371,20 @@
   box-shadow: 0 0 0 3px var(--home-accent-soft);
 }
 .auth-input-wrap input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--home-text);
   font-size: 14px;
+}
+.reference-site .auth-input-wrap input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.auth-input-wrap svg {
+  flex: none;
 }
 .auth-input-wrap input::placeholder {
   color: var(--home-muted);
@@ -428,21 +436,34 @@
   padding: 0 12px;
   background: var(--home-card);
 }
-.auth-availability {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 22px 0 0;
-  padding: 12px;
-  border-radius: 10px;
-  background: var(--home-elevated);
+.auth-error {
+  margin: 14px 0 0;
   color: var(--home-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
-.auth-availability svg {
-  flex: none;
-  margin-top: 1px;
+.auth-phone-label {
+  margin-top: 16px;
+}
+.auth-hint {
+  margin: 12px 0 0;
+  color: var(--home-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.auth-otp-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+.auth-otp-actions button {
+  color: var(--home-accent);
+}
+.auth-otp-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 @media (max-width: 480px) {
   .auth-dialog {

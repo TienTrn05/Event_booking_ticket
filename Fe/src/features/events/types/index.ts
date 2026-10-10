@@ -1,4 +1,4 @@
-export type EventCategory = 'Music' | 'Technology' | 'Sports' | 'Arts' | 'Workshops' | 'Festivals';
+export type EventCategory = string;
 
 export interface Event {
   id: string;
@@ -9,13 +9,21 @@ export interface Event {
   dateLabel: string;
   venue: string;
   city: string;
-  startingPrice: number;
+  startingPrice: string;
   currency: string;
   organizer: string;
   organizerId?: string;
   status: 'on-sale' | 'few-left' | 'sold-out' | 'coming-soon';
   featured?: boolean;
   hotBadge?: string;
+  displayName: string;
+  categorySlug: string;
+  startsAt: string;
+  description: string;
+  admission: 'numbered' | 'quantity';
+  badge: string | null;
+  spotlight: boolean;
+  reopeningNote: string | null;
 }
 
 export interface Category {
@@ -25,31 +33,15 @@ export interface Category {
   gradient: string;
 }
 
-export interface ResaleTicket {
+export interface ReopeningRequest {
   id: string;
   eventId: string;
   eventTitle: string;
   image: string;
-  date: string;
-  dateLabel: string;
-  venue: string;
-  city: string;
-  seatInfo: string;
-  resalePrice: number;
-  originalPrice: number;
-  currency: string;
-  sellerVerified: boolean;
-  timeLeft: string;
-}
-
-export interface OfficialEvent {
-  id: string;
-  title: string;
-  image: string;
-  date: string;
-  dateLabel: string;
-  venue: string;
   organizer: string;
-  category: string;
-  badge: string;
+  type: string;
+  reason: string;
+  impactSummary: string;
+  status: string;
+  requestedAt: string;
 }

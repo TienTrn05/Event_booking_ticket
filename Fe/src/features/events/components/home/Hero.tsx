@@ -1,9 +1,10 @@
 import { ui } from '../../../../shared/styles/classes';
 import { ArrowRight, ArrowUpRight, Search, MapPin, Sparkles, Calendar } from 'lucide-react';
-import { featuredEvents } from '../../data/mockData';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 export default function Hero() {
-  const event = featuredEvents[0];
+  const { catalog } = useCatalog();
+  const event = catalog.featuredEvents[0];
   const { openPreview } = useQuickPreview();
   return (
     <section className={ui('editorial-hero')}>

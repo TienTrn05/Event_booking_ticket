@@ -1,46 +1,88 @@
-# Thiết kế SQL MySQL
+# PostgreSQL database
 
-Schema hiện hành có **38 bảng**, đồng bộ Organization, Google/OTP, venue/layout, duyệt sự kiện và check-in tách admission theo [23](../Docs/23-organization-review-seatmap.md). DDL dành cho **database rỗng để review**, chưa phải migration nâng cấp DB cũ hoặc database production đã triển khai. Không có backend/frontend trong phạm vi này.
+Schema hiện hành có **45 bảng**: 38 bảng lõi, 6 bảng catalog và 1 bảng alias SĐT ADR-021. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
 
 ## Các file
 
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | PK/FK/UQ/CHECK, index và generated guard |
-| [001-reference-data.sql](seeds/001-reference-data.sql) | 3 role, 29 permission và ánh xạ; không tạo user/cấp UserRole |
-| [002-demo-venues.sql](seeds/002-demo-venues.sql) | Catalog giả tùy chọn cho demo editor, có bounds/capacity |
-| [01-session-inventory.sql](queries/01-session-inventory.sql) | Ghế theo layout, loại vé, giá và khả dụng |
-| [02-organizer-sales.sql](queries/02-organizer-sales.sql) | Sales theo tổ chức/đại diện, tách refund trước aggregate |
-| [03-integrity-audit.sql](queries/03-integrity-audit.sql) | Kiểm tra liên bảng chỉ đọc, không tự sửa lịch sử |
-| [04-review-work-queue.sql](queries/04-review-work-queue.sql) | Hồ sơ chờ duyệt/hết hạn và phiếu lý do DRAFT |
+| [schema.sql](schema.sql) | Tạo mới toàn bộ 45 bảng theo ADR-021, PK/FK/UQ/CHECK và index và trigger `updated_at` |
+| [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp 3 role, 29 permission và ánh xạ quyền |
+| [002-public-catalog.sql](seeds/002-public-catalog.sql) | Nạp dữ liệu demo liên kết đầy đủ cho Public Web, gồm cả venue |
+| [001-public-catalog.sql](migrations/001-public-catalog.sql) | Nâng schema PostgreSQL 38 bảng lõi theo ADR-014 lên 44 bảng |
+| [queries](queries) | Query vận hành và audit, dùng tham số có tên của DBeaver |
 
-Chi tiết [20 — SQL vật lý](../Docs/20-physical-sql-design.md), [21 — Transaction](../Docs/21-sql-transactions.md), [bộ sơ đồ](../Docs/diagrams/index.html).
+## Tạo database bằng DBeaver
 
-## Nạp bằng MySQL client hoặc Workbench
+Yêu cầu PostgreSQL **16 trở lên**. Các script đã được chạy kiểm tra trên PostgreSQL **18**.
 
-Cú pháp yêu cầu MySQL 8.0.16+ có CHECK được thực thi. Đã kiểm tra trên 8.0.46; chưa xác nhận MariaDB hoặc môi trường production 8.4. Kết nối database thử **rỗng do bạn tự tạo/chọn**, UTF-8 và UTC:
+1. Tạo một PostgreSQL connection trong DBeaver.
+2. Mở connection, nhấp phải **Databases → Create New Database**.
+3. Đặt tên `event_ticketing`, encoding `UTF8`. Ở local có thể dùng cùng user cho DDL và Backend; khi triển khai thực tế dùng tài khoản DDL riêng.
+4. Nhấp phải database vừa tạo → **SQL Editor → Open SQL Script**.
+5. Mở và chạy từng file theo đúng thứ tự bên dưới bằng **Execute SQL Script** (`Alt+X`).
 
-```sql
-SOURCE database/schema.sql;
-SOURCE database/seeds/001-reference-data.sql;
--- Tùy chọn, chỉ dữ liệu giả:
-SOURCE database/seeds/002-demo-venues.sql;
-SHOW TABLES;
+Database mới, rỗng:
+
+```text
+database/schema.sql
+database/seeds/001-reference-data.sql
+database/seeds/002-public-catalog.sql  (tùy chọn, chỉ để demo)
 ```
 
-SOURCE là lệnh MySQL client. Workbench: chọn schema thử rỗng làm default, chạy schema rồi seed. Không có USE cố định, DROP/TRUNCATE hoặc tắt FK checks; không dùng --force để bỏ qua lỗi. Nếu DDL lỗi giữa chừng, kiểm tra lỗi và dùng database thử rỗng khác. MySQL DDL có implicit commit; không thể rollback toàn file bằng transaction bọc ngoài. Khi triển khai cần migration versioned, runner/checksum và kế hoạch dữ liệu cũ riêng.
+Database PostgreSQL cũ đã có **đúng schema 38 bảng lõi ADR-014**:
 
-## Kiểm chứng ngày 2026-09-13
+```text
+database/migrations/001-public-catalog.sql
+database/seeds/001-reference-data.sql  (nếu chưa nạp quyền)
+database/seeds/002-public-catalog.sql  (tùy chọn, chỉ để demo)
+```
 
-**67 kiểm tra đạt trên MySQL 8.0.46**, InnoDB trong datadir riêng, chỉ dữ liệu tổng hợp:
+Không chạy migration sau `schema.sql`, vì sáu bảng catalog đã có sẵn. Không chạy `schema.sql` trên database đã có dữ liệu. Nếu schema cũ không khớp ADR-014, cần lập migration riêng sau khi đối chiếu và sao lưu; số lượng 38 bảng một mình không đủ để xác nhận tương thích. Seed `002` dùng ID từ `900000`, chỉ dành cho database local/demo và có thể chạy lại; không nạp vào staging/production hay database có dữ liệu thật. Seed chứa lịch sự kiện cố định năm 2026, nên cần cập nhật lịch demo khi dùng về sau.
 
-- Nạp đủ 38 bảng vào database rỗng; seed chạy hai lần, 29 quyền, không cấp UserRole, không FK cascade xóa lịch sử.
-- Identity/company/user/session scope, OTP attempts/purpose, nhiều thiết bị và refresh parent cùng phiên.
-- Organization, layout/row/seat/session/type scope, capacity/dimensions, allocation, booking/hold owner, attendee, tiền, UQ payment/ticket.
-- Review pending/version guard, hạn 15 ngày, reject approve đúng điểm expiry, publish theo bản được duyệt; phiếu lý do, notification dedupe, report đúng event và rollback review/phiếu.
-- Hai connection cạnh tranh cùng ghế, consume OTP và admission: mỗi ca chỉ một thao tác thắng.
-- Bốn query chạy được; inventory trả ghế/type, sales đúng receipt và loại actor ngoài scope; audit sạch với fixture hợp lệ và phát hiện ghế vượt canvas.
+Mỗi script tự đặt UTF-8 và timezone UTC, không chứa `CREATE DATABASE` hoặc lệnh đổi sang database khác. Vì vậy database đang được chọn trong thanh công cụ SQL Editor của DBeaver chính là nơi nhận dữ liệu.
 
-Đây không phải kiểm thử ứng dụng, Google/SMS/email thật, validator hình học, tính tháng lịch ở backend hoặc bộ T-032–T-041 đầy đủ. Quyền Admin theo report, layout frozen bất biến, quota và đồng bộ notification/outbox vẫn cần service/transaction theo 20/21. Dữ liệu dùng VND trong fixture chỉ để kiểm tra định dạng/tính tổng, không chốt currency kinh doanh.
+## Chạy bằng psql
 
-Công cụ/script kiểm thử, dependencies, datadir/log và process tạm được dọn sau kiểm tra theo PROJECT_RULES; không kèm runner phụ trợ trong repo. Sản phẩm giữ lại là SQL, tài liệu và Mermaid/SVG/gallery.
+Từ thư mục gốc dự án:
+
+```powershell
+psql -U postgres -d event_ticketing -v ON_ERROR_STOP=1 -f database/schema.sql
+psql -U postgres -d event_ticketing -v ON_ERROR_STOP=1 -f database/seeds/001-reference-data.sql
+psql -U postgres -d event_ticketing -v ON_ERROR_STOP=1 -f database/seeds/002-public-catalog.sql
+```
+
+Sau đó cấu hình `BE/.env` với `DB_PORT=5432`, chạy kiểm tra chỉ đọc từ thư mục `BE/`:
+
+```powershell
+. .\tooling\use-node.ps1
+npm run db:check
+```
+
+## Tham số query trong DBeaver
+
+Các file trong `queries/` dùng cú pháp `:session_id`, `:organization_id`... Khi chạy, DBeaver mở hộp thoại **Bind parameter(s)** để nhập giá trị. Bật **Enable SQL parameters** trong SQL Editor nếu hộp thoại không hiện.
+
+Với database ADR-014 cũ, thay lệnh `schema.sql` bằng `migrations/001-public-catalog.sql`. Bỏ lệnh seed demo nếu chỉ cần schema và quyền. Sau khi chạy, trong DBeaver hoặc psql có thể kiểm tra:
+
+```sql
+SELECT COUNT(*) AS table_count
+FROM information_schema.tables
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+-- Schema mới ADR-021: 45; database cũ trước migration 002: 44
+```
+
+## Kiểm chứng
+
+- `schema.sql` tạo đủ 44 bảng trên một PostgreSQL 18 tạm, độc lập với database người dùng.
+- Migration catalog chạy thành công trên schema lõi tối thiểu và tạo đủ 6 bảng mới.
+- Hai seed chính chạy thành công hai lần liên tiếp; với database rỗng ban đầu, kết quả vẫn là 13 event, 13 publication, 10 merchandise và 3 bài viết.
+- Ngày 2026-10-03, đã chạy lại schema và hai seed trên PostgreSQL 18 tạm; lần nạp catalog thứ hai không tạo hàng trùng, audit không trả vi phạm.
+- Bốn query mẫu chạy thành công trên dữ liệu demo.
+- Backend kết nối bằng `pg`, kiểm tra schema và thực thi toàn bộ repository catalog thành công.
+
+Chi tiết thiết kế: [08 — Database design](../Docs/08-database-design.md), [20 — Physical SQL](../Docs/20-physical-sql-design.md), [21 — Transaction](../Docs/21-sql-transactions.md).
+
+## Nâng auth email OTP
+
+DB đang có 44 bảng: backup/review rồi chạy migrations/002-email-otp.sql trong DBeaver trên đúng DB. DB mới dùng schema.sql có 45 bảng; không chạy migration 002 lần nữa. Migration giữ Google users/identities/sessions. Chưa tự áp dụng lên DB người dùng. Sau khi có dữ liệu EMAIL, rollback bằng tắt SMTP/khôi phục app release và giữ dữ liệu, không drop identity/bảng. Xem Docs/27.

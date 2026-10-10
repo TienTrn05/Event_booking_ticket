@@ -3,9 +3,9 @@ import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, MapPin, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
-import { exploreEvents } from '../../data/mockData';
 import EventCard from './DiscoveryEventCard';
 import type { Event, EventCategory } from '../../types/index';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 const categoryFilters = [
   'All',
@@ -51,6 +51,7 @@ export default function ExploreEvents({
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const { catalog } = useCatalog();
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => {
@@ -62,7 +63,7 @@ export default function ExploreEvents({
   };
 
   const filtered = useMemo(() => {
-    let result: Event[] = exploreEvents.filter((event) => {
+    let result: Event[] = catalog.events.filter((event) => {
       if (category !== 'All' && event.category !== category) return false;
       if (city !== 'All Cities' && event.city !== city) return false;
       if (
@@ -77,12 +78,12 @@ export default function ExploreEvents({
     if (sort === 'Date (Soonest)') {
       result = [...result].sort((a, b) => a.date.localeCompare(b.date));
     } else if (sort === 'Price (Low to High)') {
-      result = [...result].sort((a, b) => a.startingPrice - b.startingPrice);
+      result = [...result].sort((a, b) => compareMoney(a.startingPrice, b.startingPrice));
     } else if (sort === 'Price (High to Low)') {
-      result = [...result].sort((a, b) => b.startingPrice - a.startingPrice);
+      result = [...result].sort((a, b) => compareMoney(b.startingPrice, a.startingPrice));
     }
     return result;
-  }, [search, category, city, sort]);
+  }, [catalog.events, search, category, city, sort]);
 
   const visibleEvents = showAll ? filtered : filtered.slice(0, initialEventCount);
 
@@ -254,4 +255,10 @@ export default function ExploreEvents({
       </div>
     </section>
   );
+}
+
+function compareMoney(left: string, right: string) {
+  const leftValue = BigInt(left);
+  const rightValue = BigInt(right);
+  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
 }

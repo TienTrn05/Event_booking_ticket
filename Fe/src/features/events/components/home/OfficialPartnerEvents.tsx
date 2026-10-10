@@ -1,12 +1,13 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { Calendar, MapPin, ChevronRight } from 'lucide-react';
-import { officialEvents } from '../../data/mockData';
 import Badge from '../../../../shared/ui/Badge';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 export default function OfficialPartnerEvents() {
   const { openPreview } = useQuickPreview();
+  const { catalog } = useCatalog();
 
   return (
     <section id="spotlight" className={ui('home-chapter chapter-partners py-14 lg:py-20 bg-white')}>
@@ -26,7 +27,7 @@ export default function OfficialPartnerEvents() {
           <button
             type="button"
             onClick={() => {
-              const firstEvent = officialEvents[0];
+              const firstEvent = catalog.spotlightEvents[0];
               if (firstEvent) openPreview('event', firstEvent.id);
             }}
             className={ui(
@@ -39,7 +40,7 @@ export default function OfficialPartnerEvents() {
         </div>
 
         <div className={ui('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5')}>
-          {officialEvents.map((event) => (
+          {catalog.spotlightEvents.map((event) => (
             <article
               data-reveal
               key={event.id}
@@ -65,7 +66,7 @@ export default function OfficialPartnerEvents() {
                 />
                 <div className={ui('absolute top-3 left-3')}>
                   <Badge variant="neutral" className="bg-ink-900 text-white">
-                    {event.badge}
+                    {event.badge ?? 'Spotlight'}
                   </Badge>
                 </div>
               </div>

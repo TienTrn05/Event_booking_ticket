@@ -47,3 +47,5 @@ Route → middleware JWT/session/user/permission → controller DTO/actor → se
 Event.organization_id là chủ nghiệp vụ; created_by/reviewed_by là User để audit. Khách xem đơn theo booking.customer_id. Admin được đọc bản gửi duyệt của tổ chức khác nhưng không được PATCH nội dung. Report phải liên quan đúng event/booking/user, chưa đóng, actor có quyền xử lý; không tái sử dụng report đã đóng cho thao tác mới. Cấp/thu hồi role có hiệu lực qua DB trên request tiếp theo.
 
 Ngoài scope trả 404; thiếu permission chung trả 403. Admin không bypass BR-001/BR-004. Self check-in không tự cấp vé hoặc đánh dấu USED; vào cửa vẫn kiểm tra online một lần. Guard frontend chỉ là UX.
+
+ADR-021: Customer dùng Google hoặc email OTP; SĐT là alias chưa xác minh. EMAIL Customer không đáp ứng bằng chứng phiên công ty hoặc cấp Organizer.

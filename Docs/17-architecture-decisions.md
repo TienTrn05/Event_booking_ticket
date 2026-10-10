@@ -21,13 +21,13 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Thay thế:** microservices hoặc một codebase không phân module.
 - **Đánh đổi/hệ quả:** phải giữ ranh giới bằng quy ước/review; scale/deploy toàn backend; có thể tách sau khi xuất hiện nhu cầu rõ ràng. Không thêm broker chỉ để mô phỏng microservices.
 
-## ADR-002 — MySQL/InnoDB là nguồn sự thật
+## ADR-002 — PostgreSQL là nguồn sự thật
 
-- **Trạng thái:** MySQL đã xác định; InnoDB đề xuất kỹ thuật.
+- **Trạng thái:** Accepted; cập nhật bởi ADR-019 khi chuyển implementation từ MySQL sang PostgreSQL.
 - **Bối cảnh:** dữ liệu quan hệ và yêu cầu không bán trùng, giữ lịch sử, đối soát tiền.
-- **Quyết định:** quan hệ hướng 3NF, FK/UQ/CHECK, transaction InnoDB; giá snapshot là denormalization có chủ đích.
+- **Quyết định:** quan hệ hướng 3NF, FK/UQ/CHECK và transaction PostgreSQL; giá snapshot là denormalization có chủ đích.
 - **Lý do:** kiểm soát nhất quán dữ liệu tại DB và có row locking.
-- **Thay thế:** PostgreSQL có khả năng tương tự; document DB cần cách mô hình hóa/ràng buộc khác.
+- **Thay thế:** MySQL/MariaDB có khả năng tương tự; document DB cần cách mô hình hóa/ràng buộc khác.
 - **Đánh đổi/hệ quả:** migration và index phải được quản lý; không scale ghi vô hạn; phiên bản và query layer cần Q-016. Không đổi DB ngoài stack đã giao.
 
 ## ADR-003 — JWT access và refresh opaque có rotation
@@ -44,7 +44,7 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Trạng thái:** đề xuất kỹ thuật.
 - **Bối cảnh:** nhiều khách giữ cùng ghế; nhóm ghế phải thành công toàn bộ; callback/expiry có thể chạy cùng lúc.
 - **Quyết định:** pre-create session-seat, UQ `(session_id,seat_id)`, READ COMMITTED + FOR UPDATE; parent SHARE locks và thứ tự khóa ở [11](11-booking-concurrency.md).
-- **Lý do:** quyền phân bổ được quyết định dưới khóa, kiểm chứng được trên MySQL thật; khóa ghế khác nhau cho phép xử lý đồng thời.
+- **Lý do:** quyền phân bổ được quyết định dưới khóa, kiểm chứng được trên PostgreSQL thật; khóa ghế khác nhau cho phép xử lý đồng thời.
 - **Thay thế:** optimistic version/conditional update, khóa cả session, Redis lock, isolation SERIALIZABLE.
 - **Đánh đổi/hệ quả:** ghế nóng gây chờ, deadlock vẫn phải retry; cleanup phải khóa aggregate trước ghế; không giữ transaction trong hold TTL. Khóa cả session dễ hơn nhưng giảm throughput cả những ghế không giao nhau; Redis thêm rủi ro nhiều nguồn sự thật.
 
@@ -57,7 +57,7 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Thay thế:** tạo booking ngay khi chọn ghế; thêm PAID và worker phát vé.
 - **Đánh đổi/hệ quả:** thêm bảng hold/item; phát vé phải nhẹ và trong DB; render ảnh/PDF/email nằm ngoài transaction. Nếu ticket issuance trở nên nặng phải ADR lại.
 
-## ADR-006 — Payment adapter, inbox/outbox và idempotency MySQL
+## ADR-006 — Payment adapter, inbox/outbox và idempotency PostgreSQL
 
 - **Trạng thái:** đề xuất kỹ thuật; payment mock MVP đã xác định.
 - **Bối cảnh:** webhook lặp, timeout chưa rõ kết quả, process có thể chết trước/sau gọi mạng.
@@ -97,7 +97,7 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 
 - **Trạng thái:** nguyên tắc tối giản đã xác định; thứ tự triển khai đề xuất.
 - **Bối cảnh:** rủi ro lớn nhất hiện tại là tính đúng và bảo mật, chưa có số liệu chứng minh cần hạ tầng bổ sung.
-- **Quyết định:** MySQL search + API refresh ở MVP; công nghệ bổ sung qua phase sau có đo lường.
+- **Quyết định:** PostgreSQL search + API refresh ở MVP; công nghệ bổ sung qua phase sau có đo lường.
 - **Lý do:** tập trung ngân sách phát triển vào transaction, kiểm thử và vận hành cơ bản.
 - **Thay thế:** thêm Socket.IO/Redis/Elasticsearch/LLM ngay từ đầu.
 - **Đánh đổi/hệ quả:** UI ghế có thể trễ và SQL search hạn chế ngôn ngữ; API phải xử lý 409 tốt. Khi có nhu cầu mới, tạo ADR thay thế dựa trên metric/use case, không dựa trào lưu.
@@ -121,7 +121,7 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Editor:** React/SVG 2D, hình học có schema, ghế quan hệ ID ổn định, kiểm tra bounds/capacity/collision ở server; frozen layout version đúng event/venue trước review/bán. Không cần SaaS, 3D hoặc infrastructure mới.
 - **Quyền vận hành:** Organizer xử lý refund thường xuyên; Admin cần report đúng scope cho can thiệp khác ngoài duyệt role/event. Audit không thay ownership/report validation.
 - **Thay thế:** ADR-003 bỏ login mật khẩu nhưng giữ app JWT/refresh/session; ADR-007 tách CheckIn khỏi admission; ADR-011/DDL/ERD là baseline cần mở rộng scope mới; ADR-012 giữ canonical request/recovery nhưng danh sách refund thường xuyên chuyển Organizer. Đề xuất venue riêng và tự publish trong các Q cũ đã bị thay.
-- **Giữ nguyên:** modular monolith, MySQL, transactions, row locks, idempotency, atomic ticket issuance, outbox và failure recovery. QR vẫn opaque; code nhập tay có thể là cùng secret ở dạng biểu diễn khác.
+- **Giữ nguyên:** modular monolith, PostgreSQL, transactions, row locks, idempotency, atomic ticket issuance, outbox và failure recovery. QR vẫn opaque; code nhập tay có thể là cùng secret ở dạng biểu diễn khác.
 - **Đánh đổi:** thêm bảng/flow vì yêu cầu cụ thể của chủ dự án; editor/review/OTP/notification là MVP có thêm công việc, không giữ kết luận scope cũ để bỏ chúng. Không cần chuyển microservices hoặc thêm broker.
 - **Kiểm chứng:** T-032–T-041 và baseline tests còn liên quan; đồng bộ DDL/ERD/seed/query theo [20](20-physical-sql-design.md) trước implementation. Thông số chưa có giá trị cụ thể ở Q-003/Q-004/Q-009/Q-012/... vẫn không tự suy diễn.
 
@@ -134,23 +134,68 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Credential:** một secret vé dùng chung mã nhập tay và QR, hash/ciphertext/key-version; bỏ hai tập QR/ticket credential trùng chức năng. Không lưu dữ liệu thẻ ngân hàng hay giấy tờ.
 - **Thời gian:** CHECK review hạn đúng 15×24h và quyết định trước expiry; cutoff một tháng lịch có timezone/clamp do service tính, không tin client. Online check-in T-24h và các window do service áp dụng. Counter đóng không sau admission đóng; admission đóng không sau ends_at.
 - **Giữ nguyên:** generated guard tiền/vé, một confirmed_payment_id, ghi nhận mọi receipt và reconciliation, outbox fencing, lịch sử không cascade xóa. Không triggers tự publish/expire hoặc gửi mạng từ DB.
-- **Kiểm chứng:** nạp schema rỗng MySQL 8.0.46 và 67 kiểm tra đạt: seed/query, FK/UQ/CHECK và ba race hai connection (seat/OTP/admission). Không đánh dấu API/E2E T-032–T-041 pass. 38 bảng/FK đối chiếu ERD và xuất lại SVG/gallery; công cụ/datadir tạm được dọn theo quy tắc dự án.
+- **Kiểm chứng lịch sử:** 67 kiểm tra của ADR-014 đã chạy trên MySQL 8.0.46 trước khi ADR-019 chuyển runtime sang PostgreSQL. Kết quả đó không thay kiểm thử concurrency PostgreSQL cần bổ sung. DDL PostgreSQL hiện đã được kiểm tra riêng theo ADR-019.
 - **Hệ quả:** backend cần triển khai scope, immutable snapshots, quota, geometry, calendar cutoff, form Admin, notification/expiry transactions theo 21/23; lựa chọn currency/hạ tầng còn mở theo 18. DDL chỉ cho database rỗng, dữ liệu cũ cần migration riêng.
 
 ## ADR-015 — Khung BE/FE và môi trường phát triển
 
 - **Trạng thái:** triển khai khung theo yêu cầu chủ dự án; bố cục `BE/`, `Fe/`, `Docs/`, `database/` được chủ dự án chỉ định trong hội thoại.
-- **Lựa chọn:** npm workspaces, Node 24.21.0 cài portable riêng trên Windows, npm 11.19.0; Express 5, React/Vite, React Router, TypeScript 5.9 strict, mysql2 không ORM, Zod, Pino, Helmet/rate limit, ESLint 10, Prettier, Vitest/Supertest. Dependency pin và lockfile được lưu; không đổi Node toàn máy.
+- **Lựa chọn:** npm workspaces, Node 24.21.0 cài portable riêng trên Windows, npm 11.19.0; Express 5, React/Vite, React Router, TypeScript 5.9 strict, pg không ORM, Zod, Pino, Helmet/rate limit, ESLint 10, Prettier, Vitest/Supertest. Dependency pin và lockfile được lưu; không đổi Node toàn máy.
 - **Ranh giới:** health endpoints hoạt động; các module nghiệp vụ mới có thư mục. Không tạo auth/payment/worker/migration giả. Public FE hiện gọi cùng origin qua proxy; không mở CORS wildcard. FE dev filesystem không được đọc BE, envDir chỉ Fe. DB chỉ kiểm tra SELECT 1; không đổi schema/grants hoặc dữ liệu có sẵn. Topology Admin frontend được chốt sau tại ADR-016.
 - **Bí mật:** BE/.env riêng máy, Git ignore và ACL Windows; mẫu không chứa credentials thật. Keys dự phòng được tạo bằng crypto, chưa dùng để tuyên bố auth hoạt động. Không log raw DB errors/env/headers/body/query string. Secret guard và CI là lớp bổ sung, không thay secret manager production.
-- **Kiểm chứng:** 7 test HTTP/config, lint, typecheck, build, format; kết nối MySQL local chỉ đọc. SQL 67 kiểm tra trước đây là kết quả độc lập, không phải test nghiệp vụ ứng dụng mới.
+- **Kiểm chứng:** 7 test HTTP/config, lint, typecheck, build, format; lần kiểm tra database ở ADR-015 là kết quả lịch sử trước ADR-019. Bộ 67 kiểm tra trước đây độc lập và không phải test nghiệp vụ ứng dụng mới.
 - **Còn lại:** migration runner, Google/SMS/email/payment integration và nghiệp vụ theo roadmap; các biến chưa được parser tiêu thụ vẫn là hợp đồng tương lai. Runtime/tool dependencies được giữ theo yêu cầu setup; helper và process kiểm thử được dọn.
 
 ## ADR-016 — Customer/Organizer chung frontend, Admin tách frontend
 
 - **Trạng thái:** đã xác định theo yêu cầu chủ dự án ngày 2026-09-23.
 - **Bối cảnh:** Customer cần trải nghiệm public/mua vé; Organizer dùng cùng tài khoản và nền tảng nhưng cần workspace quản lý sự kiện chuyên biệt. Admin có phạm vi vận hành, dữ liệu và rủi ro khác, cần giao diện và bề mặt triển khai riêng. Cả ba vai trò vẫn dùng cùng nghiệp vụ backend.
-- **Quyết định:** `Fe/` là một ứng dụng/server cho Guest, Customer và Organizer. Organizer có `OrganizerLayout` và route riêng trong `Fe/`; không tạo frontend Organizer độc lập. `AdminFe/` là ứng dụng/build/server/origin độc lập và không nằm trong bundle `Fe/`. Cả hai frontend gọi duy nhất `BE/` qua `/api/v1`; backend/worker/MySQL vẫn là modular monolith và nguồn sự thật chung.
+- **Quyết định:** `Fe/` là một ứng dụng/server cho Guest, Customer và Organizer. Organizer có `OrganizerLayout` và route riêng trong `Fe/`; không tạo frontend Organizer độc lập. `AdminFe/` là ứng dụng/build/server/origin độc lập và không nằm trong bundle `Fe/`. Cả hai frontend gọi duy nhất `BE/` qua `/api/v1`; backend/worker/PostgreSQL vẫn là modular monolith và nguồn sự thật chung.
 - **Biên bảo mật:** tách origin Admin giảm bề mặt UI nhưng không cấp quyền. Backend xác thực role/permission/scope trên từng request và audit thao tác Admin. Ưu tiên reverse proxy `/api/v1` cùng origin cho từng portal với session host-only; nếu cross-origin thì allowlist chính xác hai origin, không dùng `*` với credentials và kiểm thử CSRF/CORS.
 - **Hệ quả:** CI/CD tạo artifact Public Web, Admin Web và Backend/worker riêng; deploy Admin không buộc phát hành lại Public Web nếu API contract tương thích. Không import page/router Admin vào `Fe/`; không dựng API hoặc DB riêng cho Admin. Các DTO dùng chung phải đến từ OpenAPI/schema hoặc package contract không chứa UI/runtime/DB entity.
+
+## ADR-017 — Catalog public dùng PostgreSQL và API thay fixture frontend
+
+- **Ngày:** 2026-09-23
+- **Trạng thái:** Accepted, phần đọc catalog đã triển khai
+- **Bối cảnh:** Home, preview và page chi tiết từng đọc nhiều fixture TypeScript trùng lặp. Quan hệ event/organizer/merchandise/bài viết bị ghép bằng tên hiển thị, còn UI “Resale tickets” mô phỏng marketplace cá nhân trái với nghiệp vụ mở bán lại của Organizer trong tài liệu 23.
+- **Quyết định:** thêm sáu bảng `organization_profiles`, `event_publications`, `city_profiles`, `merchandise_products`, `blog_articles`, `event_change_requests`. `BE/modules/catalog` cung cấp API đọc công khai; `Fe/features/catalog` tải và validate một graph dùng chung. Event chỉ công khai khi `events.status=PUBLISHED`; hồ sơ mở bán chỉ hiện khi `APPROVED` và `visible_on_catalog=TRUE`. ID và tiền trả về dạng chuỗi; giá catalog không thay giá tồn kho lúc checkout.
+- **Migration:** database 38 bảng ADR-014 dùng `database/migrations/001-public-catalog.sql`; database mới dùng `schema.sql`. `seeds/002-public-catalog.sql` chỉ dành cho local/demo và giữ quan hệ FK thật.
+- **Hệ quả:** xóa các file mock/catalog cục bộ đã được thay thế. Auth, booking, payment và mutation Organizer không được giả lập; chúng tiếp tục theo API contract và yêu cầu authorization backend.
 - **Tham khảo giao diện:** workspace Organizer có thể học cách nhóm tác vụ từ Ticketbox Organizer (thông tin sự kiện, thời gian/loại vé, cài đặt, thông tin thanh toán), nhưng không sao chép nội dung pháp lý/nhận diện và không dùng hành vi của trang tham khảo thay hợp đồng nghiệp vụ trong Docs.
+
+## ADR-018 — Backend và Frontend là hai package npm độc lập
+
+- **Ngày:** 2026-09-24
+- **Trạng thái:** Accepted, đã triển khai
+- **Bối cảnh:** npm workspaces hoist phần lớn dependency vào `node_modules` ở gốc, trong khi quy trình vận hành yêu cầu vào `BE/` để cài/chạy Backend và vào `Fe/` để cài/chạy Frontend. FE còn kế thừa TypeScript/ESLint và runtime helper từ BE nên chưa độc lập thật sự.
+- **Quyết định:** bỏ package.json, package-lock.json và node_modules ở gốc. `BE/` và `Fe/` tự giữ package.json, package-lock.json, node_modules, `.npmrc`, TypeScript, ESLint, Prettier, env setup và Node helper. CI chạy `npm ci` + `npm run check` riêng trong từng thư mục. FE chỉ cho Vite đọc filesystem bên trong `Fe/`.
+- **Hệ quả:** mở hai terminal và chạy từng app; không còn lệnh npm tại gốc. Một số dev dependency được lặp giữa hai lockfile để đổi lấy khả năng cài/build/deploy độc lập và tránh resolution ngầm qua package khác. ADR-018 thay thế lựa chọn npm workspaces ở ADR-015; topology một Public Web và một Backend của ADR-016 không đổi.
+
+## ADR-019 — PostgreSQL là database runtime và DBeaver là công cụ SQL local
+
+- **Ngày:** 2026-09-24
+- **Trạng thái:** Accepted, đã triển khai
+- **Bối cảnh:** source trước đây dùng cú pháp MySQL và driver `mysql2`, trong khi môi trường database được chọn là PostgreSQL và cần chạy script trực tiếp bằng DBeaver.
+- **Quyết định:** toàn bộ schema, migration, seed và query dùng PostgreSQL 16+; Backend dùng driver `pg`, port mặc định 5432, `TIMESTAMPTZ(6)`, `JSONB`, identity column, `ON CONFLICT` và tham số `$1`. Script SQL không chứa tên database cố định; người vận hành chọn database trong DBeaver trước khi chạy.
+- **Transaction:** Backend đặt timezone UTC và `lock_timeout` trên connection. Transaction nghiệp vụ khai báo `READ COMMITTED`, dùng cùng một `PoolClient`, không tự retry khi kết quả COMMIT chưa rõ.
+- **Kiểm chứng:** PostgreSQL 18 tạm đã tạo đủ 44 bảng, nạp seed hai lần liên tiếp, chạy bốn query mẫu và toàn bộ catalog repository. Migration catalog được kiểm tra riêng trên schema lõi tối thiểu.
+- **Hệ quả:** ADR và đoạn tài liệu cũ đề cập MySQL được hiểu theo quyết định PostgreSQL này. Database MySQL cũ không được nâng cấp trực tiếp bằng các file hiện hành; nếu có dữ liệu thật phải có kế hoạch ETL riêng.
+
+## ADR-020 — Google Authorization Code + PKCE cho đăng nhập đầu tiên
+
+- **Ngày:** 2026-10-03
+- **Trạng thái:** chủ dự án đã chọn luồng và phạm vi; code Google + JWT đã triển khai, chưa kiểm thử Google live.
+- **Bối cảnh:** Docs/04 trước đây mô tả GIS credential đưa ID token từ frontend tới backend. Chủ dự án yêu cầu OAuth 2.0 + JWT và chọn Google Authorization Code + PKCE, làm Google + JWT trước OTP.
+- **Quyết định:** backend tạo state/nonce/code verifier, FE chuyển trình duyệt tới Google, callback cùng origin đổi code bằng backend và xác minh ID token Google. Dùng `sub` làm định danh; tạo Customer khi đăng nhập lần đầu. Access JWT 10 phút chỉ ở memory; refresh opaque token chỉ ở cookie HttpOnly, hash trong PostgreSQL, hạn tuyệt đối 7 ngày và xoay mỗi lần dùng. API cookie kiểm tra Origin/CSRF; replay refresh cũ thu hồi session.
+- **Lý do:** giữ Google client secret và code exchange ở backend; PKCE và state bảo vệ code/callback; phiên ứng dụng độc lập với Google token; PostgreSQL cho phép thu hồi theo thiết bị.
+- **Thay thế đã cân nhắc:** tiếp tục GIS ID token trực tiếp; lưu refresh token ở frontend; thêm OTP cùng đợt khi chưa có provider.
+- **Hệ quả:** cần OAuth Web client, redirect URI chính xác và HTTPS ngoài local. Callback đặt refresh cookie rồi redirect cố định về FE; FE gọi refresh để nhận access JWT, không đặt JWT trong URL. OTP, email công ty, linking và quyền Organizer/Admin tiếp tục theo 04/Q-006 ở đợt sau. Không tự cấp Organizer từ email hay Google `hd`. Xem [tiến độ auth](26-auth-progress.md).
+
+## ADR-021 — Google OAuth và email OTP dùng chung User qua liên kết
+
+- Ngày 2026-10-09, chủ dự án quyết định; trạng thái Accepted.
+- Customer dùng Google PKCE hoặc email OTP qua SMTP Gmail App Password. SĐT là alias chưa xác minh để tra email, thay SMS Customer; không dùng alias làm proof khôi phục hay quyền.
+- Google trước: login mới + OTP cùng email để link EMAIL; EMAIL trước: login mới + Google proof cùng email để link Google. Không auto merge/trùng User khi cùng email; identity thuộc User khác trả conflict. Linking trong 5 phút; JWT 10 phút, refresh 7 ngày tuyệt đối/rotation giữ nguyên.
+- EMAIL/channel EMAIL tách COMPANY_EMAIL; thêm phone_login_aliases, otp_challenges.login_phone/delivery_ready. Database cũ dùng migration 002 sau backup/review, không tự áp dụng lên DB người dùng. Google users/sessions được giữ.
+- Gmail cần 2-Step Verification, App Password và có quota; không có OTP Google cấp sẵn. ADR-020 tiếp tục cho Google/phiên, phần hoãn OTP Customer/linking được thay thế. Email công ty/Organizer và vận hành production còn mở.

@@ -6,7 +6,7 @@ FROM seats s JOIN seat_layouts l ON l.id=s.layout_id
 WHERE s.map_x+s.width>l.canvas_width OR s.map_y+s.height>l.canvas_height
 UNION ALL
 SELECT 'LAYOUT_OVER_CAPACITY', l.id
-FROM seat_layouts l JOIN seats s ON s.layout_id=l.id AND s.is_active=1
+FROM seat_layouts l JOIN seats s ON s.layout_id=l.id AND s.is_active=TRUE
 GROUP BY l.id,l.capacity_snapshot HAVING COUNT(*)>l.capacity_snapshot
 UNION ALL
 SELECT 'PUBLISHED_LAYOUT_NOT_FROZEN', es.id
@@ -34,7 +34,7 @@ JOIN bookings b ON b.id=bi.booking_id
 JOIN session_seats ss ON ss.id=t.session_seat_id
 WHERE t.status IN ('VALID','USED')
   AND (b.status<>'CONFIRMED' OR ss.status<>'SOLD'
-       OR NOT (ss.current_booking_id <=> b.id))
+       OR NOT (ss.current_booking_id IS NOT DISTINCT FROM b.id))
 UNION ALL
 SELECT 'HELD_WRONG_BOOKING_HOLD', ss.id
 FROM session_seats ss JOIN bookings b ON b.id=ss.current_booking_id
@@ -42,7 +42,7 @@ WHERE ss.status='HELD' AND (b.hold_id<>ss.hold_id OR b.status<>'AWAITING_PAYMENT
 UNION ALL
 SELECT 'REFUND_EXCEEDS_RECEIPT', p.id
 FROM payments p JOIN refunds r ON r.payment_id=p.id
-WHERE r.status IN ('PROCESSING','SUCCESS','FAILED')
+WHERE r.status IN ('PROCESSING','SUCCESS')
 GROUP BY p.id,p.amount_minor
 HAVING SUM(r.amount_minor)>p.amount_minor
 UNION ALL
@@ -56,7 +56,7 @@ FROM check_ins ci JOIN tickets t ON t.id=ci.ticket_id
 JOIN booking_items bi ON bi.id=t.booking_item_id
 JOIN bookings b ON b.id=bi.booking_id JOIN event_sessions es ON es.id=b.session_id
 WHERE ci.method='ONLINE' AND (ci.actor_id<>b.customer_id
-  OR ci.checked_in_at<DATE_SUB(es.starts_at,INTERVAL 1 DAY) OR ci.checked_in_at>=es.starts_at)
+  OR ci.checked_in_at < es.starts_at - INTERVAL '1 day' OR ci.checked_in_at>=es.starts_at)
 UNION ALL
 SELECT 'ADMISSION_BEFORE_CHECKIN_OR_OUTSIDE_WINDOW', t.id
 FROM tickets t JOIN check_ins ci ON ci.id=t.admission_check_in_id

@@ -11,12 +11,11 @@ import {
   Star,
   ArrowRight,
 } from 'lucide-react';
-import { organizers } from '../../../organizer/data/organizers';
-import { merchandise } from '../../data/homeMerchandise';
 import Badge from '../../../../shared/ui/Badge';
 import Button from '../../../../shared/ui/Button';
 import { formatPrice } from '../../../../shared/utils/format';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 const badgeVariant: Record<string, 'primary' | 'warning' | 'success'> = {
   New: 'primary',
@@ -25,7 +24,11 @@ const badgeVariant: Record<string, 'primary' | 'warning' | 'success'> = {
 };
 
 export default function MerchandiseSection() {
-  const merchOrgs = useMemo(() => organizers.filter((org) => org.hasMerchandise), []);
+  const { catalog } = useCatalog();
+  const merchOrgs = useMemo(
+    () => catalog.organizers.filter((org) => org.hasMerchandise),
+    [catalog.organizers],
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedOrganizer = searchParams.get('organizer');
   const { openPreview } = useQuickPreview();
@@ -33,7 +36,9 @@ export default function MerchandiseSection() {
     ? (requestedOrganizer as string)
     : (merchOrgs[0]?.id ?? '');
   const selectedOrg = merchOrgs.find((org) => org.id === activeOrg) ?? merchOrgs[0];
-  const selectedProducts = merchandise.filter((product) => product.organizerId === selectedOrg?.id);
+  const selectedProducts = catalog.merchandise.filter(
+    (product) => product.organizerId === selectedOrg?.id,
+  );
   const bannerImage = selectedProducts[0]?.image ?? selectedOrg?.avatar;
 
   return (
@@ -73,7 +78,9 @@ export default function MerchandiseSection() {
           )}
         >
           {merchOrgs.map((org) => {
-            const count = merchandise.filter((product) => product.organizerId === org.id).length;
+            const count = catalog.merchandise.filter(
+              (product) => product.organizerId === org.id,
+            ).length;
             const isActive = activeOrg === org.id;
             return (
               <button

@@ -1,16 +1,17 @@
 import { ui } from '../../../../shared/styles/classes';
 import { useEffect, useState } from 'react';
 import { Heart, MapPin, Calendar, ArrowRight } from 'lucide-react';
-import { featuredEvents } from '../../data/mockData';
 import StatusBadge from '../StatusBadge';
 import { formatPrice } from '../../../../shared/utils/format';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 export default function FeaturedEvents() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copyReady, setCopyReady] = useState(true);
   const { openPreview } = useQuickPreview();
+  const { catalog } = useCatalog();
 
   useEffect(() => {
     if (copyReady) return;
@@ -46,7 +47,7 @@ export default function FeaturedEvents() {
             if (!event.currentTarget.contains(event.relatedTarget)) showCard(null);
           }}
         >
-          {featuredEvents.map((event) => (
+          {catalog.featuredEvents.map((event) => (
             <article
               data-reveal="fade-card"
               data-active={expandedId === event.id}

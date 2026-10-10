@@ -2,12 +2,13 @@ import { ui } from '../../../shared/styles/classes';
 import { SectionEmblem } from '../../../shared/ui/SectionEmblem';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { articles } from '../data/articles';
 import Badge from '../../../shared/ui/Badge';
 import { useQuickPreview } from '../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../catalog/hooks/useCatalog';
 
 export default function BlogPreview() {
   const { openPreview } = useQuickPreview();
+  const { catalog } = useCatalog();
 
   return (
     <section id="blog" className={ui('home-chapter chapter-blog py-14 lg:py-20 bg-white')}>
@@ -34,17 +35,17 @@ export default function BlogPreview() {
         </div>
 
         <div className={ui('grid grid-cols-1 sm:grid-cols-3 gap-5')}>
-          {Object.entries(articles).map(([id, post]) => (
+          {catalog.articles.map((post) => (
             <article
               data-reveal
-              key={id}
+              key={post.id}
               role="button"
               tabIndex={0}
-              onClick={() => openPreview('article', id)}
+              onClick={() => openPreview('article', post.id)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  openPreview('article', id);
+                  openPreview('article', post.id);
                 }
               }}
               className={ui(
@@ -71,7 +72,7 @@ export default function BlogPreview() {
                   {post.title}
                 </h3>
                 <p className={ui('text-sm text-ink-500 leading-relaxed mb-4 line-clamp-2')}>
-                  {post.paragraphs[0]}
+                  {post.excerpt}
                 </p>
                 <div className={ui('flex items-center gap-4 text-xs text-ink-400')}>
                   <span className="flex items-center gap-1.5 font-medium">

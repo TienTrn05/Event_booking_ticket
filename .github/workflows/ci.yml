@@ -13,5 +13,18 @@ jobs:
         with:
           node-version-file: BE/tooling/.node-version
           cache: npm
-      - run: npm ci
-      - run: npm run check
+          cache-dependency-path: |
+            BE/package-lock.json
+            Fe/package-lock.json
+      - name: Install backend
+        working-directory: BE
+        run: npm ci
+      - name: Check backend
+        working-directory: BE
+        run: npm run check
+      - name: Install frontend
+        working-directory: Fe
+        run: npm ci
+      - name: Check frontend
+        working-directory: Fe
+        run: npm run check

@@ -1,19 +1,12 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { MapPin, ChevronRight } from 'lucide-react';
-import { locations } from '../../data/mockData';
 import { useNavigate } from 'react-router-dom';
-
-const cityQuery: Record<string, string> = {
-  'Hồ Chí Minh': 'Ho Chi Minh City',
-  'Hà Nội': 'Ha Noi',
-  'Đà Nẵng': 'Da Nang',
-  Huế: 'Hue',
-  'Hải Phòng': 'Hai Phong',
-};
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 export default function BrowseByLocation() {
   const navigate = useNavigate();
+  const { catalog } = useCatalog();
 
   const selectCity = (city?: string) => {
     const query = city ? `?city=${encodeURIComponent(city)}` : '';
@@ -48,12 +41,12 @@ export default function BrowseByLocation() {
         </div>
 
         <div className={ui('grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4')}>
-          {locations.map((loc) => (
+          {catalog.locations.map((loc) => (
             <button
               data-reveal
               key={loc.name}
               type="button"
-              onClick={() => selectCity(cityQuery[loc.name] ?? loc.name)}
+              onClick={() => selectCity(loc.queryValue)}
               className={ui(
                 'group relative h-32 rounded-2xl overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300',
               )}

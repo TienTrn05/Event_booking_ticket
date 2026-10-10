@@ -8,7 +8,7 @@ Production có **hai frontend deployable và một backend deployable**:
 
 1. **Public Web (`Fe/`)** phục vụ Guest, Customer và workspace Organizer trên cùng server/origin. Organizer chỉ có thêm shell và route quản lý sự kiện sau khi backend xác nhận membership/phiên công ty.
 2. **Admin Web (`AdminFe/`)** là build, server và origin riêng. Bundle này không được gộp vào Public Web; Public Web không khai báo route Admin.
-3. **Backend (`BE/`)** là một Express API duy nhất phục vụ cả hai frontend, cùng worker và một nguồn dữ liệu MySQL. Không tách API/DB Admin hoặc sao chép business rule vào frontend.
+3. **Backend (`BE/`)** là một Express API duy nhất phục vụ cả hai frontend, cùng worker và một nguồn dữ liệu PostgreSQL. Không tách API/DB Admin hoặc sao chép business rule vào frontend.
 
 Ưu tiên đặt reverse proxy trước từng frontend để browser gọi `/api/v1` cùng origin của portal đang mở; cả hai proxy chuyển request tới cùng cụm `BE/`. Nếu buộc gọi API cross-origin, backend chỉ allowlist đúng Public Web và Admin Web, bật credentials có chủ đích và kiểm tra CSRF/Origin cho từng origin. Admin ở origin riêng vẫn phải qua authentication/authorization backend; phân tách host không thay permission.
 
@@ -16,7 +16,7 @@ Production có **hai frontend deployable và một backend deployable**:
 
 | Môi trường | Mục đích | Dữ liệu và adapter |
 | ----------- | ------------------------------------ | ------------------------------------------------------------------------- |
-| Development | Phát triển trên máy | MySQL local, seed giả, mock payment, email sink |
+| Development | Phát triển trên máy | PostgreSQL local, seed giả, mock payment, email sink |
 | Testing | Unit/integration/API/concurrency CI | DB riêng có thể reset, không kết nối production; clock/adapter điều khiển |
 | Staging | Thử cấu hình giống production | Dữ liệu giả/đã ẩn danh, TLS, payment/email sandbox, kiểm tra webhook |
 | Production | Người dùng thật sau khi đủ điều kiện | Secret manager, TLS, backup/monitoring, provider thật; mock bị cấm |

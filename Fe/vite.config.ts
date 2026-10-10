@@ -12,15 +12,8 @@ export default defineConfig({
     proxy: { '/api': { target: 'http://127.0.0.1:3000', changeOrigin: false } },
     fs: {
       strict: true,
-      allow: [webRoot, fileURLToPath(new URL('../node_modules', import.meta.url))],
-      deny: [
-        '**/.env',
-        '**/.env.*',
-        '**/*.pem',
-        '**/*.key',
-        '**/.git/**',
-        '**/node_modules/@event-ticketing/api/**',
-      ],
+      allow: [webRoot],
+      deny: ['**/.env', '**/.env.*', '**/*.pem', '**/*.key', '**/.git/**'],
     },
   },
   build: { sourcemap: false },

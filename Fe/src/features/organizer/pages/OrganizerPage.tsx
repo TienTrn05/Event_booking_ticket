@@ -1,13 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
 import { BadgeCheck, Calendar, ShoppingBag } from 'lucide-react';
-import { organizers } from '../data/organizers';
-import { exploreEvents } from '../../events/data/mockData';
-import { merchandise } from '../../merchandise/data/homeMerchandise';
 import { ui } from '../../../shared/styles/classes';
+import { useCatalog } from '../../catalog/hooks/useCatalog';
 
 export function OrganizerPage() {
   const { organizerId } = useParams();
-  const organizer = organizers.find((item) => item.id === organizerId);
+  const { catalog } = useCatalog();
+  const organizer = catalog.organizers.find((item) => item.id === organizerId);
   if (!organizer) {
     return (
       <main id="main" className={ui('container content-page empty-state')}>
@@ -18,8 +17,8 @@ export function OrganizerPage() {
       </main>
     );
   }
-  const events = exploreEvents.filter((event) => event.organizerId === organizer.id);
-  const products = merchandise.filter((product) => product.organizerId === organizer.id);
+  const events = catalog.events.filter((event) => event.organizerId === organizer.id);
+  const products = catalog.merchandise.filter((product) => product.organizerId === organizer.id);
   return (
     <main id="main" className={ui('container content-page')}>
       <div className={ui('breadcrumb')}>
@@ -42,6 +41,7 @@ export function OrganizerPage() {
           <p className="mt-3 text-home-muted">
             {organizer.category} · {organizer.eventCount} sự kiện
           </p>
+          <p className="mt-3 max-w-2xl text-home-muted">{organizer.summary}</p>
           {organizer.upcomingEventTitle && (
             <p className="mt-5 flex items-center gap-2 text-home-secondary">
               <Calendar size={18} />

@@ -12,7 +12,7 @@ Vấn đề cốt lõi là cùng một ghế có thể được nhiều người
 
 | Nhóm | Nội dung |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nền tảng đã xác định | React + TypeScript + Vite; Express + TypeScript trên Node.js; MySQL; JWT; REST; Modular Monolith |
+| Nền tảng đã xác định | React + TypeScript + Vite; Express + TypeScript trên Node.js; PostgreSQL; JWT; REST; Modular Monolith |
 | MVP kỹ thuật | Tài khoản, phiên đăng nhập, quyền/ownership; sự kiện, địa điểm, suất diễn, ghế đánh số; giữ ghế; booking; thanh toán mock; QR và check-in online; audit và kiểm thử đồng thời |
 | Nghiệp vụ đã chốt | Organizer là tổ chức dùng mail công ty, Admin duyệt role/event; đăng nhập Google/OTP trước mua, đa thiết bị; một session/booking, hold 5 phút, tối đa 6 ghế; tên/mã từng vé; self check-in từ 24h trước diễn hoặc tại quầy; venue catalog và editor layout. Xem [23](23-organization-review-seatmap.md) |
 | Mở rộng | Cổng thanh toán thật, email giao dịch, websocket, object storage, Redis khi có số liệu, vé tự do, hoàn một phần, nhân viên check-in, AI có kiểm chứng |

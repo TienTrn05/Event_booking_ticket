@@ -1,7 +1,7 @@
 sequenceDiagram
     autonumber
     participant A as Request A / Connection A
-    participant DB as MySQL InnoDB
+    participant DB as PostgreSQL
     participant B as Request B / Connection B
     A->>DB: BEGIN ? Event SHARE ? Session SHARE
     B->>DB: BEGIN ? Event SHARE ? Session SHARE

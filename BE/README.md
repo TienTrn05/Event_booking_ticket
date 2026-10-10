@@ -1,6 +1,6 @@
 # Backend
 
-Express + TypeScript + mysql2, modular monolith. Cấu hình riêng ở `.env`; mẫu an toàn ở `.env.example`. Không commit `.env`.
+Express + TypeScript + PostgreSQL qua `pg`, modular monolith. Cấu hình riêng ở `.env`; mẫu an toàn ở `.env.example`. Không commit `.env`.
 
 Chạy ngay trong **BE/** bằng `npm run dev`, mặc định cổng **3000**; FE ở terminal riêng, cổng **5173**. Trên Windows dùng runtime riêng:
 
@@ -9,6 +9,21 @@ Chạy ngay trong **BE/** bằng `npm run dev`, mặc định cổng **3000**; F
 npm.cmd run dev
 ```
 
-Trong BE, `npm run db:check` kiểm tra kết nối database. Có thể gọi thay từ gốc bằng `npm run dev:api`; không chạy thêm bản API thứ hai cùng cổng. `.env` được tìm theo đường dẫn module nên không phụ thuộc thư mục gọi lệnh. Hướng dẫn đầy đủ: [môi trường local](../Docs/24-local-development.md).
+Tạo schema/seed bằng DBeaver theo [database README](../database/README.md), sau đó chạy `npm run db:check` trong BE để kiểm tra kết nối và sự hiện diện của 6 bảng catalog bằng truy vấn chỉ đọc. Dependency và lockfile nằm ngay trong `BE/`; không chạy npm từ gốc repository. `.env` được tìm theo đường dẫn module nên không phụ thuộc thư mục gọi lệnh. Hướng dẫn đầy đủ: [môi trường local](../Docs/24-local-development.md).
 
-`src/app.ts` không tự mở cổng, nhận dependency để test; `src/server.ts` mở cổng và đóng pool. Module nghiệp vụ chưa có endpoint; controller/service/repository được bổ sung khi triển khai theo đặc tả. `src/shared/database/transaction.ts` cung cấp một connection cho toàn transaction; không gọi mạng trong transaction. Worker/migration tự động chưa bật.
+`src/app.ts` không tự mở cổng, nhận dependency để test; `src/server.ts` mở cổng và đóng pool. Module `catalog` triển khai repository/service/router cho Public Web. Các endpoint đọc hiện có:
+
+- Swagger UI: `GET /api/docs/`
+- OpenAPI JSON: `GET /api/v1/openapi.json`
+
+- `GET /api/v1/catalog/home`
+- `GET /api/v1/event-categories`, `/events`, `/events/:id`
+- `GET /api/v1/organizers`, `/organizers/:id`
+- `GET /api/v1/venues`, `/venues/:id`
+- `GET /api/v1/merchandise`, `/merchandise/:id`
+- `GET /api/v1/articles`, `/articles/:id`
+- `GET /api/v1/event-change-requests`, `/locations`
+
+Catalog chỉ trả event `PUBLISHED` và hồ sơ mở bán lại `APPROVED`. ID và tiền được serialize thành chuỗi. Google Authorization Code + PKCE, JWT và refresh cookie đã có endpoint; cấu hình và giới hạn ở [module auth](src/modules/auth/README.md). OTP, booking, payment và mutation Organizer vẫn theo hợp đồng trong Docs/09. `src/shared/database/transaction.ts` cung cấp một connection cho toàn transaction; không gọi mạng trong transaction. Worker/migration tự động chưa bật.
+
+Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\tooling\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.

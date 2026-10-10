@@ -3,20 +3,64 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.19.0",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
-    "db:check": "tsx src/scripts/check-database.ts"
+    "db:check": "tsx src/scripts/check-database.ts",
+    "setup:env": "node tooling/setup-env.mjs",
+    "lint": "eslint --config tooling/eslint.config.mjs src tests tooling --max-warnings 0",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"tooling/*.{ts,mjs,json}\" \"*.{json,md,ts}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"tooling/*.{ts,mjs,json}\" \"*.{json,md,ts}\"",
+    "test": "vitest run --config tooling/vitest.config.ts",
+    "check:secrets": "node tooling/check-secrets.mjs",
+    "check": "npm run check:secrets && npm run lint && npm run typecheck && npm test && npm run build && npm run format:check"
   },
   "dependencies": {
     "dotenv": "17.4.2",
     "express": "5.2.1",
     "express-rate-limit": "8.7.0",
+    "google-auth-library": "11.1.0",
     "helmet": "8.3.0",
-    "mysql2": "3.24.4",
+    "jose": "6.2.12",
+    "nodemailer": "10.0.16",
+    "pg": "8.23.0",
     "pino": "10.3.1",
+    "swagger-ui-express": "5.0.1",
     "zod": "4.6.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "24.13.4",
+    "@types/nodemailer": "8.0.2",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "@types/swagger-ui-express": "4.1.8",
+    "eslint": "10.10.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
+    "supertest": "7.2.2",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "endOfLine": "lf"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@scarf/scarf@1.4.0": false
   }
 }

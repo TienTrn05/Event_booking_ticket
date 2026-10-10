@@ -1,11 +1,12 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { BadgeCheck, ArrowRight } from 'lucide-react';
-import { organizers } from '../../../organizer/data/organizers';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 export default function FeaturedOrganizers() {
   const { openPreview } = useQuickPreview();
+  const { catalog } = useCatalog();
 
   return (
     <section
@@ -50,7 +51,7 @@ export default function FeaturedOrganizers() {
           </a>
         </div>
         <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
-          {organizers.map((org) => (
+          {catalog.organizers.map((org) => (
             <article
               data-reveal
               key={org.id}

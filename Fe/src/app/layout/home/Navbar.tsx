@@ -14,7 +14,7 @@ const links = [
 ];
 export default function Navbar() {
   const location = useLocation();
-  const { openAuth } = useAuthDialog();
+  const { openAuth, user, logout } = useAuthDialog();
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [active, setActive] = useState('#discover');
@@ -127,16 +127,34 @@ export default function Navbar() {
           >
             Create event <ArrowUpRight size={16} />
           </button>
-          <button type="button" className="auth-header-login" onClick={() => openAuth('login')}>
-            <UserRound size={16} /> Đăng nhập
-          </button>
-          <button
-            type="button"
-            className="auth-header-register"
-            onClick={() => openAuth('register')}
-          >
-            Đăng ký
-          </button>
+          {user ? (
+            <>
+              <button
+                type="button"
+                className="auth-header-login"
+                onClick={() => openAuth('account')}
+                aria-label="Quản lý phương thức đăng nhập"
+              >
+                <UserRound size={16} /> {user.displayName}
+              </button>
+              <button type="button" className="auth-header-register" onClick={() => void logout()}>
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="auth-header-login" onClick={() => openAuth('login')}>
+                <UserRound size={16} /> Đăng nhập
+              </button>
+              <button
+                type="button"
+                className="auth-header-register"
+                onClick={() => openAuth('register')}
+              >
+                Đăng ký
+              </button>
+            </>
+          )}
         </div>
         <button
           className={ui('nav-menu')}
@@ -151,6 +169,7 @@ export default function Navbar() {
       <div
         id="home-mobile-menu"
         aria-hidden={!open}
+        inert={!open}
         className={ui(
           open ? 'home-mobile-menu mobile-menu-open' : 'home-mobile-menu mobile-menu-closed',
         )}
@@ -194,20 +213,21 @@ export default function Navbar() {
           tabIndex={open ? 0 : -1}
           onClick={() => {
             setOpen(false);
-            openAuth('login');
+            openAuth(user ? 'account' : 'login');
           }}
         >
-          Đăng nhập
+          {user ? 'Tài khoản' : 'Đăng nhập'}
         </button>
         <button
           type="button"
           tabIndex={open ? 0 : -1}
           onClick={() => {
             setOpen(false);
-            openAuth('register');
+            if (user) void logout();
+            else openAuth('register');
           }}
         >
-          Đăng ký
+          {user ? 'Đăng xuất' : 'Đăng ký'}
         </button>
       </div>
     </header>

@@ -1,6 +1,6 @@
 # 09. Thiết kế REST API
 
-Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014. API chưa được triển khai.
+Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014 và catalog public theo ADR-017. API catalog, Google auth, email OTP Customer và linking đã có mã nguồn; booking, payment và mutation Organizer vẫn là hợp đồng đích.
 
 ## Quy ước chung
 
@@ -32,13 +32,36 @@ Currency và giá ví dụ không chốt chính sách Q-003. Lỗi:
 
 ## Endpoint đề xuất
 
+### Endpoint catalog đã triển khai
+
+| Method / path | Phạm vi | Kết quả |
+| --- | --- | --- |
+| GET `/catalog/home` | Công khai | Graph Home gồm category, event, organizer, merchandise, article, địa điểm và hồ sơ mở bán lại đã duyệt |
+| GET `/event-categories` | Công khai | Danh mục đang hoạt động và số event `PUBLISHED` |
+| GET `/events`, `/events/:id` | Công khai | Lọc `q/category/city/featured/spotlight`, phân trang tối đa 100; chi tiết theo public ID |
+| GET `/organizers`, `/organizers/:id` | Công khai | Organization `APPROVED`, hồ sơ hiển thị và sự kiện sắp tới |
+| GET `/venues`, `/venues/:id` | Công khai | Venue `ACTIVE`, có thể lọc city |
+| GET `/merchandise`, `/merchandise/:id` | Công khai | Sản phẩm `PUBLISHED` thuộc event và Organization tương ứng |
+| GET `/articles`, `/articles/:id` | Công khai | Bài viết `PUBLISHED` |
+| GET `/event-change-requests` | Công khai | Chỉ hồ sơ `APPROVED` được phép hiện catalog; không phải marketplace cá nhân |
+| GET `/locations` | Công khai | Thành phố, ảnh đại diện và số event công khai |
+
+Các endpoint này đọc PostgreSQL qua repository/service, dùng envelope chung và validation Zod. Giá hiển thị là chuỗi minor unit; `starting_price_minor` chỉ phục vụ catalog, không được dùng thay giá tồn kho lúc hold/checkout.
+
+OpenAPI 3.0 của phần đã triển khai được phục vụ tại `GET /api/v1/openapi.json`; Swagger UI ở `GET /api/docs/`. Tài liệu chỉ mô tả endpoint đang chạy, không đưa các endpoint nghiệp vụ đích chưa triển khai vào Swagger để tránh tạo cảm giác chúng đã sẵn sàng.
+
+### Endpoint nghiệp vụ đích
+
 Các đường dẫn sau đều có prefix `/api/v1`. “Chủ” luôn kiểm tra ở service. Chỉ phần Q còn mở mới cần chốt thêm; quy tắc đã duyệt ở 18 không cần xin duyệt lại.
 
 | Method / path | Quyền | Input → output; HTTP |
 | --- | --- | --- |
-| POST `/auth/google` | Google proof + CSRF/nonce | credential → app accessToken,user + refresh cookie; 200 |
-| POST `/auth/otp/request` | Guest, rate limit | channel PHONE/COMPANY_EMAIL, target,purpose → challengeId; 202 chung |
-| POST `/auth/otp/verify` | Challenge + code, rate limit | challengeId,code → user + app tokens/cookie; 200; purpose/target do server bind |
+| GET `/auth/config` | Công khai | `{googleEnabled,emailOtpEnabled,sessionEnabled}`; 200 |
+| GET `/auth/me` | Access JWT + phiên DB hợp lệ | hồ sơ tối thiểu; 200 |
+| POST `/auth/google/start` | Same-origin + CSRF | tạo state/nonce/PKCE verifier trong cookie ngắn hạn → authorizationUrl; 200 |
+| GET `/auth/google/callback` | Google code + state | đổi code và xác minh ID token ở backend, tạo phiên + refresh cookie, redirect về FE; 302 |
+| POST `/auth/otp/request` | Guest, rate limit | Customer: identifier=email/SĐT,phone?,purpose → challengeId; 202 chung theo ADR-021; COMPANY_EMAIL là đợt sau |
+| POST `/auth/otp/verify` | Challenge + code, rate limit | Customer: challengeId,code → user + app tokens/cookie; 200; purpose/target/browser do server bind |
 | POST `/auth/identities/link` | Phiên + reauthentication + proof identity mới | liên kết identity chưa thuộc User khác; 200; không merge bằng email |
 | POST `/auth/refresh` | Cookie + CSRF | accessToken mới + cookie; 200 |
 | POST `/auth/logout` | Phiên/cookie + CSRF | thu hồi session, xóa cookie; 204 |
@@ -177,3 +200,17 @@ MVP page >= 1, pageSize 1–100, mặc định 20; trả `meta.pagination {page,
 | DependencyUnavailable / 503 | DB/adapter tạm lỗi, retry khóa đã hết | TEMPORARILY_UNAVAILABLE |
 
 Middleware cuối cùng map lỗi domain sang HTTP và log request ID; rollback do service/transaction helper chịu trách nhiệm trước khi phản hồi. UQ đã biết map 409 phù hợp; không map mọi lỗi DB thành lỗi người dùng. Callback chỉ ack thành công sau khi lưu inbox hoặc áp dụng transaction thành công; thất bại trước ghi bền vững trả lỗi để provider retry.
+
+## Auth Customer hiện hành — ADR-021
+
+- GET `/auth/config`: `{googleEnabled,emailOtpEnabled,sessionEnabled}`; session không phụ thuộc provider nào đang bật.
+- POST `/auth/otp/request`: Origin/CSRF/IP limit, JSON strict `{identifier,phone?,purpose?}`. identifier=email hoặc alias SĐT; phone tùy chọn chỉ khi identifier=email; purpose LOGIN mặc định hoặc LINK_IDENTITY. Linking thêm Bearer JWT và login mới trong 5 phút. 202 chung `{challengeId,expiresIn:300,resendAfter:60}`, không OTP/email tra cứu.
+- POST `/auth/otp/verify`: Origin/CSRF/browser cookie, JSON strict `{challengeId,code}` (6 số). Linking thêm cùng User/JWT/login mới; 200 `{accessToken,user:{id,displayName}}` + refresh cookie. JWT chỉ ở memory.
+- POST `/auth/google/start`: JSON strict `{link?:boolean}`; link=true cần Bearer JWT/phiên EMAIL mới; state ký gắn User/session; proof Google cùng email EMAIL đã xác minh.
+- `/auth/me`, refresh/logout giữ hợp đồng. Lỗi: INVALID_OTP chung; OTP_RATE_LIMITED; EMAIL_UNAVAILABLE; LINK_REQUIRED sau proof khi cần liên kết, IDENTITY_CONFLICT/PHONE_CONFLICT khi identity đã thuộc User khác, REAUTHENTICATION_REQUIRED khi phiên linking cũ.
+
+COMPANY_EMAIL Organizer, logout-all/danh sách thiết bị vẫn chưa triển khai; EMAIL không thay COMPANY_EMAIL.
+
+## Hoàn thiện UX phiên — 2026-10-10
+
+GET `/auth/methods` cần Bearer JWT + phiên/User hợp lệ, trả `{email,googleLinked,emailLinked,phones}` của chính User, không nhận userId và không trả permission/secret. Google callback chỉ bổ sung `authReason` từ allowlist mã lỗi an toàn khi thất bại, không đưa token/email/exception vào URL. FE dùng mã này làm thông báo rồi xóa khỏi URL. Lifetime, cookie, CSRF và chính sách liên kết giữ nguyên.

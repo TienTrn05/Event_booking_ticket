@@ -1,5 +1,5 @@
 erDiagram
-    %% ADR-014: physical FK groups; full columns and constraints in schema.sql.
+    %% ADR-014/017: physical FK groups; full columns and constraints in schema.sql.
     audit_logs {
         bigint id PK
         bigint actor_id FK
@@ -8,6 +8,16 @@ erDiagram
     }
     bookings {
         bigint id PK,FK
+    }
+    blog_articles {
+        bigint id PK
+        varchar slug UK
+        json body_json
+        varchar status
+    }
+    city_profiles {
+        varchar city PK
+        smallint sort_order UK
     }
     event_reviews {
         bigint id PK

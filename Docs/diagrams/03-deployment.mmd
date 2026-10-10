@@ -8,7 +8,7 @@ flowchart LR
     PP -->|"/api/v1"| API["Một Express API"]
     AP -->|"/api/v1"| API
     subgraph CORE["Một backend platform"]
-      API --> DB[("MySQL<br/>Mạng riêng")]
+      API --> DB[("PostgreSQL<br/>Mạng riêng")]
       WORKER["Worker<br/>Cùng codebase BE"] --> DB
       SECRETS["Secret/config ngoài repo"] --> API
       SECRETS --> WORKER

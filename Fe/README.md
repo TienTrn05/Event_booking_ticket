@@ -5,11 +5,12 @@ React + TypeScript + Vite. `src/app` điều phối router/providers; `src/featu
 Chạy ngay trong thư mục **Fe/** bằng `npm run dev`, mặc định tại http://127.0.0.1:5173. Nếu dùng runtime riêng trên Windows, kích hoạt một lần trong terminal đó:
 
 ```powershell
-. ..\BE\tooling\use-node.ps1
+. .\tooling\use-node.ps1
+npm.cmd ci
 npm.cmd run dev
 ```
 
-BE chạy ở terminal riêng trong **BE/** bằng `npm run dev`, cổng 3000. Hai app không trùng cổng. Lệnh `npm run dev:web` ở gốc chỉ là cách gọi thay thế; không chạy thêm nó khi đã có FE đang chạy. Cài dependency bằng `npm ci` ở gốc một lần cho workspace; không cần tạo bộ node_modules/lockfile độc lập cho từng app.
+BE chạy ở terminal riêng trong **BE/** bằng `npm run dev`, cổng 3000. Hai app không trùng cổng. FE có `package-lock.json`, `node_modules`, TypeScript, ESLint và runtime helper riêng; không chạy npm từ gốc repository hoặc dùng dependency của BE.
 
 API cùng origin `/api/v1` qua proxy local tới cổng 3000. `.env` chỉ có cấu hình công khai; mọi biến VITE_ có thể xuất hiện trong bundle. Không đặt credentials DB, OTP hoặc khóa ký tại đây.
 
@@ -40,16 +41,20 @@ Sau khi đổi cấu hình Tailwind/PostCSS, khởi động lại dev server đ�
 
 Home giữ nội dung và màu xanh Eventix, với hero hai cột, thẻ sự kiện nổi bật một hàng có hover giãn thẻ, section có icon Lucide và nhịp nền riêng. `shared/styles/classes.ts` định nghĩa các lớp nền, chữ và CTA cho cả hai theme; navbar dùng màu semantic, không dùng nền trắng bán trong suốt ở dark mode. Bỏ số trang trí. Resale, địa điểm và Blog dùng hàng ngang gọn; màn hình nhỏ cuộn ngang, nút tối thiểu 44px và focus rõ.
 
-Phần dưới ghi lại nguồn chuyển đổi ban đầu; giao diện hiện tại đã được chỉnh theo yêu cầu redesign, không còn giữ nguyên thiết kế của bản mẫu. Nội dung demo và phạm vi tích hợp backend vẫn như cũ.
+Phần dưới ghi lại nguồn chuyển đổi ban đầu; giao diện hiện tại đã được chỉnh theo yêu cầu redesign, không còn giữ nguyên thiết kế của bản mẫu.
 
 Trang chủ được chuyển từ bản mẫu project/: giữ nội dung demo, ảnh Pexels, font Plus Jakarta Sans, responsive và hiệu ứng hover/scroll. Các section sự kiện ở `features/events/components/home`; Blog, merchandise, auth và dữ liệu organizer ở feature tương ứng. Navbar/Footer ở `app/layout/home`, shell chung ở `app/layout/AppShell.tsx`, route ở `app/routes.tsx`; UI dùng chung ở `shared/ui`. Không import source ngoài Fe khi chạy/build.
 
-Tailwind CSS 3, PostCSS, Autoprefixer và Lucide React phục vụ đúng thiết kế nguồn; vẫn dùng React 19 và Vite của workspace. Styles của bản mẫu ở shared/styles/classes.ts, cấu hình ở tailwind.config.js. Variant Tailwind `legacy:` của các trang cũ được giới hạn trong .legacy-site để không ghi đè trang chủ.
+Tailwind CSS 3, PostCSS, Autoprefixer và Lucide React phục vụ đúng thiết kế nguồn; FE dùng React 19 và Vite từ package riêng. Styles của bản mẫu ở shared/styles/classes.ts, cấu hình ở tailwind.config.js. Variant Tailwind `legacy:` của các trang cũ được giới hạn trong .legacy-site để không ghi đè trang chủ.
 
-Dữ liệu trang chủ là fixture từ bản mẫu, được chia vào `features/events/data`, `features/organizer/data`, `features/merchandise/data` và `features/content/data`. Đây là bản demo giao diện. Số liệu, tài khoản, đối tác, trạng thái vé và giá trong mẫu không xác nhận dữ liệu thực tế. Bộ lọc, sắp xếp, tải thêm, yêu thích, chọn nghệ sĩ merchandise, menu mobile và đổi theme hoạt động theo mẫu. Ảnh và font cần kết nối mạng.
+Dữ liệu trang chủ được tải từ `GET /api/v1/catalog/home` qua `features/catalog`. `CatalogProvider` kiểm tra response bằng Zod rồi cung cấp cùng một graph event/organizer/merchandise/article/hồ sơ mở bán cho Home, popup và page chi tiết. Không còn fixture TypeScript làm nguồn dữ liệu runtime. Bộ lọc, sắp xếp, tải thêm, yêu thích, chọn organizer merchandise, menu mobile và đổi theme vẫn chạy tại UI. Ảnh Pexels và font cần kết nối mạng.
 
-Trang chi tiết, Blog, hướng dẫn và `/reopening` dùng chung header/footer với Home; typography cũ được giới hạn trong `.legacy-site`. Tìm kiếm trên `/reopening` dùng URL; trang chủ dùng bộ lọc tại chỗ theo mẫu. Các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở popup theo ngữ cảnh. Popup chưa xác thực thật vì backend auth chưa có endpoint; không tạo tài khoản hoặc vé giả. Theme Light / Dark / System tiếp tục lưu lựa chọn giao diện và đồng bộ giữa các tab.
+Trang chi tiết, Blog, hướng dẫn và `/reopening` dùng chung header/footer với Home; typography cũ được giới hạn trong `.legacy-site`. Tìm kiếm trên `/reopening` dùng URL; trang chủ dùng bộ lọc tại chỗ theo mẫu. Các đường dẫn `/login`, `/register`, `/organizer`, `/my-tickets` trở về Home và mở popup theo ngữ cảnh. Popup đã nối Google OAuth khi BE được cấu hình; access JWT chỉ giữ trong memory và refresh cookie do BE quản lý. Email OTP Customer có UI theo ADR-021; cần backend SMTP/migration để hoạt động. Email công ty chưa có, đăng nhập Customer chưa cấp quyền Organizer hoặc tạo vé. Theme Light / Dark / System tiếp tục lưu lựa chọn giao diện và đồng bộ giữa các tab.
 
-Card sự kiện, organizer, merchandise, bài viết và vé bán lại mở cùng một thẻ xem nhanh. Trạng thái xem nhanh nằm trong query `preview` + `previewId` để Back/Forward hoạt động và không làm mất query bộ lọc. Dữ liệu xem nhanh được resolve qua catalog chuẩn hóa theo ID; nút **Xem toàn bộ** đi tới page chi tiết. Các page chi tiết dùng `React.lazy` trong `src/app/routes.tsx`, nên chunk JavaScript tương ứng chỉ được tải khi điều hướng.
+Card sự kiện, organizer, merchandise, bài viết và hồ sơ mở bán lại mở cùng một thẻ xem nhanh. Trạng thái xem nhanh nằm trong query `preview` + `previewId` để Back/Forward hoạt động và không làm mất query bộ lọc. Dữ liệu xem nhanh được resolve qua catalog API theo public ID; nút **Xem toàn bộ** đi tới page chi tiết. Các page chi tiết dùng `React.lazy` trong `src/app/routes.tsx`, nên chunk JavaScript tương ứng chỉ được tải khi điều hướng.
 
-Kiểm tra bằng npm run check từ gốc.
+Kiểm tra bằng `npm run check` ngay trong `Fe/`.
+
+ADR-021: Google hoặc email/SĐT + email OTP. Đăng ký email + SĐT tùy chọn; navbar tên người dùng mở linking. SMTP config ở BE; không cấp Organizer hoặc xác minh SĐT. Xem Docs/27-email-otp-setup.md.
+
+Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\tooling\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.
