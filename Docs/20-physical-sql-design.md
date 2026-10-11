@@ -1,8 +1,14 @@
 # 20. Thiết kế SQL vật lý hiện hành
 
-[schema.sql](../database/schema.sql) có **44 bảng**: 38 bảng lõi Organization/review/layout/Google-OTP/CheckIn theo ADR-014 và 6 bảng catalog public theo ADR-017. Đây là DDL cho database rỗng; database 38 bảng trước đây dùng [migration catalog](../database/migrations/001-public-catalog.sql), không chạy lại toàn bộ schema.
+[schema.sql](../database/schema.sql) có **46 bảng**: 38 bảng lõi, 6 bảng catalog, phone_login_aliases ADR-021, organization_follows ADR-023. Database mới dùng schema.sql; database cũ dùng migration phù hợp sau backup/review, không chạy lại schema.
+
+## URL ảnh R2 — ADR-022, 2026-10-10
+
+Migration [003](../database/migrations/003-r2-images.sql) thêm `users.avatar_url VARCHAR(1000) NULL` và `events.cover_image_url VARCHAR(1000) NULL`. `merchandise_products.image_url` tiếp tục lưu URL. Thay đổi R2 không tạo bảng mới hoặc lưu binary/base64; schema hiện có 46 bảng sau ADR-023. Catalog ưu tiên cover của event, fallback event_publications. Luồng quyền, version và kiểm chứng tại [28](28-r2-image-upload.md). Các file sơ đồ đã bị xóa trong working tree trước đợt này; không khôi phục đè thay đổi của chủ dự án.
 
 ## Bản đồ bảng
+
+ADR-023/024: users.gender/date_of_birth private; events.minimum_age và ageTag tính từ minimum_age ở query/DTO. organization_follows PK(user_id,organization_id), preference/timestamp; notifications thêm event_id nullable, unique recipient/type/event và CHECK giữ review_id cho loại review. booking_items dùng lại attendee_name_snapshot, thêm DOB/SĐT người tham dự, CCCD AES-GCM/MAC/last four nullable cùng purge marker, actor/time đối chiếu. Migration 004/005/006 và ERD phần bổ sung tại [29](29-profile-follow-age-attendees.md); không khôi phục các sơ đồ đã bị chủ dự án xóa.
 
 | Miền | Bảng |
 | --- | --- |
@@ -19,7 +25,7 @@ PostgreSQL lưu text theo encoding UTF-8 của database; so sánh mã/status/pro
 
 Email công ty của đại diện nằm ở ExternalIdentity, liên kết đúng User/provider bằng composite FK ở Organization/Membership. Provider phải GOOGLE hoặc COMPANY_EMAIL. Service kiểm tra email đã xác minh, domain công ty, trạng thái identity, Admin duyệt, membership và phiên công ty. Seed role chỉ cấp tập permission cho role; không tạo UserRole hoặc biến domain thành quyền tự động. Catalog không có owner Organizer; tổ chức lưu layout riêng và snapshot giới hạn venue.
 
-Một credential ngẫu nhiên cho mỗi vé, nhập tay hoặc biểu diễn trong QR: `ticket_code_hash`, `ticket_code_ciphertext`, `ticket_key_version`. Không có mã thẻ ngân hàng/giấy tờ, không lưu thêm một QR secret độc lập. Key mã hóa/HMAC nằm ngoài DB. OTP dùng keyed MAC và browser binding, không hash trần mã ngắn.
+Một credential ngẫu nhiên cho mỗi vé, nhập tay hoặc biểu diễn trong QR: `ticket_code_hash`, `ticket_code_ciphertext`, `ticket_key_version`. Không lưu dữ liệu thẻ ngân hàng hoặc thêm QR secret độc lập. ADR-023 thêm CCCD mã hóa/HMAC trong booking_items bằng ATTENDEE_PII_KEY độc lập ngoài DB/Git, retention 30 ngày sau suất; không chứa CCCD rõ hoặc ảnh giấy tờ. OTP dùng keyed MAC và browser binding, không hash trần mã ngắn.
 
 FK mặc định RESTRICT/NO ACTION; không cascade xóa lịch sử tiền/vé. Mọi khóa tham chiếu có PK/UQ rõ ràng. Ba vòng Booking→Payment, Ticket→CheckIn và Event→EventReview được thêm bằng ALTER sau khi các bảng liên quan đã tồn tại. PostgreSQL hỗ trợ transactional DDL; migration catalog được bọc trong `BEGIN`/`COMMIT` và dừng ngay khi có lỗi.
 
@@ -79,3 +85,8 @@ Các lựa chọn vật lý nằm ở ADR-014. Currency, hạ tầng production 
 ## ADR-021 — EMAIL và alias SĐT
 
 Schema mới 45 bảng. EMAIL identity có subject=email_canonical đã xác minh; company FK vẫn chỉ GOOGLE/COMPANY_EMAIL. phone_login_aliases(phone PK,email_identity_id FK,created_at) không có verified_at; service chỉ trỏ EMAIL, không chuyển alias khác. otp_challenges thêm EMAIL/login_phone/delivery_ready mặc định false. Advisory target/email + row locks bảo vệ creation/linking/resend/consume. DB cũ nâng bằng migration 002 sau backup/review; giữ Google users/sessions, không chạy schema.sql trên dữ liệu thật.
+
+
+ADR-024: migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](30-schema-consolidation.md).
+
+ADR-027 / migration 007: payments thêm checkout_url (nullable), received_minor (BIGINT nonnegative mặc định 0, số tiền thực nhận độc lập expected amount_minor) và last_polled_at (nullable); index phục hồi polling. Reuse payments/payment_webhooks/outbox/tickets/check_ins, không thêm bảng. Chi tiết và kiểm chứng local/fresh/upgrade ở [32](32-payos-booking-ticket-flow.md).

@@ -1,12 +1,16 @@
 import type { Express } from 'express';
 
 import { rateLimit } from 'express-rate-limit';
+import { sharedRateStore } from '../redis/rate-store.js';
 
 export function registerRateLimit(app: Express) {
   app.use(
     '/api',
 
     rateLimit({
+      ...sharedRateStore('global', true),
+      skip: (req) =>
+        req.path.startsWith('/v1/health/') || req.path === '/v1/payments/webhooks/payos',
       windowMs: 60_000,
 
       limit: 120,

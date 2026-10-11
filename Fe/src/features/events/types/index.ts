@@ -3,6 +3,8 @@ export type EventCategory = string;
 export interface Event {
   id: string;
   title: string;
+  minimumAge: number | null;
+  ageTag: string | null;
   category: EventCategory;
   image: string;
   date: string;

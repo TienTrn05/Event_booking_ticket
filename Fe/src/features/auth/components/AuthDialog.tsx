@@ -6,6 +6,7 @@ import { AuthDialogContext } from '../context/AuthDialogContext';
 import type { AuthIntent } from '../context/AuthDialogContext';
 import { ApiError, apiRequest } from '../../../shared/api/client';
 import { z } from 'zod';
+import { AvatarUpload } from '../../media/components/AvatarUpload';
 
 type AuthMode = 'login' | 'register';
 const methodsSchema = z.object({
@@ -66,6 +67,10 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
   const mode = activeDialog?.mode ?? (routeIntent === 'register' ? 'register' : 'login');
 
   const openAuth = (nextIntent: AuthIntent) => {
+    if (nextIntent === 'tickets') {
+      void navigate('/my-tickets');
+      return;
+    }
     setAuthError(null);
     setChallenge(null);
     setOtp('');
@@ -115,6 +120,8 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
       REAUTHENTICATION_REQUIRED: 'Hãy đăng xuất và đăng nhập lại trước khi liên kết phương thức.',
       EMAIL_MISMATCH: 'Nhập đúng email của tài khoản bạn vừa đăng nhập.',
       EMAIL_UNAVAILABLE: 'Chưa thể gửi email xác minh. Vui lòng thử lại sau.',
+      ADMISSION_UNAVAILABLE: 'Đăng nhập tạm thời chưa sẵn sàng. Vui lòng thử lại sau.',
+      RATE_LIMITED: 'Bạn thao tác quá nhanh. Vui lòng chờ rồi thử lại.',
       INVALID_ORIGIN: 'Hãy mở website tại địa chỉ được cấu hình cho đăng nhập.',
       ACCOUNT_DISABLED: 'Tài khoản không khả dụng.',
       VALIDATION_ERROR:
@@ -475,6 +482,9 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                   .join(' · ')}
                 {methods.phones.length ? ` · SĐT: ${methods.phones.join(', ')}` : ''}
               </p>
+            )}
+            {user && accessToken && intent === 'account' && !challenge && (
+              <AvatarUpload key={user.id} accessToken={accessToken} />
             )}
             {!user && !challenge && intent !== 'organizer' && (
               <div className="auth-tabs" role="tablist" aria-label="Tài khoản">

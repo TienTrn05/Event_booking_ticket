@@ -4,6 +4,22 @@ import type { AuthIntent } from '../features/auth/context/AuthDialogContext';
 import { HomePage } from '../features/events/pages/HomePage';
 import { AppShell } from './layout/AppShell';
 import { SiteLayout } from './SiteLayout';
+const SeatSelectionPage = lazy(() =>
+  import('../features/checkout/pages/SeatSelectionPage').then((m) => ({
+    default: m.SeatSelectionPage,
+  })),
+);
+const CheckoutPage = lazy(() =>
+  import('../features/checkout/pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
+);
+const MyTicketsPage = lazy(() =>
+  import('../features/checkout/pages/MyTicketsPage').then((m) => ({ default: m.MyTicketsPage })),
+);
+const StaffCheckInPage = lazy(() =>
+  import('../features/checkout/pages/StaffCheckInPage').then((m) => ({
+    default: m.StaffCheckInPage,
+  })),
+);
 
 const BlogPage = lazy(() =>
   import('../features/content/pages/BlogPage').then((module) => ({ default: module.BlogPage })),
@@ -44,8 +60,55 @@ export function AppRoutes() {
         <Route path="/login" element={<AuthRedirect intent="login" />} />
         <Route path="/register" element={<AuthRedirect intent="register" />} />
         <Route path="/organizer" element={<AuthRedirect intent="organizer" />} />
-        <Route path="/my-tickets" element={<AuthRedirect intent="tickets" />} />
         <Route element={<SiteLayout />}>
+          <Route
+            path="/my-tickets"
+            element={
+              <LazyPage>
+                <MyTicketsPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="/events/:eventId/book"
+            element={
+              <LazyPage>
+                <SeatSelectionPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="/checkout/:bookingId"
+            element={
+              <LazyPage>
+                <CheckoutPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="/payments/return"
+            element={
+              <LazyPage>
+                <CheckoutPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="/payments/cancel"
+            element={
+              <LazyPage>
+                <CheckoutPage />
+              </LazyPage>
+            }
+          />
+          <Route
+            path="/organizer/check-in"
+            element={
+              <LazyPage>
+                <StaffCheckInPage />
+              </LazyPage>
+            }
+          />
           <Route
             path="/reopening"
             element={

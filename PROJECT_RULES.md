@@ -11,6 +11,10 @@
 
 ## Kiến trúc và dữ liệu
 
+- Quyết định chủ dự án **2026-10-11 / ADR-025**: giai đoạn phát triển triển khai **Modular Monolith, một API instance**, ưu tiên hoàn thiện sản phẩm. Không tự dựng lại load balancer.
+- Mọi thay đổi liên quan distributed system phải hỏi chủ dự án **trước khi triển khai hoặc dựng thử nghiệm/hạ tầng**: nhiều instance, microservices, Kafka/RabbitMQ, cluster/replication/sharding, distributed lock/transaction và điều phối/mở rộng phân tán. Trình bày nhu cầu, tác động, lựa chọn/chi phí rồi chờ quyết định; không coi mục tiêu tải là sự đồng ý tự chuyển kiến trúc.
+- Redis/R2/worker cùng codebase hiện có chỉ tiếp tục trong phạm vi đã chấp thuận; không mặc nhiên cho phép mở rộng phân tán. Quy tắc giữ hiệu lực cho mọi người/agent đến khi chủ dự án đổi quyết định rõ ràng.
+
 - Controller chuyển đổi HTTP; service giữ nghiệp vụ, kiểm tra ownership và điều phối transaction; repository chỉ truy cập dữ liệu bằng cùng transaction context.
 - TypeScript strict; không dùng `any` tùy tiện; kiểm tra mọi đầu vào ngoài hệ thống. Frontend không quyết định quyền, giá hoặc trạng thái thanh toán.
 - PostgreSQL là nguồn sự thật của ghế. Mọi thay đổi tồn kho tuân thủ [giao thức khóa](Docs/11-booking-concurrency.md), không giữ transaction trong lúc người dùng thanh toán hoặc gọi mạng.
@@ -42,3 +46,8 @@
 
 - Nhánh chính `main`; nhánh công việc ngắn `feature/*`, `fix/*`, `docs/*`, `refactor/*`, `chore/*`.
 - Conventional Commits; commit nhỏ, có mục đích. Không ghi đè thay đổi của người dùng hoặc tự push/triển khai ngoài phạm vi được giao.
+
+## Trước khi thêm bảng hoặc cột
+
+- Đối chiếu schema DB thực tế, schema.sql, migration và tài liệu nghiệp vụ; ưu tiên bổ sung bảng hiện có nếu cùng thực thể/vòng đời. Không thêm bảng 1:1 hoặc bản sao field khi chưa có lý do tách biệt rõ ràng.
+- Phân biệt snapshot giao dịch, cấu hình, credential, dữ liệu cá nhân và lịch sử trước khi kết luận trùng. Mọi phần dọn DB cần migration bảo toàn dữ liệu, backup và kiểm thử, không sửa migration đã áp dụng.

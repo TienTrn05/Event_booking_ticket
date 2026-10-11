@@ -199,3 +199,54 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - Google trước: login mới + OTP cùng email để link EMAIL; EMAIL trước: login mới + Google proof cùng email để link Google. Không auto merge/trùng User khi cùng email; identity thuộc User khác trả conflict. Linking trong 5 phút; JWT 10 phút, refresh 7 ngày tuyệt đối/rotation giữ nguyên.
 - EMAIL/channel EMAIL tách COMPANY_EMAIL; thêm phone_login_aliases, otp_challenges.login_phone/delivery_ready. Database cũ dùng migration 002 sau backup/review, không tự áp dụng lên DB người dùng. Google users/sessions được giữ.
 - Gmail cần 2-Step Verification, App Password và có quota; không có OTP Google cấp sẵn. ADR-020 tiếp tục cho Google/phiên, phần hoãn OTP Customer/linking được thay thế. Email công ty/Organizer và vận hành production còn mở.
+
+## ADR-022 — Ảnh trên R2 và client upload bằng presigned URL
+
+- **Ngày:** 2026-10-10; chủ dự án chọn cả ảnh cá nhân và event/merchandise, JPEG/PNG/WebP tối đa 5 MB, URL 5 phút.
+- **Quyết định:** BE dùng AWS SDK ký PUT tới R2; client gửi trực tiếp File, không proxy binary qua BE hoặc lưu binary/base64 trong PostgreSQL. DB chỉ lưu URL đã được BE xác minh. Giữ hỗ trợ các tên cấu hình `R3_*` chủ dự án đã điền, chuẩn hóa sang R2 trong code; bí mật ngoài Git.
+- **Quyền:** avatar của chính User với profile.update_self; event/product với event.update_own, company session, membership ACTIVE, Organization APPROVED và ownership/version. Chỉ bản nháp; không bỏ qua review hoặc tự cấp Organizer từ login Customer/domain. Phiên auth/JWT/refresh/cookie/CSRF giữ nguyên.
+- **Bảo vệ:** key ngẫu nhiên do BE sinh, ký Content-Type/Content-Length/If-None-Match, receipt ràng buộc actor/session/target 5 phút; complete kiểm tra HEAD/signature ảnh và revalidate dưới khóa trước lưu URL/audit. Không giữ transaction khi gọi R2. CORS allowlist của bucket bắt buộc cho browser.
+- **Migration:** 003 thêm users.avatar_url và events.cover_image_url nullable; merchandise_products.image_url hiện có. Catalog fallback publication URL cũ. Không thay seed ảnh cũ hoặc tự tải ảnh từ URL bên ngoài.
+- **Kiểm chứng/giới hạn:** API/DB/R2 live đã kiểm tra trên DB riêng; upload UI avatar và component dùng chung đã có. Chủ dự án cấu hình CORS trên dashboard; OPTIONS 204 và Edge upload File PUT 200/hiển thị ảnh public đã qua. Editor/company login Organizer chưa tồn tại. Xem [28](28-r2-image-upload.md) cho kết quả và giới hạn kiểm chứng.
+
+## ADR-023 — Hồ sơ, follow notification, tuổi và CCCD mỗi vé
+
+- Ngày 2026-10-11; chủ dự án chốt Q-024, Accepted. Gender/DOB nullable, riêng tư, không lưu age cố định. Customer theo dõi Organization, notification trong web khi event được duyệt/công khai; có danh sách và mute riêng, chưa email/push.
+- Deferred DB trigger enqueue outbox từ trạng thái PUBLISHED + publication cuối transaction, unique event key. Worker thuần PostgreSQL fan-out 500 User mỗi transaction với cursor/SKIP LOCKED và unique recipient/type/event; không network trong transaction. Giữ luồng review inbox cũ, không tạo API Organizer tự publish hoặc suy role từ email.
+- Event minimum_age nullable và age_tag generated; tuổi theo ngày suất trong timezone venue, kiểm tra mỗi người tham dự. Không sửa age policy của PUBLISHED qua endpoint nháp.
+- Chủ dự án thay phạm vi cũ không thu giấy tờ: mỗi vé có họ tên/DOB/SĐT/CCCD riêng; thông tin tự khai, staff đúng tổ chức đối chiếu giấy tờ thật tại cửa. Không nhận ảnh giấy tờ hoặc thêm provider xác minh online. CCCD AES-GCM/HMAC bằng key riêng ngoài Git; chỉ trả che số; purge mọi derivative CCCD 30 ngày sau ends_at, không xóa vé/giao dịch.
+- Migration 004/005 và schema 47 bảng; giữ review constraints/dedupe, thêm follows/attendees và guard confirmation/USED. Tuân thủ khóa quota → event → session → booking → items ở cập nhật attendee.
+- 64 kiểm tra DB riêng đã qua; backup/migration local và key riêng đã chuẩn bị. Worker phải chạy để dispatch/purge. FE, company login, checkout/payment/ticket issuance/admission end-to-end vẫn chưa có; xem [29](29-profile-follow-age-attendees.md).
+
+## ADR-024 — Dùng lại BookingItem cho thông tin người tham dự (2026-10-11)
+
+- Theo yêu cầu chủ dự án rà soát và xóa phần thừa, thay phần lưu attendee của ADR-023: BookingItem đã đại diện từng vé trước thanh toán và có attendee_name_snapshot. Gộp dữ liệu từ ticket_attendees vào BookingItem, không giữ bản full_name thứ hai hoặc bảng 1:1.
+- DOB/SĐT attendee có prefix, độc lập với profile/alias của người mua. Giữ mã hóa, HMAC, masking, proof staff, retention và guard tuổi. API giữ hợp đồng; ageTag tính từ minimum_age, bỏ generated column.
+- Migration 006 kiểm tra xung đột tên, copy dữ liệu trước DROP, trong transaction sau backup. Không sửa migration 004/005 đã áp dụng, không xóa lịch sử giao dịch. Schema mới 46 bảng.
+- Trade-off: hàng booking_items rộng hơn và cần khóa item khi verify/purge; tránh join/ghi kép và hai nguồn tên không đồng nhất. Xem [rà soát](30-schema-consolidation.md).
+
+## ADR-025 — Monolith trong giai đoạn phát triển; hỏi trước mọi thay đổi phân tán (2026-10-11)
+
+- **Trạng thái:** Accepted. **Người quyết định:** chủ dự án, yêu cầu trực tiếp trong hội thoại ngày 2026-10-11.
+- **Bối cảnh:** chủ dự án đang phát triển sản phẩm và yêu cầu gỡ load balancer; mục tiêu tải không phải sự đồng ý tự thêm hạ tầng phân tán.
+- **Quyết định:** dùng Modular Monolith, một API instance; ưu tiên hoàn thiện chức năng và luồng sản phẩm. Mọi vấn đề/thay đổi liên quan distributed system phải hỏi chủ dự án trước khi triển khai hoặc dựng thử nghiệm/hạ tầng, nêu nhu cầu, lựa chọn, tác động/chi phí và chờ trả lời.
+- **Phạm vi cần hỏi:** load balancer/nhiều instance, microservices, Kafka/RabbitMQ, cluster/replication/sharding, distributed lock/transaction và điều phối/mở rộng phân tán. Không tự triển khai các đề xuất cũ chỉ vì đã từng nêu hoặc benchmark.
+- **Phạm vi hiện có:** Redis cho cache/rate limit/phòng chờ, R2 cho ảnh và worker cùng codebase tiếp tục theo phần đã được chấp thuận; không mặc nhiên mở rộng sang kiến trúc phân tán. Không thay quyết định auth hoặc transaction PostgreSQL.
+- **Hệ quả:** giữ môi trường phát triển đơn giản; đánh giá mở rộng sau khi có nhu cầu đo được và quyết định riêng của chủ dự án. Quy tắc áp dụng cho mọi người/agent đến khi chủ dự án đổi rõ ràng; đã ghi vào AGENTS.md, PROJECT_RULES.md, README, Docs/10 và Q-025.
+
+## ADR-026 — Chuẩn hóa cấu trúc BE và validation (2026-10-11)
+
+- **Trạng thái:** Accepted trong phạm vi yêu cầu chủ dự án làm sạch toàn bộ BE, tìm phần dùng chung và bổ sung validation; FE để sau.
+- **Bối cảnh:** routes chứa HTTP/schema/nghiệp vụ/SQL, auth/booking/catalog gộp nhiều trách nhiệm; module lấy primitive schema từ notifications; OpenAPI lớn và chứa contract sai module.
+- **Quyết định:** routes lắp middleware/controller; controller validate/chuyển HTTP; service giữ use case/transaction; repository giữ SQL/connection; policy thuần riêng. Tách file theo trách nhiệm, dùng factory/entry point vừa đủ, không buộc mọi chức năng thành class hoặc thêm framework DI. Schema/actor/response/worker lifecycle/cache parser thật sự dùng chung nằm ở shared. Mỗi module sở hữu OpenAPI của mình.
+- **Bố trí folder:** theo phản hồi trực tiếp tiếp theo của chủ dự án, gom thư mục con thay danh sách phẳng: auth theo google/otp/session/account, bookings theo holds/orders/allocation/inventory/waiting-room; module nhỏ theo tầng, events/tickets theo tính năng. Gốc module giữ entry point cần dùng; cập nhật import/test, không giữ shim từng file cũ. Cây folder ở Docs/31.
+- **Validation:** kiểm tra ID BIGINT trước chuyển BigInt, version INTEGER, query scalar/allowlist/boolean và page có trần, body mutation strict. Mutation có body tuân thủ application/json, sai Content-Type trả 415 theo Docs/09; cache sai schema trở thành cache miss. Quy tắc nghiệp vụ/ownership/tuổi vẫn ở service và kiểm tra dưới khóa.
+- **Giới hạn:** giữ Modular Monolith/một API instance; không thêm distributed system. Không đổi provider, linking, JWT/refresh/cookie/CSRF, schema DB hoặc triển khai chức năng mới. Worker notification/retention hiện có dùng runner chung, hai job xử lý lỗi riêng.
+- **Trade-off:** số file tăng nhưng từng trách nhiệm nhỏ và dễ tìm; facade giữ caller ổn định. Không gộp query quyền khác scope/lock chỉ để giảm dòng. Kiểm tra HTTP/schema/dependency/OpenAPI và PostgreSQL riêng; xem [31](31-backend-code-structure.md) và [26](26-auth-progress.md).
+
+## ADR-027 — Một kênh payOS, tách payment/booking và phát vé nguyên tử (2026-10-11)
+
+- **Trạng thái:** Accepted; chủ dự án xác nhận một kênh payOS trong BE/.env, VND, tiền muộn cần đối soát và không hồi sinh vé. Yêu cầu SOLID/OOP, nối attendee → payment → ticket → admission → FE.
+- PaymentService qua các port/gateway/issuer; Booking sở hữu allocation, Tickets sở hữu mã/entry. Constructor injection; SQL ở repository. Provider network ngoài transaction, dùng outbox/inbox đã có. Không thêm bảng/framework/broker/load balancer hoặc thay auth.
+- Giá/đơn/owner/attendee/tuổi do BE xác minh. Chỉ nhận đủ đúng tiền khi đơn còn hạn mới phát vé cùng transaction confirmation. Callback trùng/idempotency không phát lại; thiếu/dư/muộn/đơn không khả dụng ghi đối soát. Không tự split/payout/refund.
+- Check-in giữ VALID; admission đúng company/org/permission/cửa sổ và giấy tờ thật mới USED một lần. Key QR AES-GCM độc lập, không PII trong QR. Xem [32](32-payos-booking-ticket-flow.md).

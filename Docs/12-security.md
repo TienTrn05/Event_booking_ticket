@@ -28,7 +28,7 @@ Helmet cấu hình header phù hợp, không coi mặc định của thư viện
 
 Google proof/OTP chỉ nhận qua POST bảo vệ CSRF/nonce theo adapter. Cookie/CSRF phải thử đúng topology; cross-site cần SameSite=None + Secure và kiểm soát CSRF đầy đủ. Không có GET tiêu thụ OTP hoặc login bằng mã trong URL.
 
-Upload poster/object storage thuộc sau MVP: cần giới hạn kích thước/MIME, tên ngẫu nhiên, không thực thi nội dung và tránh fetch URL tùy ý gây SSRF. Không thêm upload trước khi có yêu cầu Q-014.
+Chủ dự án yêu cầu upload R2 ngày 2026-10-10, ADR-022/Q-014: presigned PUT 5 phút, JPEG/PNG/WebP tối đa 5 MB, key ngẫu nhiên do server tạo, chữ ký ràng buộc type/length/If-None-Match. Complete kiểm tra receipt/User/session/ownership/quyền, HEAD/signature và revalidate dưới khóa; chỉ lưu URL. Không nhận SVG hoặc URL tùy ý để fetch. CORS bucket và giới hạn kiểm chứng tại [28](28-r2-image-upload.md).
 
 Mock staging theo đề xuất Q-012 cần đồng thời kiểm tra môi trường, cờ bật, phiên, allowlist tài khoản demo, ownership booking và provider mock theo [09](09-api-design.md). Cờ VITE không là cơ chế bảo vệ. APP_ENV=production luôn không mount mock endpoint, kể cả khi caller có role Admin.
 
@@ -60,7 +60,7 @@ Chạy kiểm thử IDOR, token hết hạn/thu hồi/reuse, CSRF/CORS, SQL inje
 - Admin review bản gửi đúng version; mọi can thiệp ngoài role/event review cần report OPEN/IN_REVIEW đúng tài nguyên, có audit; không để API hỗ trợ trở thành đường đọc mọi booking.
 - Company session phải chứng minh identity công ty đã duyệt; phone session không tự cấp quyền Organization. Domain lookalike hoặc đổi email profile không vượt approval.
 - Reason form render text an toàn, cấm HTML/script; notification chỉ đến đại diện/người nhận được scope cho phép. Không nhân danh Admin tự tạo lý do đã ký.
-- TicketType code không là credential; ticketCode/QR riêng đủ entropy, tên/mã xác thực không fuzzy match; không thu giấy tờ hay thẻ ngân hàng. Online CheckIn không consume vé, admission vẫn recheck VALID.
+- TicketType code không là credential; ticketCode/QR riêng đủ entropy, tên/mã xác thực không fuzzy match. ADR-023 ngày 2026-10-11 chủ dự án yêu cầu số CCCD riêng mỗi vé (không ảnh giấy tờ/thẻ ngân hàng): mã hóa/HMAC bằng key độc lập ngoài Git, che số ở response, staff đúng company/Organization/permission đối chiếu thật tại cửa, xóa CCCD/derivative sau ends_at +30 ngày. DOB/gender hồ sơ riêng tư; tự khai chưa được xác minh. Online CheckIn không consume vé, admission vẫn recheck VALID và proof tuổi/danh tính. Chi tiết [29](29-profile-follow-age-attendees.md).
 - Layout chỉ JSON schema/hình học được phép, giới hạn body/số phần tử, kiểm tra server-side bounds/capacity/collision và ownership/version. Không upload SVG chứa script hoặc tham chiếu URL tùy ý.
 
 ## ADR-021 — email OTP Customer
@@ -68,3 +68,5 @@ Chạy kiểm thử IDOR, token hết hạn/thu hồi/reuse, CSRF/CORS, SQL inje
 SĐT chỉ là alias, không dùng để xác minh/khôi phục. EMAIL OTP gửi SMTP Gmail TLS 465; App Password/HMAC ngoài Git, không log OTP, cookie, SMTP lỗi thô/body. Challenge chỉ active sau gửi thành công; binding riêng CSRF; hạn 5 phút, attempts tổng/target chống reset resend, quota DB và IP. Consume/tăng attempts commit; replay không mở session.
 
 Liên kết có login mới 5 phút + proof mới cùng email; revalidate dưới khóa, không auto merge email. EMAIL Customer không tạo company session/Organizer. JWT/refresh không đổi. SMTP unavailable không bypass; Gmail quota/khả năng gửi thật phải test riêng.
+
+ADR-027: payOS webhook xác minh SDK/checksum, chuẩn hóa receipt trước lưu và bỏ raw bank payload; reference duy nhất chống callback trùng. Không tin browser redirect. Mã vé ngẫu nhiên 128 bit, DB hash + AES-GCM/AAD item/session với TICKET_ENCRYPTION_KEY độc lập. GET chỉ owner, staff cần company session/membership/permission và đúng cửa sổ; admission kiểm CCCD thật rồi USED nguyên tử. FE không lưu JWT/CCCD/QR trong storage hoặc URL. Chi tiết [32](32-payos-booking-ticket-flow.md).

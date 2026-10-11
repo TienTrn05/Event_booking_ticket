@@ -17,3 +17,9 @@ Nguồn quy tắc làm việc: [PROJECT_RULES.md](../PROJECT_RULES.md), [AGENTS.
 Cập nhật nghiệp vụ: [23 — Tổ chức, thay đổi sự kiện, feedback và uy tín](23-organization-review-seatmap.md). Prompt thiết kế: [25 — Brief UI](25-ui-design-brief.md).
 
 - [27 — Cấu hình Gmail SMTP và test auth](27-email-otp-setup.md).
+- [28 — Upload ảnh R2, presigned URL và CORS](28-r2-image-upload.md).
+- [29 — Hồ sơ, theo dõi/thông báo, tuổi và thông tin mỗi vé](29-profile-follow-age-attendees.md).
+
+- [30 — Rà soát và gộp schema attendee](30-schema-consolidation.md).
+- [31 — Cấu trúc mã BE, phần dùng chung và validation](31-backend-code-structure.md).
+- [32 — payOS, booking, phát vé và vào cửa](32-payos-booking-ticket-flow.md).
