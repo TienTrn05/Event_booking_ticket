@@ -1,6 +1,10 @@
 # 10. Kiến trúc backend
 
+Tổ chức code/dependency sau đợt làm sạch BE ngày 2026-10-11 tại [31](31-backend-code-structure.md): routes → controller → service → repository/adapter; schema chung không thuộc notifications; SQL không đặt trong controller/service. Tách file trong cùng monolith, giữ phạm vi hạ tầng ADR-025.
+
 ## Cấu trúc tổng thể
+
+**ADR-025, chủ dự án chốt 2026-10-11:** trong giai đoạn phát triển chạy Modular Monolith với một API instance để hoàn thiện sản phẩm. Load balancer đã gỡ. Mọi thay đổi/thử nghiệm liên quan distributed system phải hỏi chủ dự án trước khi làm; không tự dựng nhiều instance, tách service, thêm broker hoặc cluster. Redis/R2/worker hiện có tiếp tục trong phạm vi được chấp thuận, không tự mở rộng kiến trúc. Quyết định giữ hiệu lực đến khi chủ dự án đổi rõ ràng.
 
 Modular Monolith, một ứng dụng backend triển khai chung, module theo nghiệp vụ. Public Web (Customer + Organizer) và Admin Web độc lập cùng gọi một REST API; Express điều phối; PostgreSQL giữ dữ liệu có thẩm quyền. Worker có thể chạy cùng codebase bằng entrypoint riêng, chưa cần message broker. ADR-001/ADR-002/ADR-006/ADR-016 giải thích đánh đổi.
 
@@ -85,3 +89,5 @@ Phát hành Ticket là ghi DB trong transaction xác nhận MVP; tạo hình QR,
 Organization service xử lý application/membership/company identity; EventReview service submit/approve/reject/expiry và reason notice; Layout service validate bounds/capacity/scope/freeze; Ticket service tách CheckIn và admission; SupportReport service kiểm tra ngữ cảnh Admin can thiệp. Notification review và OTP/email adapter thuộc MVP, không còn chỉ là placeholder sau MVP.
 
 Các module vẫn ở cùng monolith/transaction context. Google/OTP proof được xác minh ở auth adapter/service, không trong controller hoặc repository. Không gọi SMS/email trong transaction. Frontend editor chỉ tạo DTO, backend phải validate hình học và scope; repository dùng schema hiện hành theo 20 và tuân thủ các bất biến service chưa được DDL tự thực thi.
+
+ADR-027: payment application phụ thuộc port booking/gateway/ticket issuer với constructor injection; booking/ticket adapters giữ transaction cùng PG connection. SDK/network ngoài transaction, recovery worker cùng codebase. Không Kafka/LB hoặc mở rộng distributed system. Xem [32](32-payos-booking-ticket-flow.md).

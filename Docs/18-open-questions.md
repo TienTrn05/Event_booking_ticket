@@ -21,7 +21,7 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 | Q-011 | RESOLVED | Benchmark 100 khách/1.000 ghế, p95 đọc <500 ms, hold <1 s, 5xx <1%; availability demo 99,5% | Là target, chưa đo đạt; phải ghi cấu hình máy |
 | Q-012 | PARTIALLY RESOLVED | Hai frontend deployable: Public Web dùng chung cho Customer/Organizer và Admin Web riêng; cả hai qua một API + worker và PostgreSQL. Ưu tiên HTTPS cùng origin qua reverse proxy từng portal; RPO 24h/RTO 4h demo; mock staging allowlist + ownership/provider check; production cấm mock | Đích hosting/domain/ngân sách và tài khoản allowlist thực chưa cung cấp                                                                                                                                          |
 | Q-013 | PARTIALLY RESOLVED | Dữ liệu giả ban đầu; idempotency key 24 giờ; recovery cùng cửa sổ, dọn khi kết thúc/logout, không lưu credential | Retention PII/audit/inbox/backup trước dữ liệu thật; mã check-in cũng không log |
-| Q-014 | PARTIALLY RESOLVED | Tiếng Việt, prefix SQL, chưa upload; editor React/SVG 2D và seat picker là MVP do yêu cầu trực tiếp | Quy tắc dấu/hoa thường, accessibility và hình học catalog cần xác định khi triển khai |
+| Q-014 | PARTIALLY RESOLVED | Tiếng Việt, prefix SQL; editor React/SVG 2D và seat picker là MVP. Ngày 2026-10-10 chủ dự án chọn R2 cho avatar/event/merchandise, client presigned PUT 5 phút, JPEG/PNG/WebP tối đa 5 MB theo ADR-022; CORS và browser direct upload đã kiểm tra qua | Quy tắc dấu/hoa thường, accessibility và hình học catalog còn cần xác định; editor/company login Organizer chưa có |
 | Q-015 | RESOLVED | Hoãn AI | Không chặn MVP |
 | Q-016 | PARTIALLY RESOLVED | Bộ công cụ nhỏ, PostgreSQL transaction/lock tường minh, pin khi code | Node 24, hai package npm độc lập, pg/Zod/Vitest và lint/format đã chọn tại ADR-015/018/019; migration runner và hạ tầng production còn mở |
 | Q-017 | PARTIALLY RESOLVED | Remote private ban đầu rồi chủ động công khai | Chưa có đích/tài khoản/license; không tự tạo/push |
@@ -29,6 +29,10 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 | Q-019 | PARTIALLY RESOLVED | Vé bán lại có nhiều nguyên nhân; tăng sức chứa chỉ là ví dụ; Organizer có chức năng hủy sự kiện | Ma trận lý do/duyệt lại, hạn xử lý, hiệu lực hủy và phương án tiền cho người mua theo 23 phần 9 |
 | Q-020 | PARTIALLY RESOLVED | Người dùng feedback có sao về hệ thống và sự kiện/cách bán vé | Thang sao, điều kiện gửi/sửa, xác thực, công khai, kiểm duyệt và khiếu nại; không trừ uy tín tổ chức vì feedback lỗi hệ thống |
 | Q-021 | PARTIALLY RESOLVED | Thuật toán điểm uy tín tổ chức tăng/giảm, Admin xem để hỗ trợ quyết định | Hệ số/nguồn/điểm thưởng-phạt, ngưỡng, cửa sổ thời gian, công khai và quyền điều chỉnh; công thức tại 23 là đề xuất |
+
+## Hồ sơ/theo dõi/tuổi — quyết định 2026-10-11
+
+**Q-024 — RESOLVED cho phạm vi đã hỏi, chủ dự án quyết định:** gender/DOB tùy chọn và riêng tư; Customer theo dõi Organization với danh sách và notification trong web khi sự kiện công khai, có bật/tắt riêng; chưa email/push. Event giới hạn tuổi tối thiểu với tag sinh từ minimumAge, tính tuổi theo ngày diễn ra suất tại timezone venue, áp dụng từng người tham dự. Mỗi vé có họ tên/DOB/SĐT/CCCD riêng; đối chiếu giấy tờ thật tại cửa, không coi tự khai là đã xác minh. CCCD mã hóa và xóa sau suất kết thúc 30 ngày. Thay quyết định cũ không thu giấy tờ cho đúng phạm vi CCCD; không thu ảnh giấy tờ hoặc thay auth provider. Chi tiết/giới hạn triển khai tại [29](29-profile-follow-age-attendees.md).
 
 ## Các đề xuất cũ đã được thay thế
 
@@ -57,8 +61,14 @@ Chủ dự án yêu cầu điều hướng gồm **Nhạc sống, Thể thao, S�
 
 ## Đồng bộ và phần thực thi
 
+**Q-025 — RESOLVED, chủ dự án quyết định 2026-10-11:** hiện là giai đoạn phát triển; ưu tiên hoàn thiện sản phẩm bằng Modular Monolith với một API instance. Bỏ load balancer. Mọi thay đổi liên quan distributed system phải hỏi chủ dự án trước khi triển khai, kể cả thử nghiệm nhiều instance/hạ tầng. Redis/R2/worker hiện có không đồng nghĩa được tự mở rộng phân tán. Áp dụng cho mọi người/agent cho đến khi có quyết định mới rõ ràng; xem ADR-025 và AGENTS.md.
+
 [23](23-organization-review-seatmap.md) là mô tả chi tiết, [03](03-user-roles-permissions.md)/[04](04-authentication-authorization.md)/[07](07-business-rules.md)/[08](08-database-design.md)/[09](09-api-design.md)/[22](22-frontend-architecture.md) là hợp đồng hiện hành. ADR-013 ghi thay đổi nguồn yêu cầu.
 
 SQL/ERD đã đồng bộ theo ADR-014 và kiểm tra DB tạm; chưa phải migration production. Phạm vi và bất biến service tại [20](20-physical-sql-design.md), kiểm thử cần bổ sung ở [13](13-testing-strategy.md). Chấp thuận nghiệp vụ không có nghĩa đã deploy, gửi OTP/email thật hoặc cấp tài khoản ngoài hệ thống.
 
 Khi chốt phần còn mở, giữ Q ID, ghi người/ngày/đáp án và cập nhật tài liệu phụ thuộc; không xin duyệt lại các phần RESOLVED.
+
+### Q-026 — Kênh payOS và tiền đến muộn — RESOLVED 2026-10-11
+
+Chủ dự án chọn một kênh BE/.env cho toàn hệ thống, VND, ghi nhận doanh thu theo Organizer qua quan hệ payment/booking/event. Tiền muộn đối soát, không hồi sinh ghế/vé, chưa tự split/payout/refund. ADR-027 và [32](32-payos-booking-ticket-flow.md). Không mở rộng distributed system.

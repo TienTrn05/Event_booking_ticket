@@ -1,5 +1,5 @@
-import { Pool } from 'pg';
 import type { PoolClient, QueryResultRow } from 'pg';
+import { Pool } from 'pg';
 import { env } from '../../config/env.js';
 
 const discardedConnections = new WeakSet<PoolClient>();
@@ -61,6 +61,15 @@ export async function checkDatabase(): Promise<void> {
 
     if (Number(rows[0]?.table_count ?? 0) !== requiredCatalogTables.length) {
       throw new Error('Database catalog schema is not installed.');
+    }
+    if (env.PAYOS_CLIENT_ID) {
+      const paymentColumns = await connection.query<{ count: string }>(
+        `SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema()
+         AND table_name='payments' AND column_name=ANY($1::text[])`,
+        [['checkout_url', 'received_minor', 'last_polled_at']],
+      );
+      if (paymentColumns.rows[0]?.count !== '3')
+        throw new Error('Payment migration 007 is required.');
     }
   });
 }

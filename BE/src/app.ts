@@ -1,16 +1,17 @@
 import express from 'express';
 
-import { registerSecurityMiddleware } from './shared/middleware/security.js';
-import { registerRequestContext } from './shared/middleware/request-context.js';
 import { registerRateLimit } from './shared/middleware/rate-limit.js';
+import { registerRequestContext } from './shared/middleware/request-context.js';
+import { registerSecurityMiddleware } from './shared/middleware/security.js';
 
-import { registerSystemRoutes } from './shared/http/system.routes.js';
 import { registerSwagger } from './shared/http/swagger.js';
+import { registerSystemRoutes } from './shared/http/system.routes.js';
 
 import { registerModules, type ModuleDependencies } from './modules/index.js';
 
-import { AppError } from './shared/errors/app-error.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
+import { requireJsonRequest } from './shared/middleware/json-request.js';
+import { notFoundHandler } from './shared/middleware/not-found.js';
 
 export interface AppDependencies extends ModuleDependencies {
   checkDatabase: () => Promise<void>;
@@ -25,6 +26,7 @@ export function createApp(deps: AppDependencies) {
   registerRequestContext(app, deps.logRequest);
   registerRateLimit(app);
 
+  app.use('/api/v1', requireJsonRequest);
   app.use(express.json({ limit: '32kb' }));
 
   registerSystemRoutes(app, {
@@ -35,9 +37,7 @@ export function createApp(deps: AppDependencies) {
 
   registerModules(app, deps);
 
-  app.use((_req, _res, next) => {
-    next(new AppError(404, 'NOT_FOUND', 'Không tìm thấy tài nguyên.'));
-  });
+  app.use(notFoundHandler);
 
   app.use(errorHandler);
 

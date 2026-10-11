@@ -1,11 +1,9 @@
 import { ui } from '../../../shared/styles/classes';
 import { Link, useParams } from 'react-router-dom';
-import { useAuthDialog } from '../../auth/context/AuthDialogContext';
 import { useCatalog } from '../../catalog/hooks/useCatalog';
 import { formatPrice } from '../../../shared/utils/format';
 
 export function EventDetailPage() {
-  const { openAuth } = useAuthDialog();
   const { eventId } = useParams();
   const { catalog } = useCatalog();
   const event = catalog.events.find((item) => item.id === eventId);
@@ -43,6 +41,12 @@ export function EventDetailPage() {
               {event.category} · {event.organizer}
             </span>
             <h1>{event.title}</h1>
+            {event.ageTag && (
+              <p className={ui('notice')}>
+                Giới hạn tuổi {event.ageTag}. Tuổi tính theo ngày diễn ra suất; đối chiếu CCCD tại
+                cửa.
+              </p>
+            )}
             <p>{event.description}</p>
             <div className={ui('notice')}>
               Dữ liệu sự kiện được tải từ hệ thống Event Ticketing.
@@ -77,9 +81,9 @@ export function EventDetailPage() {
             <dd>{formatPrice(event.startingPrice, event.currency)}</dd>
           </dl>
           <p className={ui('section-intro')}>Bạn cần đăng nhập trước khi giữ chỗ hoặc mua vé.</p>
-          <button type="button" className={ui('button')} onClick={() => openAuth('checkout')}>
-            Thông tin đăng nhập
-          </button>
+          <Link className={ui('button')} to={`/events/${event.id}/book`}>
+            Chọn suất và đặt vé
+          </Link>
           {event.reopeningNote && <p className={ui('notice')}>{event.reopeningNote}</p>}
         </aside>
       </div>

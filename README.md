@@ -14,6 +14,12 @@ Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn v�
 
 ## Công nghệ
 
+**Quyết định kiến trúc 2026-10-11:** giai đoạn phát triển dùng Modular Monolith với một API instance, ưu tiên hoàn thiện sản phẩm. Mọi thay đổi liên quan distributed system phải hỏi chủ dự án trước khi thực hiện, kể cả load balancer hoặc thử nghiệm nhiều instance. Quy tắc cho người/agent làm việc tiếp theo tại [AGENTS.md](AGENTS.md), [PROJECT_RULES.md](PROJECT_RULES.md) và [ADR-025](Docs/17-architecture-decisions.md).
+
+BE đã có hồ sơ gender/DOB, theo dõi Organizer/inbox, giới hạn tuổi và thông tin riêng mỗi vé theo ADR-023. Worker riêng xử lý notification/xóa CCCD quá hạn. FE checkout/payOS/vé và kiểm tra cửa đã nối API; xem [luồng và giới hạn kiểm chứng](Docs/32-payos-booking-ticket-flow.md). Chưa thử chuyển tiền thật hoặc onboarding company Organizer.
+
+Ảnh upload dùng Cloudflare R2 qua presigned PUT 5 phút: client tải trực tiếp, BE xác minh và DB chỉ lưu URL. Xem [cấu hình, CORS và trạng thái thực tế](Docs/28-r2-image-upload.md).
+
 | Thành phần      | Công nghệ                                      |
 | --------------- | ---------------------------------------------- |
 | Frontend        | React, TypeScript, Vite, React Router          |
@@ -29,7 +35,8 @@ Phiên bản dependency được cố định độc lập trong `BE/package.jso
 BE/                 Backend, test, cấu hình và node_modules riêng
   src/              Config, module nghiệp vụ và thành phần dùng chung
   tests/            Test backend và kiểm tra công cụ bảo mật
-  tooling/          Cấu hình lint/test/TypeScript, script setup
+  scripts/          Script chọn Node, setup env và kiểm tra bí mật
+  *.config.*, tsconfig*.json  Cấu hình lint/test/TypeScript ở gốc BE
 Fe/                 Frontend, cấu hình, node_modules, tính năng và UI riêng
 Docs/               Đặc tả, kiến trúc, hướng dẫn và sơ đồ
 database/           Schema SQL, seed và truy vấn mẫu
@@ -47,7 +54,7 @@ Mở hai PowerShell. Cài Backend trong chính thư mục `BE/`:
 
 ```powershell
 cd BE
-. .\tooling\use-node.ps1
+. .\scripts\use-node.ps1
 npm.cmd ci
 npm.cmd run setup:env
 ```
@@ -61,7 +68,7 @@ npm.cmd ci
 npm.cmd run setup:env
 ```
 
-Cài Node 24.21.0 trong nvm dùng chung tại `D:\NVM\installs` trước khi dùng helper. Helper chọn trực tiếp runtime chung và chỉ đổi PATH của terminal hiện tại. `setup:env` chỉ quản lý `.env` của app đang đứng. Trên Linux/macOS, cài đúng phiên bản Node ghi trong `tooling/.node-version` của từng app rồi dùng các lệnh npm tương ứng.
+Cài Node 24.21.0 trong nvm dùng chung tại `D:\NVM\installs` trước khi dùng helper. Helper chọn trực tiếp runtime chung và chỉ đổi PATH của terminal hiện tại. `setup:env` chỉ quản lý `.env` của app đang đứng. Trên Linux/macOS, cài đúng phiên bản Node ghi trong `BE/.node-version` hoặc `Fe/tooling/.node-version` rồi dùng các lệnh npm tương ứng.
 
 ### 2. Tạo PostgreSQL bằng DBeaver
 
@@ -93,7 +100,7 @@ npm.cmd run dev
 | http://127.0.0.1:3000/api/docs/ | Swagger UI của API hiện có |
 | http://127.0.0.1:3000/api/v1/openapi.json | OpenAPI JSON cho sinh client/tooling |
 
-FE gọi API qua đường dẫn cùng origin `/api/v1` và proxy của Vite. Nhấn Ctrl+C trong từng terminal để dừng app tương ứng. Những lần mở PowerShell mới, chạy lại `tooling/use-node.ps1` của app đó trước các lệnh npm.
+FE gọi API qua đường dẫn cùng origin `/api/v1` và proxy của Vite. Nhấn Ctrl+C trong từng terminal để dừng app tương ứng. Những lần mở PowerShell mới, chạy lại `scripts/use-node.ps1` trong BE hoặc `tooling/use-node.ps1` trong Fe trước các lệnh npm.
 
 ## Các lệnh thường dùng
 
@@ -109,7 +116,7 @@ npm.cmd run dev
 ```powershell
 # Terminal BE, bắt đầu tại gốc repository
 cd BE
-. .\tooling\use-node.ps1
+. .\scripts\use-node.ps1
 npm.cmd run dev
 ```
 

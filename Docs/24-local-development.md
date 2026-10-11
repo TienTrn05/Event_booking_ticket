@@ -2,7 +2,13 @@
 
 Đã dựng khung chạy thực tế theo yêu cầu chủ dự án: `BE/`, `Fe/`, `Docs/`, `database/`. `BE/` và `Fe/` là hai package npm độc lập; Node 24.21.0, npm 11.19.0, TypeScript strict, Express 5, React, Vite, pg, Zod, Pino, ESLint, Prettier và Vitest. Phiên bản dependency chính xác nằm trong package.json/lockfile của từng app.
 
-Mỗi app tự giữ `node_modules`, lockfile, TypeScript, ESLint, Prettier, env setup và runtime helper trong `tooling/`. Gốc repository không có package.json, package-lock.json hoặc node_modules. FE không kế thừa config hay resolve dependency từ BE.
+Mỗi app tự giữ `node_modules`, lockfile và cấu hình phát triển. BE đặt cấu hình TypeScript, ESLint, Vitest và `.node-version` ở gốc `BE/`; script setup, secret guard và runtime helper nằm trong `BE/scripts/`. FE giữ env setup và runtime helper trong `Fe/tooling/`. Gốc repository không có package.json, package-lock.json hoặc node_modules. FE không kế thừa config hay resolve dependency từ BE.
+
+## Sắp xếp công cụ Backend — 2026-10-10
+
+Theo lựa chọn chủ dự án, đã bỏ `BE/tooling/`: cấu hình ESLint, Vitest, TypeScript và `.node-version` chuyển về gốc BE; script hỗ trợ chuyển vào `BE/scripts/`. Đã cập nhật npm scripts, đường dẫn nội bộ, CI và hướng dẫn chạy; FE giữ cấu trúc hiện có.
+
+Kiểm tra: helper chọn đúng Node/npm; ESLint, TypeScript (cả cấu hình build với `--noEmit`), cú pháp script Node và format các file cấu hình/script đã chuyển đều qua. `npm test` và `npm run format:check` chưa qua vì `BE/tests/` đã bị xóa trong working tree trước thay đổi này. Không khôi phục bộ test hoặc ghi đè thay đổi sẵn có.
 
 ## Chạy trên máy hiện tại
 
@@ -11,7 +17,7 @@ Mở hai PowerShell tại gốc dự án:
 ```powershell
 # Terminal Backend
 cd BE
-. .\tooling\use-node.ps1
+. .\scripts\use-node.ps1
 npm.cmd run dev
 
 # Terminal Frontend
@@ -27,7 +33,7 @@ npm.cmd run dev
 - Swagger UI: `/api/docs/`; OpenAPI JSON: `/api/v1/openapi.json`.
 - Ctrl+C dừng app trong terminal tương ứng. API đóng HTTP server và pool, có giới hạn chờ shutdown.
 
-Từ 2026-10-09, theo yêu cầu chủ dự án, BE và FE dùng chung Node 24.21.0/npm 11.19.0 tại `D:\NVM\installs\v24.21.0`. Helper mỗi app đọc `tooling/.node-version`, chọn trực tiếp runtime chung và chỉ thêm PATH trong terminal hiện tại, không đổi symlink Node toàn máy. `.nvmrc` ở gốc giữ cùng phiên bản. Không còn runtime riêng hoặc fallback `.local` trong repository; helper báo lỗi nếu thiếu bản chung.
+Từ 2026-10-09, theo yêu cầu chủ dự án, BE và FE dùng chung Node 24.21.0/npm 11.19.0 tại `D:\NVM\installs\v24.21.0`. Helper BE đọc `BE/.node-version`, helper FE đọc `Fe/tooling/.node-version`, chọn trực tiếp runtime chung và chỉ thêm PATH trong terminal hiện tại, không đổi symlink Node toàn máy. `.nvmrc` ở gốc giữ cùng phiên bản. Không còn runtime riêng hoặc fallback `.local` trong repository; helper báo lỗi nếu thiếu bản chung.
 
 ## Máy mới
 
@@ -35,7 +41,7 @@ Backend:
 
 ```powershell
 cd BE
-. .\tooling\use-node.ps1
+. .\scripts\use-node.ps1
 npm.cmd ci
 npm.cmd run setup:env
 # Điền kết nối PostgreSQL trong .env bằng editor riêng.
@@ -53,7 +59,7 @@ npm.cmd run setup:env
 npm.cmd run dev
 ```
 
-Linux/macOS dùng Node theo `tooling/.node-version` trong từng app, rồi chạy `npm ci` tại chính `BE/` và `Fe/`. `BE/setup:env` tạo khóa JWT hiện dùng cùng khóa OTP/ticket dành cho các module sau; `Fe/setup:env` chỉ sao chép cấu hình Vite công khai và không ghi đè file đã có.
+Linux/macOS dùng Node theo `BE/.node-version` hoặc `Fe/tooling/.node-version`, rồi chạy `npm ci` tại chính `BE/` và `Fe/`. `BE/setup:env` tạo khóa JWT hiện dùng cùng khóa OTP/ticket dành cho các module sau; `Fe/setup:env` chỉ sao chép cấu hình Vite công khai và không ghi đè file đã có.
 
 ## Cấu trúc và trách nhiệm
 
@@ -91,7 +97,9 @@ Fe/
 AdminFe/                    # Đích frontend Admin độc lập; chưa scaffold
 Docs/                       # Đặc tả, kiến trúc, hướng dẫn và sơ đồ
 database/                   # DDL, seed, query hiện có
-BE/tooling/                 # Cấu hình Backend, setup môi trường, secret guard
+BE/scripts/                 # Script setup môi trường, Node helper, secret guard
+BE/*.config.*, tsconfig*.json # Cấu hình Backend ở gốc BE
+BE/.node-version            # Phiên bản Node Backend
 .github/workflows/ci.yml    # npm ci + check riêng trong BE và Fe
 ```
 
@@ -150,7 +158,7 @@ Mỗi package có Prettier, ESLint và TypeScript strict/noUncheckedIndexedAcces
 
 1. Mở PowerShell mới sau khi cài nvm. `nvm version` và `nvm list` phải chạy được; nếu không, kiểm tra thư mục nvm/NVM_HOME/PATH trong installer. Không gọi npm cũ khi node chưa hiện.
 2. Cấu hình root nvm dùng chung là `D:\NVM\installs`, rồi chạy `nvm install 24.21.0`. Có thể dùng `nvm use 24.21.0` để chọn phiên bản mặc định theo operating mode hiện tại; helper của dự án chọn runtime trong phiên.
-3. Trong BE/ và Fe/, chạy `Set-ExecutionPolicy -Scope Process Bypass` nếu PowerShell chặn helper, rồi `. .\tooling\use-node.ps1`. Việc Bypass chỉ áp dụng terminal hiện tại. Kiểm tra `node --version`, `npm.cmd --version`, `Get-Command node,npm.cmd`.
+3. Trong BE/ và Fe/, chạy `Set-ExecutionPolicy -Scope Process Bypass` nếu PowerShell chặn helper, rồi `. .\scripts\use-node.ps1` trong BE hoặc `. .\tooling\use-node.ps1` trong Fe. Việc Bypass chỉ áp dụng terminal hiện tại. Kiểm tra `node --version`, `npm.cmd --version`, `Get-Command node,npm.cmd`.
 4. BE/ chạy `npm.cmd install --ignore-scripts` để cài dependency theo lock và thêm Nodemailer, Fe/ chạy `npm.cmd install --ignore-scripts`. Không xóa .env/database/node_modules do người khác tạo chỉ để sửa PATH. Sau đó `npm.cmd run dev` ở hai terminal; FE 5173, BE 3000.
 5. Gmail SMTP: cấu hình theo Docs/27; App Password ngoài Git. DB cũ cần review/backup migration 002; không chạy schema.sql trên dữ liệu hiện có.
 
@@ -161,3 +169,9 @@ Theo yêu cầu mới ngày 2026-10-09, runtime chuyển sang nvm chung tại `D
 Kiểm tra sau chuyển đổi: cả hai helper chọn `node.exe` và `npm.cmd` từ `D:\NVM\installs\v24.21.0`. BE đạt secret guard, lint, typecheck, 4 test, build và format check; 13 integration test được skip vì không bật `AUTH_TEST_DB`. FE đạt toàn bộ `npm run check`; build cần chạy ngoài sandbox để đọc `.env` hiện có. Đã xóa cả ba runtime riêng và các thư mục `.local` rỗng. Không đổi hợp đồng auth hoặc cấu hình bí mật.
 
 [Configuration nvm-windows 2.x](https://docs.nvm-windows.com/cfg/core/).
+
+## Lỗi đăng nhập do Redis local chưa chạy
+
+Khi BE/.env có REDIS_URL, auth rate limiter dùng Redis; npm run dev chỉ chạy Node API. health/config 200 không chứng minh Redis sẵn sàng. Docker Desktop tắt thì Google start/OTP request có thể trả 503 ADMISSION_UNAVAILABLE. Mở Docker Desktop, kiểm tra container eventix-redis-1 healthy; nếu container dừng, chạy npm.cmd run infra:redis trong BE (Redis hiện có, không load balancer/API Docker). Không in docker compose config hoặc command container vì chứa credential.
+
+Web local hiện cấu hình http://127.0.0.1:5173; localhost:5173 khác Origin và bị từ chối. Không tự nới Origin/CSRF hoặc tắt rate limit để vượt lỗi. Khi dịch vụ khôi phục, thử lại Google/OTP; không suy ra email đã gửi hoặc callback đã qua từ config enabled.

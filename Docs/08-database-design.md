@@ -2,7 +2,9 @@
 
 ## Quy ước
 
-Thiết kế logic đã cập nhật Organization/review/layout/Google-OTP/check-in theo [23](23-organization-review-seatmap.md). [database/schema.sql](../database/schema.sql) có 44 bảng: 38 bảng lõi theo ADR-014 và 6 bảng catalog public theo ADR-017; database lõi cũ nâng cấp bằng `database/migrations/001-public-catalog.sql`. PostgreSQL; phiên bản production cần chốt Q-016 và phải thực thi CHECK. PK mặc định `id BIGINT`; API biểu diễn ID và tiền thành chuỗi để tránh mất chính xác JavaScript. Các bảng dùng timestamp UTC; FK được index và FK lịch sử dùng RESTRICT.
+Thiết kế logic theo [23](23-organization-review-seatmap.md), bổ sung profile/follow/tuổi/attendee ADR-023. [database/schema.sql](../database/schema.sql) có 46 bảng: 38 bảng lõi, 6 bảng catalog, phone_login_aliases, organization_follows. Database cũ nâng cấp bằng migration phù hợp sau backup/review; không chạy lại schema. PostgreSQL; phiên bản production cần chốt Q-016 và phải thực thi CHECK. API biểu diễn BIGINT ID và tiền thành chuỗi; timestamp UTC, FK lịch sử RESTRICT.
+
+Users thêm gender/DOB nullable private; event minimum_age nullable và ageTag tính từ minimum_age ở query/DTO. Notification hỗ trợ event_id/type mới, giữ review FK/dedupe. Follows PK(User,Organization), preference; BookingItem chứa thông tin từng người, dùng lại attendee_name_snapshot, CCCD mã hóa và marker purge 30 ngày sau suất. Chi tiết và ERD phần mới tại [29](29-profile-follow-age-attendees.md).
 
 Tiền `BIGINT` đơn vị nhỏ nhất + currency `CHAR(3)`, API dùng chuỗi số; CHECK amount >= 0, xử lý BigInt/decimal chính xác. Không mặc định mọi currency có hai chữ số thập phân. Identity unique theo provider/subject; không unique email User hoặc tự merge theo email. Token hash kiểu binary với unique index. Trạng thái dùng chuỗi có CHECK/lookup được quản lý bằng migration. Các giá trị bắt buộc NOT NULL, optional được ghi rõ bên dưới; không dùng NULL để biểu diễn trạng thái chưa được thiết kế.
 
@@ -126,3 +128,8 @@ Chỉ mục ghép đặt cột lọc bằng trước rồi khoảng thời gian/
 QR là opaque token ngẫu nhiên; hash để lookup, ciphertext mã hóa bằng key riêng để chủ vé xem lại QR. Tách key khỏi DB, không log ciphertext/token và phải có phương án xoay key. Phương án token ký không cần ciphertext được xem trong ADR-007, chưa dùng đồng thời hai thiết kế.
 
 ADR-021 thêm EMAIL Customer và phone_login_aliases trỏ EMAIL identity, không proof PHONE. otp_challenges thêm EMAIL/login_phone/delivery_ready. Xem SQL, ERD identity, Docs 20 và migration 002.
+
+
+ADR-024: migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](30-schema-consolidation.md).
+
+ADR-027 / migration 007: payments thêm checkout_url (nullable), received_minor (BIGINT nonnegative mặc định 0, số tiền thực nhận độc lập expected amount_minor) và last_polled_at (nullable); index phục hồi polling. Reuse payments/payment_webhooks/outbox/tickets/check_ins, không thêm bảng. Chi tiết và kiểm chứng local/fresh/upgrade ở [32](32-payos-booking-ticket-flow.md).

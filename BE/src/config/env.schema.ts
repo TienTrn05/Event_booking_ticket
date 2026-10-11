@@ -14,6 +14,18 @@ const schema = z.object({
   DB_NAME: z.string().regex(/^[a-zA-Z0-9_]+$/),
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
   DB_LOCK_TIMEOUT_SECONDS: z.coerce.number().int().min(1).max(60).default(5),
+  REDIS_URL: z
+    .url()
+    .pipe(z.string().refine((value) => ['redis:', 'rediss:'].includes(new URL(value).protocol)))
+    .optional(),
+  REDIS_PREFIX: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,48}$/)
+    .default('eventix'),
+  WAITING_ROOM_CAPACITY: z.coerce.number().int().min(1).max(1000).default(100),
+  WAITING_ROOM_MAX_QUEUE: z.coerce.number().int().min(1).max(100000).default(10000),
+  WAITING_ROOM_ADMIT_PER_SECOND: z.coerce.number().int().min(1).max(1000).default(20),
+  WAITING_ROOM_LEASE_SECONDS: z.coerce.number().int().min(30).max(1800).default(600),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'silent']).default('info'),
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
@@ -31,6 +43,17 @@ const schema = z.object({
     .optional(),
   SMTP_USER: z.email().optional(),
   SMTP_PASSWORD: z.string().min(1).optional(),
+  PAYOS_CLIENT_ID: z.string().min(1).optional(),
+  PAYOS_API_KEY: z.string().min(1).optional(),
+  PAYOS_CHECKSUM_KEY: z.string().min(1).optional(),
+  TICKET_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  ATTENDEE_PII_KEY: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
 });
 export function parseEnv(source: NodeJS.ProcessEnv) {
   const result = schema.safeParse(source);
@@ -46,6 +69,18 @@ export function parseEnv(source: NodeJS.ProcessEnv) {
   ];
   const sessionFields = [result.data.PUBLIC_APP_URL, result.data.JWT_ACCESS_SECRET];
   const emailFields = [result.data.SMTP_USER, result.data.SMTP_PASSWORD];
+  const payosFields = [
+    result.data.PAYOS_CLIENT_ID,
+    result.data.PAYOS_API_KEY,
+    result.data.PAYOS_CHECKSUM_KEY,
+  ];
+  if (
+    payosFields.some(Boolean) &&
+    (!payosFields.every(Boolean) ||
+      !result.data.PUBLIC_APP_URL ||
+      !result.data.TICKET_ENCRYPTION_KEY)
+  )
+    throw new Error('Incomplete payOS or ticket configuration.');
   if (
     googleFields.some(Boolean) &&
     (!googleFields.every(Boolean) || !sessionFields.every(Boolean))

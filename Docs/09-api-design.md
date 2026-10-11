@@ -1,10 +1,20 @@
 # 09. Thiết kế REST API
 
-Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). Đây là REST contract; SQL/ERD đã đồng bộ theo ADR-014 và catalog public theo ADR-017. API catalog, Google auth, email OTP Customer và linking đã có mã nguồn; booking, payment và mutation Organizer vẫn là hợp đồng đích.
+Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). API catalog, auth Customer/linking, hold/booking/phòng chờ và payOS/phát vé/check-in/admission đã có mã nguồn. Hợp đồng payment hiện hành và giới hạn kiểm chứng ở [32](32-payos-booking-ticket-flow.md); mutation/onboarding Organizer đầy đủ vẫn là hợp đồng đích.
+
+## Upload ảnh R2 — ADR-022
+
+Ngày 2026-10-10 đã thêm `GET /media/config`, `GET /media/avatar`, `POST /media/uploads`, `POST /media/uploads/complete`. Client upload File trực tiếp lên R2 bằng presigned PUT 5 phút; BE xác minh rồi lưu URL. Avatar cần profile.update_self; event/merchandise cần event.update_own, company session, membership/Organization/ownership và bản nháp đúng version. Không thay cơ chế auth. Hợp đồng input/output trong OpenAPI; luồng, CORS và giới hạn kiểm chứng tại [28](28-r2-image-upload.md). Editor và company login Organizer vẫn chưa có.
 
 ## Quy ước chung
 
+ADR-023 ngày 2026-10-11: hồ sơ gender/dateOfBirth, follows/inbox, minimumAge/ageTag và attendee riêng mỗi vé; CCCD mã hóa, che số, purge 30 ngày sau suất. Theo ADR-027, FE checkout/vé/kiểm tra cửa đã nối API và kiểm thử bằng provider giả; payOS live tạo/hủy link và xác nhận webhook đã qua, giao dịch chuyển tiền thật chưa kiểm thử. Xem [29](29-profile-follow-age-attendees.md) và [32](32-payos-booking-ticket-flow.md).
+
+API hồ sơ cá nhân đã triển khai ngày 2026-10-10: GET/PATCH `/users/me` no-store, scope lấy từ JWT/phiên, không nhận userId hoặc các trường quyền/email/phone/status/avatarUrl. PATCH recheck User/session/authVersion/permission dưới khóa, audit trong transaction khi tên thực sự đổi. Không đổi hợp đồng auth hoặc quy tắc liên kết. 26 kiểm tra HTTP/PostgreSQL riêng qua; FE sửa tên chưa nối.
+
 Prefix `/api/v1`; JSON UTF-8; HTTPS ở staging/production. ID và tiền là chuỗi; timestamp ISO 8601 UTC dạng `2026-10-01T12:00:00Z`. `Content-Type: application/json`; giới hạn body và page size; không chấp nhận trường ngoài schema ở mutation. Không gửi body trong GET. PATCH chỉ chấp nhận allowlist, có `version` cho sửa nội dung để trả 409 khi xung đột.
+
+Validation BE chuẩn hóa ngày 2026-10-11: ID DB chuỗi số dương canonical ≤9223372036854775807; version 0–2147483647; page 1–100000/pageSize 1–100. Query số chỉ nhận chuỗi thập phân đơn, không query lặp/array/object; catalog từ chối query ngoài allowlist và boolean khác true/false. Default pageSize catalog 24, inbox/booking 20. Mutation có body sai Content-Type trả 415 `UNSUPPORTED_MEDIA_TYPE`; JSON hỏng trả 400 `INVALID_JSON`, schema sai trả 400 `VALIDATION_ERROR`. Google callback vẫn cho phép query bổ sung từ provider. Xem [cấu trúc và kiểm chứng](31-backend-code-structure.md).
 
 Envelope thành công (ngoại trừ 204 không có body):
 
@@ -69,7 +79,7 @@ Các đường dẫn sau đều có prefix `/api/v1`. “Chủ” luôn kiểm t
 | GET `/auth/csrf` | Origin hợp lệ | CSRF token gắn ngữ cảnh trình duyệt; 200, no-store |
 | GET `/auth/sessions` | Chủ | danh sách thiết bị đã che thông tin; 200 |
 | DELETE `/auth/sessions/:sessionId` | Chủ | thu hồi thiết bị; 204 |
-| GET/PATCH `/users/me` | Đã xác thực | profile / displayName allowlist; 200 |
+| GET/PATCH `/users/me` | JWT + phiên DB; PATCH thêm Origin + profile.update_self | `{id,displayName,avatarUrl,gender,dateOfBirth}` / PATCH strict displayName/gender/dateOfBirth, ít nhất một field; DOB/gender private, nullable; avatar chỉ qua media |
 | GET `/event-categories` | Công khai | danh mục hoạt động; 200 |
 | GET `/events` | Công khai | bộ lọc bên dưới → danh sách; 200 |
 | GET `/events/:eventId` | Công khai | Chỉ DTO sự kiện công khai; bản nháp dùng management endpoint riêng; 200 |
@@ -138,7 +148,7 @@ Các đường dẫn sau đều có prefix `/api/v1`. “Chủ” luôn kiểm t
 | GET `/admin/reports` | report.handle | status,page,pageSize → hàng đợi; 200 |
 | POST `/admin/reports/:reportId/claim` | report.handle | version + key → IN_REVIEW, gán Admin đang xử lý; 200 |
 | POST `/admin/reports/:reportId/resolve` | report.handle | resolution,version + key → RESOLVED; 200 |
-| GET `/notifications` | Chủ | thông báo duyệt/hủy hồ sơ/phiếu lý do của mình; 200 |
+| GET `/notifications` | Chủ | Đã triển khai inbox review + event Organizer theo dõi; items/unreadCount/pagination; 200 |
 | POST `/notifications/:notificationId/read` | Chủ | đánh dấu đọc; 204 |
 | GET `/admin/audit-logs` | audit.read | lọc thời gian/tài nguyên, phân trang; 200 |
 | GET `/admin/statistics` | statistics.read_system | số liệu tổng hợp; 200 |

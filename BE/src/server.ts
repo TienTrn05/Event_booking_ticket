@@ -2,8 +2,8 @@ import { createApp } from './app.js';
 
 import { env } from './config/env.js';
 
-import { dependencies } from './Bootstrap/dependencies.js';
-import { registerShutdown } from './Bootstrap/shutdown.js';
+import { dependencies } from './startup/dependencies.js';
+import { registerShutdown } from './startup/shutdown.js';
 
 import { logger } from './shared/logging/logger.js';
 

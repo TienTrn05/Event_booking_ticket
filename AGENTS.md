@@ -4,6 +4,13 @@
 
 ## Trước khi sửa
 
+### Kiến trúc giai đoạn phát triển — chủ dự án chốt 2026-10-11
+
+- Ưu tiên hoàn thiện sản phẩm bằng **Modular Monolith**, một API instance. Không tự thêm load balancer hoặc chuyển sang distributed system.
+- **Phải hỏi chủ dự án trước khi triển khai bất kỳ thay đổi liên quan distributed system**, kể cả dựng cấu hình hoặc thử nghiệm nhiều instance: microservices, message broker (Kafka/RabbitMQ), cluster/replication/sharding, distributed lock/transaction hoặc hạ tầng điều phối/mở rộng phân tán. Nêu nhu cầu, lựa chọn, tác động và chi phí; chờ câu trả lời trước khi làm phần phụ thuộc.
+- Redis, R2 và worker cùng codebase đã được chấp thuận chỉ tiếp tục trong phạm vi hiện có; không suy ra đây là quyền mở rộng kiến trúc phân tán. Công việc chức năng trong monolith và kiểm tra độc lập vẫn được tiếp tục theo yêu cầu hiện hành.
+- Quy tắc này áp dụng cho mọi người/agent làm việc sau này, cho đến khi chủ dự án đổi quyết định rõ ràng. Xem ADR-025 trong `Docs/17-architecture-decisions.md`.
+
 1. Đọc `PROJECT_RULES.md`, `README.md` và phần liên quan trong `Docs/`. Với auth, đọc tối thiểu `Docs/03-user-roles-permissions.md`, `Docs/04-authentication-authorization.md`, `Docs/09-api-design.md`, `Docs/12-security.md`, `Docs/18-open-questions.md` và `Docs/26-auth-progress.md`.
 2. Kiểm tra Git status, code và tài liệu hiện có. Phân biệt phần đã triển khai, phần mới là đặc tả và thay đổi chưa commit của người khác. Không ghi đè thay đổi sẵn có.
 3. Đối chiếu yêu cầu mới với quyết định đã ghi. Nếu mâu thuẫn, thiếu thông số ảnh hưởng bảo mật/nghiệp vụ hoặc gặp `DECISION REQUIRED`, hỏi chủ dự án trước khi triển khai phần phụ thuộc. Nêu các lựa chọn và hệ quả ngắn gọn; tiếp tục việc độc lập trong lúc chờ.

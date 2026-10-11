@@ -5,6 +5,8 @@ import type { HomeCatalog } from '../types';
 const eventSchema = z.object({
   id: z.string(),
   title: z.string(),
+  minimumAge: z.number().int().nullable(),
+  ageTag: z.string().nullable(),
   displayName: z.string(),
   category: z.string().min(1),
   categorySlug: z.string(),

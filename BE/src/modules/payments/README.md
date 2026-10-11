@@ -1,5 +1,5 @@
 # payments
 
-Module dự kiến, chưa có endpoint nghiệp vụ. Khi triển khai tách `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts`.
+Một kênh payOS, VND; PaymentService orchestration qua PaymentGateway, BookingPaymentPort và TicketIssuer. Booking giữ allocation; payment không trực tiếp ghi ghế/đơn. SDK/network ngoài transaction; outbox/inbox sẵn có phục hồi timeout và callback trùng. Ticket issuance và booking confirmation cùng transaction; tiền muộn/dư/thiếu cần đối soát, không tự refund/payout.
 
-Controller chỉ HTTP; service kiểm tra quyền/scope, policy và transaction; repository dùng SQL có tham số với cùng connection được truyền vào. Xem Docs/10 và Docs/23 tại gốc repo. Không tạo API giả trả thành công khi nghiệp vụ chưa tồn tại.
+HTTP, SQL và provider adapter tách riêng; wiring ở startup/payment.dependencies.ts. API dùng Idempotency-Key, buyer ownership và webhook signature; client redirect không xác nhận tiền. Hợp đồng/checks/config ở [Docs/32](../../../../Docs/32-payos-booking-ticket-flow.md).

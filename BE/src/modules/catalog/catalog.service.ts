@@ -1,6 +1,6 @@
 import { AppError } from '../../shared/errors/app-error.js';
 import type { CatalogRepository } from './catalog.repository.js';
-import type { EventFilters, HomeCatalog } from './catalog.types.js';
+import type { EventFilters, HomeCatalog } from './types/catalog.types.js';
 
 const defaultFilters: EventFilters = { page: 1, pageSize: 100 };
 

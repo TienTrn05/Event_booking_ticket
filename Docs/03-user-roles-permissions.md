@@ -22,6 +22,8 @@ Seed hiện hành có 29 permission và ánh xạ theo ma trận này. Seed khô
 | --- | --- | --- | --- |
 | event.read_public | Có | Có | Có |
 | profile.update_self | Chính mình | Chính mình | Chính mình |
+| Theo dõi Organization / mute (hành động Customer) | Chính mình, Organization APPROVED | Cần role Customer riêng | Cần role Customer riêng |
+| Đọc inbox / đánh dấu đã đọc | Thông báo của mình | Thông báo của mình | Thông báo của mình |
 | seat.hold, booking.create, booking.read_self, ticket.read_self | Chính mình | Cần Customer riêng | Cần Customer riêng |
 | ticket.checkin_self | Vé thuộc booking của mình, tên/mã khớp, đúng cửa sổ | Cần Customer riêng | Cần Customer riêng |
 | refund.request_self, report.create | Tài nguyên của mình | Report thuộc tổ chức; refund mua cần Customer | Không tự tạo report giả để mở rộng quyền |
@@ -49,3 +51,5 @@ Event.organization_id là chủ nghiệp vụ; created_by/reviewed_by là User �
 Ngoài scope trả 404; thiếu permission chung trả 403. Admin không bypass BR-001/BR-004. Self check-in không tự cấp vé hoặc đánh dấu USED; vào cửa vẫn kiểm tra online một lần. Guard frontend chỉ là UX.
 
 ADR-021: Customer dùng Google hoặc email OTP; SĐT là alias chưa xác minh. EMAIL Customer không đáp ứng bằng chứng phiên công ty hoặc cấp Organizer.
+
+ADR-023: profile gender/DOB chỉ User đọc/sửa; không tạo permission từ dữ liệu này. Staff ticket.checkin_own cần company session/membership/Organization/ownership để đối chiếu CCCD thật trong cửa sổ admission; Customer không tự xác minh. Theo dõi không cấp role hoặc quyền quản lý; xem [29](29-profile-follow-age-attendees.md).

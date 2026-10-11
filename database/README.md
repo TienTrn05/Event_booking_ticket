@@ -1,12 +1,16 @@
 # PostgreSQL database
 
-Schema hiện hành có **45 bảng**: 38 bảng lõi, 6 bảng catalog và 1 bảng alias SĐT ADR-021. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
+Schema hiện hành có **46 bảng**: 38 bảng lõi, 6 bảng catalog, alias SĐT ADR-021, organization_follows ADR-023. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
+
+Ảnh upload mới lưu ở Cloudflare R2; DB chỉ lưu URL theo ADR-022. Database cũ cần [migration 003](migrations/003-r2-images.sql) sau backup/review; database mới dùng schema.sql đã có hai cột nullable. Chi tiết và kết quả local ở [Docs/28](../Docs/28-r2-image-upload.md).
 
 ## Các file
 
+Migration [004](migrations/004-profile-follow-notifications.sql) thêm hồ sơ/follow và mở rộng notification, [005](migrations/005-event-age-ticket-attendees.sql) thêm tuổi event và attendee/CCCD riêng mỗi vé. Đã backup/review/migrate local; DB mới dùng schema.sql, không chạy lại các migration đã có. [Docs/29](../Docs/29-profile-follow-age-attendees.md) có ERD mới, key/retention và cách chạy worker. Không thu giấy tờ thật để thử.
+
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | Tạo mới toàn bộ 45 bảng theo ADR-021, PK/FK/UQ/CHECK và index và trigger `updated_at` |
+| [schema.sql](schema.sql) | Tạo mới toàn bộ 46 bảng theo ADR-023, PK/FK/UQ/CHECK/index và trigger |
 | [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp 3 role, 29 permission và ánh xạ quyền |
 | [002-public-catalog.sql](seeds/002-public-catalog.sql) | Nạp dữ liệu demo liên kết đầy đủ cho Public Web, gồm cả venue |
 | [001-public-catalog.sql](migrations/001-public-catalog.sql) | Nâng schema PostgreSQL 38 bảng lõi theo ADR-014 lên 44 bảng |
@@ -55,7 +59,7 @@ psql -U postgres -d event_ticketing -v ON_ERROR_STOP=1 -f database/seeds/002-pub
 Sau đó cấu hình `BE/.env` với `DB_PORT=5432`, chạy kiểm tra chỉ đọc từ thư mục `BE/`:
 
 ```powershell
-. .\tooling\use-node.ps1
+. .\scripts\use-node.ps1
 npm run db:check
 ```
 
@@ -86,3 +90,8 @@ Chi tiết thiết kế: [08 — Database design](../Docs/08-database-design.md)
 ## Nâng auth email OTP
 
 DB đang có 44 bảng: backup/review rồi chạy migrations/002-email-otp.sql trong DBeaver trên đúng DB. DB mới dùng schema.sql có 45 bảng; không chạy migration 002 lần nữa. Migration giữ Google users/identities/sessions. Chưa tự áp dụng lên DB người dùng. Sau khi có dữ liệu EMAIL, rollback bằng tắt SMTP/khôi phục app release và giữ dữ liệu, không drop identity/bảng. Xem Docs/27.
+
+
+ADR-024: migration [006](migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](../Docs/30-schema-consolidation.md).
+
+Migration [007](migrations/007-payos-payment.sql) thêm ba cột vào payments, không thêm bảng. DB local đã backup/review và áp dụng; schema vẫn 46 bảng. Schema fresh và upgrade đã kiểm chứng khớp; xem [Docs/32](../Docs/32-payos-booking-ticket-flow.md). Không chạy lại 007 khi schema đã có cột.
