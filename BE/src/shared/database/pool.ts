@@ -44,8 +44,8 @@ export async function checkDatabase(): Promise<void> {
     await connection.query('SELECT 1');
 
     const requiredCatalogTables = [
-      'organization_profiles',
-      'event_publications',
+      'organizations',
+      'events',
       'city_profiles',
       'merchandise_products',
       'blog_articles',
@@ -62,6 +62,20 @@ export async function checkDatabase(): Promise<void> {
     if (Number(rows[0]?.table_count ?? 0) !== requiredCatalogTables.length) {
       throw new Error('Database catalog schema is not installed.');
     }
+    const catalogColumns = await connection.query<{ count: string }>(
+      `SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema()
+       AND ((table_name='organizations' AND column_name IN ('public_id','profile_created_at','profile_updated_at'))
+        OR (table_name='events' AND column_name IN ('public_id','publication_cover_image_url','published_at')))`,
+    );
+    if (catalogColumns.rows[0]?.count !== '6')
+      throw new Error('Catalog consolidation migration 011 is required.');
+    const operationsColumns = await connection.query<{ count: string }>(
+      `SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema()
+       AND ((table_name='refunds' AND column_name IN ('version','evidence_note','approved_at'))
+        OR (table_name='feedback' AND column_name IN ('kind','author_id','history')))`,
+    );
+    if (operationsColumns.rows[0]?.count !== '6')
+      throw new Error('Refund and feedback migration 012 is required.');
     if (env.PAYOS_CLIENT_ID) {
       const paymentColumns = await connection.query<{ count: string }>(
         `SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema()

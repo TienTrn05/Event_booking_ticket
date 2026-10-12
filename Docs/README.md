@@ -23,3 +23,11 @@ Cập nhật nghiệp vụ: [23 — Tổ chức, thay đổi sự kiện, feedba
 - [30 — Rà soát và gộp schema attendee](30-schema-consolidation.md).
 - [31 — Cấu trúc mã BE, phần dùng chung và validation](31-backend-code-structure.md).
 - [32 — payOS, booking, phát vé và vào cửa](32-payos-booking-ticket-flow.md).
+
+- [33 — Đăng ký cá nhân, onboarding và gợi ý](33-registration-onboarding.md).
+- [34 — API Organizer, cấu hình sự kiện và Admin duyệt](34-organizer-event-api.md).
+
+- [35 — Admin quản lý câu hỏi onboarding](35-admin-onboarding-questions.md).
+
+- [36 — Rà soát số lượng bảng và khả năng gộp](36-schema-audit.md).
+- [37 — Phạm vi hoàn tiền, đánh giá tổ chức và góp ý app](37-refunds-reviews-app-feedback.md).

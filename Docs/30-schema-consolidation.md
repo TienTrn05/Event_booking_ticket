@@ -1,5 +1,7 @@
 # Rà soát bảng/cột — 2026-10-11
 
+Cập nhật2026-10-12 / ADR-031: đã gộp organization_profiles vào organizations, event_publications vào events và áp dụng008–011 DB local sau backup. Local/fresh45 bảng, giữ dữ liệu và ảnh công khai. Chi tiết [36](36-schema-audit.md).
+
 Theo yêu cầu chủ dự án, đối chiếu metadata DB local (47 bảng trước sửa), schema.sql, migration, repository query và thiết kế nghiệp vụ. Không coi bảng chưa có endpoint hoặc chưa có dữ liệu là bảng thừa.
 
 ## Phần dọn — ADR-024
@@ -21,8 +23,8 @@ Migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) áp
 | --- | --- |
 | users, roles, permissions, user_roles, role_permissions | Hồ sơ và quyền tường minh; bảng ánh xạ không trùng thực thể |
 | external_identities, phone_login_aliases, otp_challenges, auth_sessions, refresh_tokens | Danh tính, alias, proof một lần, phiên và rotation là các vòng đời riêng |
-| organizations, organization_memberships, organization_profiles, organization_follows | Tổ chức, quyền đại diện, catalog công khai và quan hệ theo dõi riêng |
-| events, event_categories, event_publications, event_sessions, event_change_requests | Nội dung, phân loại, cấu hình công bố, lịch suất và yêu cầu thay đổi riêng |
+| organizations, organization_memberships, organization_follows | Tổ chức, quyền đại diện, catalog công khai và quan hệ theo dõi riêng |
+| events, event_categories, event_sessions, event_change_requests | Nội dung, phân loại, cấu hình công bố, lịch suất và yêu cầu thay đổi riêng |
 | venues, city_profiles, seat_layouts, layout_sections, layout_rows, seats, ticket_types, session_seats | Catalog địa điểm/thành phố, sơ đồ hình học và tồn kho/giá theo suất riêng |
 | reservation_quotas, seat_holds, seat_hold_items, bookings, booking_items | Khóa theo quota, giữ tạm và lịch sử đơn; giá/ghế/loại vé snapshot không phải dữ liệu dư |
 | payments, payment_webhooks, refunds, idempotency_records | Giao dịch, inbox provider, hoàn tiền và replay khác mục đích |
@@ -30,7 +32,7 @@ Migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) áp
 | event_reviews, reason_notices, notifications, support_reports, audit_logs, outbox_messages | Review, phiếu lý do, inbox, report, audit và công việc bền vững không thay thế nhau |
 | merchandise_products, blog_articles | Sản phẩm và nội dung catalog riêng; luồng mua merchandise còn chưa triển khai |
 
-Các cột cùng tên không mặc nhiên là dư: DOB hồ sơ khác DOB của ba người tham dự; SĐT attendee khác alias login; tên/giá/ghế snapshot cần giữ lịch sử; events.cover_image_url là ảnh nháp/upload còn event_publications.cover_image_url là dữ liệu công bố/catalog; venue timezone khác timezone chụp cho suất/review. Nhóm ciphertext/MAC/last four phục vụ mã hóa, so khớp và che số, đều được purge theo retention. Không xóa cột riêng chỉ vì chưa có UI.
+Các cột cùng tên không mặc nhiên là dư: DOB hồ sơ khác DOB của ba người tham dự; SĐT attendee khác alias login; tên/giá/ghế snapshot cần giữ lịch sử; events.cover_image_url là ảnh nháp/upload còn events.publication_cover_image_url là dữ liệu công bố/catalog; venue timezone khác timezone chụp cho suất/review. Nhóm ciphertext/MAC/last four phục vụ mã hóa, so khớp và che số, đều được purge theo retention. Không xóa cột riêng chỉ vì chưa có UI.
 
 ## Bằng chứng
 

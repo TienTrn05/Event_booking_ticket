@@ -7,9 +7,9 @@ export function publicSessions(db: PoolClient, publicId: string) {
       s.sale_opens_at AS "saleOpensAt",s.sale_closes_at AS "saleClosesAt",s.status,
       s.status='SCHEDULED' AND s.sale_opens_at<=clock_timestamp() AND clock_timestamp()<s.sale_closes_at
         AND clock_timestamp()<s.starts_at AS "saleOpen"
-      FROM event_sessions s JOIN events e ON e.id=s.event_id JOIN event_publications ep ON ep.event_id=e.id
-      JOIN organizations o ON o.id=e.organization_id WHERE ep.public_id=$1 AND e.status='PUBLISHED'
-        AND o.status='APPROVED' AND ep.published_at<=clock_timestamp() ORDER BY s.starts_at,s.id`,
+      FROM event_sessions s JOIN events e ON e.id=s.event_id
+      JOIN organizations o ON o.id=e.organization_id WHERE e.public_id=$1 AND e.status='PUBLISHED'
+        AND o.status='APPROVED' AND o.public_id IS NOT NULL AND e.published_at<=clock_timestamp() ORDER BY s.starts_at,s.id`,
     [publicId],
   );
 }

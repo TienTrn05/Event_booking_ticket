@@ -63,7 +63,7 @@ export async function runCommerceBrowser(input: {
   origin: string;
   publicId: string;
   sessionId: string;
-  refreshCookie: (role: 'customer' | 'staff') => Promise<string>;
+  refreshCookie: (role: 'customer' | 'staff' | 'admin') => Promise<string>;
   pay: () => Promise<string>;
   ticket: () => Promise<string>;
 }) {
@@ -142,7 +142,7 @@ export async function runCommerceBrowser(input: {
     cdp = new Cdp(socket);
     await cdp.send('Page.enable');
     await cdp.send('Network.enable');
-    async function login(role: 'customer' | 'staff') {
+    async function login(role: 'customer' | 'staff' | 'admin') {
       await cdp!.send('Network.clearBrowserCookies');
       await cdp!.send('Network.setCookie', {
         name: 'eventix.refresh',
@@ -153,8 +153,32 @@ export async function runCommerceBrowser(input: {
         sameSite: 'Lax',
       });
     }
+    await login('admin');
+    await cdp.send('Page.navigate', { url: `${input.origin}/admin/onboarding` });
+    await cdp.until("document.querySelectorAll('main form section').length===3");
+    await cdp.evaluate(
+      "Array.from(document.querySelectorAll('main button')).find(b=>b.textContent==='Thêm câu hỏi').click();true",
+    );
+    await cdp.until("document.querySelectorAll('main form section').length===4");
+    await cdp.evaluate(
+      "(()=>{const section=document.querySelector('main form section:last-of-type'),e=section.querySelector('input[maxlength=\"160\"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'Mục tiêu tham dự?');e.dispatchEvent(new Event('input',{bubbles:true}));section.querySelector('input[type=checkbox]').click();return true;})()",
+    );
+    await cdp.evaluate("document.querySelector('main form button[type=submit]').click();true");
+    await cdp.until("document.body.textContent.includes('Đã xuất bản bộ câu hỏi mới')");
     await login('customer');
     await cdp.send('Page.navigate', { url: `${input.origin}/events/${input.publicId}/book` });
+    await cdp.until(
+      "!!(document.getElementById('profile-title')&&document.querySelector('input[type=date]'))",
+    );
+    await cdp.evaluate(
+      "(()=>{const inputs=Array.from(document.querySelectorAll('.auth-dialog input')).filter(e=>e.type!=='radio');for(const e of inputs){Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,e.type==='date'?'1990-01-02':'Browser onboarding');e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));}const select=document.querySelector('.auth-dialog select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'UNDISCLOSED');select.dispatchEvent(new Event('change',{bubbles:true}));return true;})()",
+    );
+    await cdp.evaluate("document.querySelector('.auth-dialog button[type=submit]').click();true");
+    await cdp.until('!!document.querySelector(\'.auth-dialog input[maxlength="500"]\')');
+    await cdp.evaluate(
+      "(()=>{if(Array.from(document.querySelectorAll('.auth-dialog button')).some(b=>b.textContent.includes('Bỏ qua sở thích')))throw new Error('Required question can be skipped');const e=document.querySelector('.auth-dialog input[maxlength=\"500\"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'Học tổ chức sự kiện');e.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('.auth-dialog button[type=submit]').click();return true;})()",
+    );
+    await cdp.until("!document.getElementById('profile-title')");
     await cdp.until(
       "document.querySelectorAll('button[aria-pressed=false]:not([disabled])').length>=3",
     );

@@ -1,5 +1,7 @@
 # 09. Thiết kế REST API
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). API catalog, auth Customer/linking, hold/booking/phòng chờ và payOS/phát vé/check-in/admission đã có mã nguồn. Hợp đồng payment hiện hành và giới hạn kiểm chứng ở [32](32-payos-booking-ticket-flow.md); mutation/onboarding Organizer đầy đủ vẫn là hợp đồng đích.
 
 ## Upload ảnh R2 — ADR-022
@@ -224,3 +226,9 @@ COMPANY_EMAIL Organizer, logout-all/danh sách thiết bị vẫn chưa triển 
 ## Hoàn thiện UX phiên — 2026-10-10
 
 GET `/auth/methods` cần Bearer JWT + phiên/User hợp lệ, trả `{email,googleLinked,emailLinked,phones}` của chính User, không nhận userId và không trả permission/secret. Google callback chỉ bổ sung `authReason` từ allowlist mã lỗi an toàn khi thất bại, không đưa token/email/exception vào URL. FE dùng mã này làm thông báo rồi xóa khỏi URL. Lifetime, cookie, CSRF và chính sách liên kết giữ nguyên.
+
+ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+## Hoàn tiền/feedback đã triển khai — ADR-032
+
+API refund/report/feedback đã mount và có Swagger. Request refund trước suất ít nhất24 giờ; approve thu hồi vé trước chuyển tiền thủ công; ghi SUCCESS bằng chứng từ, không giả xác nhận payOS. Feedback tổ chức sau suất/khi hủy, sửa7 ngày; feedback app riêng tư. Mutation có key/Origin/version, scope do DB; GET booking thêm eventId số để người mua gửi review, không phải ID catalog. [Danh sách API/body/quyền](37-refunds-reviews-app-feedback.md). FE ba chức năng mới chưa nối.

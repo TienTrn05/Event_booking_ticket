@@ -35,7 +35,7 @@ export const mediaPaths = {
       summary: 'Cấp presigned PUT URL, hiệu lực 5 phút',
       security: [{ bearerAuth: [] }],
       description:
-        'Origin phải khớp PUBLIC_APP_URL. Avatar cần profile.update_self. Event/merchandise cần event.update_own, membership ACTIVE, Organization APPROVED, phiên company identity và event/product DRAFT. version là version của event. Client gửi File trực tiếp tới uploadUrl, với headers trả về; không gửi Authorization/cookie ứng dụng tới R2.',
+        'Origin phải khớp PUBLIC_APP_URL. Avatar cần profile.update_self. Event/merchandise cần event.update_own, membership PENDING/ACTIVE, Organization PENDING_REVIEW/APPROVED/REJECTED, phiên identity hợp lệ và event/product DRAFT. version là version của event. Client gửi File trực tiếp tới uploadUrl, với headers trả về; không gửi Authorization/cookie ứng dụng tới R2.',
       requestBody: {
         required: true,
         content: {

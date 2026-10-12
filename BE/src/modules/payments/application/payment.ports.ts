@@ -43,7 +43,11 @@ export interface PurchaseReader {
   lock(db: PoolClient, bookingId: string, ownerId?: string): Promise<LockedPurchase>;
 }
 export interface BookingPaymentPort extends PurchaseReader {
-  authorize(db: PoolClient, actor: RequestActor): Promise<void>;
+  authorize(
+    db: PoolClient,
+    actor: RequestActor,
+    permission?: 'booking.create' | 'booking.read_self',
+  ): Promise<void>;
   validateAttendees(db: PoolClient, purchase: LockedPurchase): Promise<boolean>;
   confirm(db: PoolClient, purchase: LockedPurchase, paymentId: string): Promise<void>;
   terminate(

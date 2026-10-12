@@ -167,3 +167,77 @@ Không đổi các câu trả lời đã chốt ở Q-006. Khi có quyết đị
 - DB local có 13 events/13 sessions nhưng seats=0, ticket_types=0, session_seats=0. Dữ liệu catalog không đủ làm inventory bán vé; một số suất không mở bán. Vì vậy chủ dự án chưa thể chọn ghế/giữ chỗ/tạo đơn/thanh toán thực tế qua FE với DB hiện tại.
 - 77 tests + 16 integration/browser trước đó xác minh code trên PostgreSQL tạm, tự thêm fixture ghế/giá/attendee và dùng payment gateway giả/queue stub. Không phải đã thử giao dịch chuyển tiền thật trên DB local. payOS thật mới tạo/hủy link và confirm webhook.
 - Để thử FE/payOS thật cần dữ liệu test bán vé được tạo có chủ đích: event đã duyệt/public, session mở bán, layout/ghế, ticket type/giá và attendee; sau đó chủ dự án tự chuyển tiền và kiểm tra signed webhook/đơn/QR. Check-in thật còn cần company session/membership/quyền hợp lệ, không tự cấp role để test. Chưa tự thêm seed hoặc sửa dữ liệu DB trong bước kiểm tra này.
+
+### 2026-10-11 — Personalized onboarding và Organizer cá nhân (đang kiểm tra cuối)
+
+- Chủ dự án đổi yêu cầu và đã chốt Q-027/ADR-029: role lúc onboarding, hồ sơ bắt buộc, email cá nhân; Organizer riêng Customer, bật Customer sau, Admin vẫn duyệt trước mở bán. Giữ provider/proof/linking/lifetime/cookie/CSRF. Không cấp Admin thật.
+- Tài khoản mới xác minh chưa tự nhận Customer; API onboarding/options/preferences/activate Customer/recommendations đã mount. R2/age/attendee/check-in bỏ gate domain công ty, vẫn scope role/organization/membership/session/identity hợp lệ.
+- Organization application/review và event draft/layout/session/type/pricing/submit/withdraw/reopen/Admin review có code. Review snapshot/freeze, TTL15 ngày, gửi trước một tháng lịch; approve tạo inventory/publication atomically, outbox follow hiện có. Worker booking cùng codebase thêm expiry review; không thêm broker/hạ tầng phân tán.
+- Migration 008 dùng Users có sẵn, đổi tên metadata tổ chức/membership và thêm PENDING; 009 cấu hình giá nháp trong event_sessions, inventory chỉ sau duyệt. Không thêm bảng, không sửa migration đã áp dụng. Fresh và upgrade có dữ liệu demo đã qua trên PG tạm. Chưa áp dụng 008/009 lên DB local tại thời điểm log này.
+- BE typecheck và 80 unit/HTTP/architecture/config qua. PG tích hợp 21 ca qua, gồm tạo nháp bằng Organizer cá nhân → tổ chức/event Admin fixture duyệt → hold3 ghế → attendee3 riêng → fake payment/callback trùng →3 vé→counter/check CCCD/admission USED replay. Không chuyển tiền thật hoặc upload R2 thật trong bài test mới.
+- FE có onboarding bắt buộc/skip preferences, sửa hồ sơ/sở thích/follows, bật Customer và gợi ý trang chủ; lint/typecheck lượt đầu qua. Browser mới và kiểm tra cuối đang thực hiện, chưa ghi hoàn tất.
+
+### 2026-10-11 — Kiểm chứng cuối onboarding/Organizer cá nhân
+
+- BE secret guard/lint/typecheck/build/format qua; 83 unit/HTTP/architecture/config qua. PostgreSQL độc lập + Edge headless 23/23 qua, gồm onboarding Customer không có role ban đầu, bỏ qua sở thích rồi purchase3 vé/check-in/admission; luồng Organizer cá nhân tạo nháp trước org approval, Admin fixture duyệt, fake callback lặp và phát vé đã qua. Expiry commit trước trả conflict, reason notice gửi một lần, reopen tăng version được kiểm chứng.
+- Fresh schema và upgrade 007/008/009 trên DB tạm có dữ liệu seed khớp metadata Users/Organization/membership/session/payment. 008/009 vẫn chưa áp dụng DB của chủ dự án; cần chạy sau backup trước khi dùng luồng mới. Không tạo bảng mới, vẫn 46 bảng; không xóa lịch sử hoặc tự cấp Admin thật.
+- FE lint/typecheck/build/format qua. Onboarding load riêng 8 KB, main498 KB; sửa hồ sơ/preferences/follow và bật Customer có giao diện, recommendations lấy API RULES_V1, detail tải riêng khi event ngoài catalog home. Browser mới kiểm chứng bước mandatory + skip rồi purchase; chưa chạy browser độc lập mọi tổ hợp optional/category/city/follow/profile edit.
+- Swagger đã mount các endpoint với input schema từ Zod đúng OpenAPI3, Bearer/Origin/idempotency; thêm options category ID số/venue bounds và danh sách organization applications riêng. Controller/service/repository tách lớp; payment/booking vẫn port/adapter như ADR-027. JWT/refresh/CSRF/provider/linking không thay.
+- Không sử dụng AI, load balancer, broker hoặc thay đổi kiến trúc phân tán. Chưa thử giao dịch chuyển tiền thật, dashboard Organizer/Admin hoặc inventory quantity. Migration/document/source/test là kết quả reviewable, phần DB local còn người vận hành chạy script.
+
+### 2026-10-12 — Dọn tài nguyên và trạng thái bàn giao
+
+- Đã dừng/dọn PostgreSQL và Edge riêng qua runner, BE/tmp rỗng; xóa BE/Fe dist do build kiểm tra tạo và folder company trống do phương án cũ. Giữ tiến trình, Redis và dữ liệu của chủ dự án. Git diff không còn whitespace lỗi.
+- Clear trạng thái mở sửa hồ sơ khi logout/mất phiên/nhận logout tab khác; FE lint/typecheck qua sau sửa. Cho Admin từ chối hồ sơ identity đã thu hồi để người đại diện có thể gửi lại bằng identity hợp lệ; approval vẫn bắt buộc identity active.
+- Source/API và kiểm thử đã bàn giao; 008/009 chưa áp dụng DB local. Cần backup rồi chạy hai migration trước dùng onboarding/Organizer mới; không cấp Admin thật hay chuyển tiền thật.
+
+- Bổ sung test identity applicant bị thu hồi: approval trả IDENTITY_INVALID, rejection thành công để cho gửi lại; PG integration cuối 23/23 qua (browser không chạy lại trong lượt này), cộng lượt Edge trước đã qua. TypeScript qua. Không có migration/tài khoản thật được ghi.
+
+### 2026-10-12 — Admin quản lý câu hỏi onboarding (kiểm tra cuối)
+
+- Chủ dự án chốt bốn trường lõi bắt buộc, Admin quản lý câu bổ sung. Code quyền onboarding.manage/Admin, immutable questionnaire versions, stale409/idempotency/audit, server validation trước grant role. Custom answers private trong Users; preferences/follows không sao chép.
+- Metadata DB local read-only46 bảng và không bảng cấu hình câu hỏi tương đương. Migration010 thêm questionnaire lifecycle table + User answers/FK; canonical fresh47 bảng. Chưa apply008/009/010, không cấp Admin thật.
+- FE /admin/onboarding thêm/bỏ/required/reorder/labels và TEXT/SINGLE_CHOICE/MULTI_CHOICE; đăng ký render bộ câu hỏi động và không cho skip câu bắt buộc. Tài khoản đã hoàn tất giữ phiên bản/câu trả lời, không regrant role.
+- BE lint/typecheck và86 unit/HTTP/architecture/config qua; PG fresh/upgrade007–010 có seed qua. Integration24 ca + Edge1 qua (25/25): Admin fixture thêm required question trên UI → Customer trả lời → purchase3 vé/callback giả/check-in/admission. Kiểm tra denied Customer publishing, core keys, invalid/missing answers, stale và old answers/idempotency. FE lint/typecheck/build qua sau tách schema khỏi component cho Fast Refresh. Chưa thử Admin thật, tiền thật hoặc mọi kiểu câu hỏi trên browser.
+
+- Kiểm tra cuối: BE toàn bộ check (secret guard/lint/typecheck/86 tests/build/format) qua, FE lint/typecheck/build/format qua. PG/Edge25/25 qua, gồm Admin thêm required question qua UI và Customer trả lời thật trong browser trước purchase. Source/DDL/seed/API/ADR/ERD đã đồng bộ; không tự apply010 hoặc cấp Admin thật. Cấu hình lưu nguyên trạng không tạo thêm version. Dọn dist/PG/Edge do kiểm thử tạo trước bàn giao.
+
+- PG integration cuối24/24 qua (browser skip ở lượt no-op); no-op publish giữ version đã kiểm chứng, Edge trước25/25 qua. Đã dọn BE/Fe dist, PG/profile browser riêng; BE/tmp rỗng, diff không lỗi whitespace. DB thật vẫn không thay đổi.
+
+### 2026-10-12 — Rà soát bảng trùng/thừa sau onboarding
+
+- Audit READ ONLY metadata/FK/count/code: local46 bảng, canonical47; chỉ source-only onboarding_questionnaires chưa apply010, không bảng ngoài schema hoặc CREATE trùng. Không hai bảng có toàn bộ danh sách cột giống nhau; kiểm tra cấu trúc không thay đánh giá vòng đời.
+- OrganizationProfiles/EventPublications là ứng viên gộp1:1 để đơn giản hóa; ReasonNotice có state riêng sau expiry nên ít ưu tiên. Không DROP bảng đang có12 profiles/13 publications,13 ảnh catalog chỉ nằm trong publication (event cover NULL).
+- Refunds/support_reports đều0 hàng và chưa có repository nghiệp vụ, nhưng được đặc tả/FK/query mẫu dùng. Quota là hàng khóa, session/refresh/hold/item/ticket/webhook/outbox có vòng đời riêng. Questionnaire dùng chung nhiều User; answers đã trên Users. Báo cáo đầy đủ Docs/36.
+- Không sửa code/DDL hoặc dữ liệu thật, không đổi auth/permission/worker/payment; không tạo DB/process/file kiểm thử, không chạy application tests cho audit tài liệu. Kiểm tra diff/liên kết/tổng nhóm47 bảng.
+
+### 2026-10-12 — ADR-031: gộp catalog và triển khai DB local
+
+- Chủ dự án cho phép gộp organization_profiles/event_publications vào organizations/events và apply DB. Đã cập nhật catalog/follow/recommendation/booking/ticket/approval/seed/readiness, giữ SELECT DTO công khai và deferred outbox hook. Migration011 giữ mọi field/public ID/ảnh/timestamp, EXCEPT kiểm tra trước DROP; không CASCADE, không sửa migration cũ.
+- Backup backups/before-008-011-1791740552152.dump,240612 bytes; pg_restore --list hợp lệ. Đã áp dụng008/009/010/011 trong một transaction. Lần kiểm tra đầu rollback do tên alias JS/SQL khác hoa-thường, không lưu thay đổi; sửa kiểm tra rồi COMMIT thành công.
+- DB thật45 bảng,12 public org profiles/13 publications/13 ảnh,1 questionnaire ACTIVE; hai bảng cũ không tồn tại. Row counts giữ nguyên; hash xác nhận auth sessions/refresh/identity/OTP, role assignment, booking/item/payment/receipt/ticket/check-in và audit/outbox không đổi. Không cấp Admin thật, không phát lại outbox khi copy.
+- BE86 unit/HTTP/architecture/config qua; PostgreSQL fresh/populated upgrade007–011 khớp metadata, ảnh nháp khác ảnh công bố và base timestamp giữ nguyên. PG/Edge25/25 qua: Admin fixture câu bắt buộc → onboarding → mua3 vé/payment giả → check-in/admission. FE build qua; db:check DB thật qua. Chưa thử thanh toán tiền thật.
+
+- Xác minh read-only sau COMMIT: tất cả repository catalog dùng DB thật chạy được; HTTP readiness/home/events/organizers/detail200,13 events/12 organizers và ảnh vẫn có. Server kiểm tra tạm đã đóng, pool/Redis đã đóng; không có API3000 chạy sẵn tại thời điểm kiểm tra nên không restart process của người dùng.
+
+- Kiểm tra cuối: BE check đầy đủ qua (secret guard/lint/typecheck/86 tests/build/format), FE build qua; diff không lỗi whitespace. Đã dọn BE/Fe dist do kiểm thử tạo, PG cluster/browser profile tự dọn trong finally, BE/tmp rỗng. Giữ backup đã xác minh ngoài Git; migration/seed/source/ADR/ERD/log đã cập nhật. Không cần quyết định bổ sung cho hai bảng đã gộp.
+
+### 2026-10-12 — Chuẩn bị hoàn tiền/đánh giá tổ chức/góp ý app
+
+- Chủ dự án yêu cầu cả ba chức năng. Đã đọc quy tắc, Q-004/Q-020/Docs23, giao thức khóa và metadata DB READ ONLY. Refunds/support_reports đều0 hàng, chưa có bảng feedback/rating; event_reviews là hồ sơ duyệt, không dùng làm Customer rating.
+- Dùng lại refunds; report gắn event/booking và quyền can thiệp cần giữ riêng với góp ý app. Chuẩn bị phạm vi/API đích tại Docs37, chưa thêm bảng/endpoint hoặc gọi chuyển tiền. Không sửa auth/session/provider/role, không cấp Admin thật.
+- Đã hỏi hạn refund và cách ghi nhận hoàn tiền thủ công; thời điểm/thang sao/điều kiện sửa đánh giá; mức riêng tư của góp ý app. Q-004/Q-020 còn thiếu chính sách nên phần phụ thuộc chờ trả lời; không tự coi đề xuất là được duyệt.
+- Không chạy application tests cho thay đổi tài liệu; kết nối metadata đã đóng, không tạo process/DB/file kiểm thử tạm.
+
+### 2026-10-12 — ADR-032: refund/review/app feedback BE
+
+- Chủ dự án chốt refund request24 giờ trước suất; sao1–5 sau suất/khi hủy, sửa7 ngày; review riêng tư tác giả/Organizer/Admin và góp ý app tác giả/Admin. Đã cập nhật Q-030/ADR-032/Docs37, giữ các phần compensation/hủy/USED ngoài phạm vi.
+- API refund/request/decision/result/retry/report claim/resolve và feedback/create/list/get/edit/reply/handle/moderate đã mount, Swagger30 path mới. RefundService qua RefundBookingPort/RefundPaymentPort, adapter trong module sở hữu; không SQL trong service/controller, không gọi provider trong transaction. Feedback một bảng chung và version/history, DTO không history/PII; audit có organization/report scope và trạng thái, không text/evidence.
+- Approval cancels mọi vé nguyên tử, giữ SOLD/no resale; manual SUCCESS có reference/evidence/time/actor thì payment/booking/ticket REFUNDED. Receipt sau refund giữ REFUNDED/FUNDS_AFTER_REFUND, không phát lại. Admin report scope bắt buộc và mất quyền sau resolve. Hai permission mới chỉ dictionary/mapping, không cấp UserRole Admin thật; auth/provider/lifetimes/linking/cookie/CSRF giữ nguyên.
+- DB READ ONLY trước sửa45 bảng/refunds0/reports0, chưa feedback. Backup before-012-1791805498317.dump,241990 bytes, pg_restore --list qua; apply012 transaction bảo toàn row counts/hash users/roles/credential/order/payment/ticket/check-in/audit/outbox/reports. DB46 bảng, feedback/refund chưa có dữ liệu thật.
+- BE86 unit/HTTP/architecture/config qua, PG/Edge33/33 qua: deadline/full/reject/retry/USED, approval vs admission, chứng từ concurrent, receipt sau refund, Admin assigned report/close, review uniqueness/history/7 ngày/cancelled, System privacy và HTTP auth/Origin/input. Lượt mở rộng ban đầu2 ca lỗi do fixture không reset sale window sau review; đã sửa fixture độc lập và chạy lại33/33 qua. FE build qua cho browser regression, không nối UI mới.
+- DB thật db:check qua; HTTP readiness/catalog/openapi200,13 events giữ nguyên, Swagger30 path refund/feedback/report. Endpoint riêng tư trả401 khi chưa đăng nhập. Server/pool/Redis kiểm tra tạm đã đóng; không tạo refund/feedback thật, không chuyển/hoàn tiền thật. Kiểm tra audit mới đang chạy cuối; cleanup thực hiện sau đó.
+
+- Rà soát audit cuối bổ sung organization/report FK và version/status metadata, kiểm thử xác nhận Admin refund action lưu report scope. TypeScript exactOptionalPropertyTypes đã sửa bằng optional spread. Lượt PG không browser phát hiện lỗi thật ORDER BY alias ID text khi ghế qua biên chữ số; đã đổi sang seat_hold_items.session_seat_id BIGINT và thêm regression900099/900100. Không thay auth, giá hoặc allocation policy. Bộ BE check đầy đủ86 tests và PG/Edge33 ca sau sửa đã qua; regression cố định mới đang kiểm tra cuối.
+
+- Kết quả cuối: TypeScript qua, PG/Edge34/34 qua gồm regression ID ghế900099/900100; BE check86 tests/lint/typecheck/build/format/secret guard trước đó qua, diff không lỗi whitespace. Đã dọn BE/Fe dist do kiểm thử tạo, PG/Edge tự đóng và dọn; BE/tmp rỗng. Giữ backup đã xác minh ngoài Git và source/migration/test/Docs/ERD cần thiết. DB012 đã apply, không cần chạy lại; FE refund/feedback và chuyển/hoàn tiền thật chưa kiểm thử/chưa triển khai. Không có quyết định cần hỏi thêm trong phạm vi đã chốt.

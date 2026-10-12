@@ -1,12 +1,16 @@
 # 20. Thiết kế SQL vật lý hiện hành
 
-[schema.sql](../database/schema.sql) có **46 bảng**: 38 bảng lõi, 6 bảng catalog, phone_login_aliases ADR-021, organization_follows ADR-023. Database mới dùng schema.sql; database cũ dùng migration phù hợp sau backup/review, không chạy lại schema.
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
+[schema.sql](../database/schema.sql) có **46 bảng** sau ADR-032/012: metadata công khai nằm trên organizations/events, onboarding_questionnaires giữ các phiên bản câu hỏi, feedback chứa đánh giá/góp ý; xem [36](36-schema-audit.md). Database mới dùng schema.sql; database cũ dùng migration phù hợp sau backup/review, không chạy lại schema.
 
 ## URL ảnh R2 — ADR-022, 2026-10-10
 
-Migration [003](../database/migrations/003-r2-images.sql) thêm `users.avatar_url VARCHAR(1000) NULL` và `events.cover_image_url VARCHAR(1000) NULL`. `merchandise_products.image_url` tiếp tục lưu URL. Thay đổi R2 không tạo bảng mới hoặc lưu binary/base64; schema hiện có 46 bảng sau ADR-023. Catalog ưu tiên cover của event, fallback event_publications. Luồng quyền, version và kiểm chứng tại [28](28-r2-image-upload.md). Các file sơ đồ đã bị xóa trong working tree trước đợt này; không khôi phục đè thay đổi của chủ dự án.
+Migration [003](../database/migrations/003-r2-images.sql) thêm `users.avatar_url VARCHAR(1000) NULL` và `events.cover_image_url VARCHAR(1000) NULL`. `merchandise_products.image_url` tiếp tục lưu URL. Thay đổi R2 không tạo bảng mới hoặc lưu binary/base64; schema hiện có46 bảng sau ADR-032. Catalog ưu tiên events.cover_image_url, fallback events.publication_cover_image_url. Luồng quyền, version và kiểm chứng tại [28](28-r2-image-upload.md). Các file sơ đồ đã bị xóa trong working tree trước đợt này; không khôi phục đè thay đổi của chủ dự án.
 
 ## Bản đồ bảng
+
+ADR-031/011: metadata công khai đã gộp vào organizations/events. Unique public IDs/ranks giữ trên bảng cha; nhóm nullable trước công bố có CHECK không cho thiếu field. Giữ ảnh nháp/ảnh công bố và timestamps cũ. Deferred outbox trigger theo status/published_at trên events, dedupe nguyên trạng. Local/fresh45 bảng; ERD và bằng chứng [36](36-schema-audit.md).
 
 ADR-023/024: users.gender/date_of_birth private; events.minimum_age và ageTag tính từ minimum_age ở query/DTO. organization_follows PK(user_id,organization_id), preference/timestamp; notifications thêm event_id nullable, unique recipient/type/event và CHECK giữ review_id cho loại review. booking_items dùng lại attendee_name_snapshot, thêm DOB/SĐT người tham dự, CCCD AES-GCM/MAC/last four nullable cùng purge marker, actor/time đối chiếu. Migration 004/005/006 và ERD phần bổ sung tại [29](29-profile-follow-age-attendees.md); không khôi phục các sơ đồ đã bị chủ dự án xóa.
 
@@ -90,3 +94,11 @@ Schema mới 45 bảng. EMAIL identity có subject=email_canonical đã xác min
 ADR-024: migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](30-schema-consolidation.md).
 
 ADR-027 / migration 007: payments thêm checkout_url (nullable), received_minor (BIGINT nonnegative mặc định 0, số tiền thực nhận độc lập expected amount_minor) và last_polled_at (nullable); index phục hồi polling. Reuse payments/payment_webhooks/outbox/tickets/check_ins, không thêm bảng. Chi tiết và kiểm chứng local/fresh/upgrade ở [32](32-payos-booking-ticket-flow.md).
+
+ADR-029: migration008 thêm registration_role/onboarding_completed_at/favorite_categories/preferred_city vào Users, rename Organization contact/applicant và Membership member identity metadata, thêm PENDING. Migration009 thêm event_sessions.pricing_config nullable JSON array để lưu draft pricing; approval tạo SessionSeat trong transaction. Không bảng mới, không copy lịch sử giao dịch; ERD bổ sung tại Docs/08. DB local chưa chạy008/009, fresh/upgrade có seed đã kiểm chứng.
+
+Migration010: questionnaire table dùng UNIQUE partial status ACTIVE; User FK giữ version đã trả lời, JSON answers chỉ custom. Publish archive/insert/audit/idempotency trong một transaction; onboarding khóa SHARE version trước role grant. Fresh/upgrade có dữ liệu qua, không thay DB local. Docs/35.
+
+## Hoàn tiền/feedback — ADR-032/012
+
+Refunds dùng lại, thêm version/decision/evidence/recording fields. Một bảng feedback chung ORGANIZATION/SYSTEM, CHECK target/status/stars/reply/history, FK event/org, unique author/event, index theo author/org/admin. History là dữ liệu phiên bản trên cùng entity, không đưa vào DTO/audit text. SupportReports giữ scope event/booking và chỉ report đang được giao mới cho Admin can thiệp refund. Schema/local46 bảng; ERD phần bổ sung và API [37](37-refunds-reviews-app-feedback.md).

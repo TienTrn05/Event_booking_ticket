@@ -24,17 +24,15 @@ export const contentRepository: Pick<
   async listMerchandise() {
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogMerchandise>>(`
-        SELECT mp.public_id AS id, ep.public_id AS "eventId", e.title AS "eventTitle",
+        SELECT mp.public_id AS id, e.public_id AS "eventId", e.title AS "eventTitle",
           mp.name, mp.description, mp.image_url AS image, mp.price_minor AS price,
-          mp.currency, o.name AS organizer, op.public_id AS "organizerId",
+          mp.currency, o.name AS organizer, o.public_id AS "organizerId",
           mp.badge, mp.requires_ticket AS "requiresTicket"
         FROM merchandise_products mp
         JOIN events e ON e.id = mp.event_id
-        JOIN event_publications ep ON ep.event_id = e.id
         JOIN organizations o ON o.id = mp.organization_id
-        JOIN organization_profiles op ON op.organization_id = o.id
         WHERE mp.status = 'PUBLISHED' AND e.status = 'PUBLISHED'
-          AND ep.published_at <= CURRENT_TIMESTAMP
+          AND e.published_at <= CURRENT_TIMESTAMP
         ORDER BY mp.sort_order, mp.id
       `);
       return rows.map(mapMerchandise);

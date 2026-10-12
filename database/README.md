@@ -95,3 +95,21 @@ DB đang có 44 bảng: backup/review rồi chạy migrations/002-email-otp.sql 
 ADR-024: migration [006](migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](../Docs/30-schema-consolidation.md).
 
 Migration [007](migrations/007-payos-payment.sql) thêm ba cột vào payments, không thêm bảng. DB local đã backup/review và áp dụng; schema vẫn 46 bảng. Schema fresh và upgrade đã kiểm chứng khớp; xem [Docs/32](../Docs/32-payos-booking-ticket-flow.md). Không chạy lại 007 khi schema đã có cột.
+
+## Onboarding và cấu hình event — migration 008/009
+
+DB đã có 007: backup trước, chạy [008](migrations/008-registration-onboarding.sql), rồi [009](migrations/009-session-pricing-config.sql) trên đúng DB. Không chạy lại khi đã có cột. DB rỗng dùng schema.sql + seed, không chạy các migration bổ sung. Schema giữ 46 bảng; migration giữ user/identity/role/lịch sử và metadata tổ chức. [Chi tiết](../Docs/33-registration-onboarding.md), [review/inventory](../Docs/34-organizer-event-api.md).
+
+Sau008/009, backup/review rồi chạy [010](migrations/010-admin-onboarding-questions.sql) để Admin cấu hình câu hỏi và FE render động. Fresh schema đã gồm010; không chạy lại migration. Hiện local/fresh45 bảng sau áp dụng008–011 theo yêu cầu chủ dự án (ADR-031). Xem [Docs35](../Docs/35-admin-onboarding-questions.md).
+
+## Gộp metadata catalog — migration011 / ADR-031
+
+Đã áp dụng008/009/010/011 trên DB local theo yêu cầu chủ dự án, sau backup đã kiểm tra. DB local và fresh đều45 bảng. Không chạy lại các migration này trên DB đã nâng cấp; DB rỗng chỉ dùng schema.sql và seed hiện hành.
+
+[011](migrations/011-merge-catalog-metadata.sql) copy toàn bộ profile/publication/public IDs/ảnh/timestamp vào organizations/events, kiểm tra bằng EXCEPT rồi DROP hai bảng extension, không CASCADE. Giữ ảnh nháp khác ảnh công bố; thay deferred outbox trigger, không phát lại thông báo cũ. Giữ identity/role assignment/đơn/tiền/vé. Backup trước008–011 nằm ở backups/before-008-011-1791740552152.dump (ngoài Git); khôi phục cùng release app cũ trên DB riêng nếu cần. Không chạy schema.sql lên DB đang có dữ liệu.
+
+Fresh + upgrade có seed và PG/Edge25 ca đã qua. Fixture catalog-before-011.sql chỉ dùng kiểm thử upgrade, không dùng để seed DB hiện hành. Xem [Docs36](../Docs/36-schema-audit.md).
+
+## Hoàn tiền/feedback — migration012
+
+Đã backup trước012 và áp dụng DB local; hiện46 bảng, không chạy lại012. DB rỗng dùng schema.sql + seed. [012](migrations/012-refunds-feedback.sql) dùng refunds/reports có sẵn, thêm evidence/version và một feedback chung hai target. Không bịa chứng từ cho SUCCESS refund cũ thiếu bằng chứng; kiểm tra dữ liệu lịch sử trước nâng DB khác. Backup local backups/before-012-1791805498317.dump được xác minh pg_restore --list. Khôi phục bằng backup trên DB riêng và release trước012 khi cần; không xóa giao dịch mới để rollback. [37](../Docs/37-refunds-reviews-app-feedback.md).

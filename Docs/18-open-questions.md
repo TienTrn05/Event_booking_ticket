@@ -11,7 +11,7 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 | Q-001 | RESOLVED | Hold 5 phút, checkout không gia hạn; giờ DB dưới khóa phân xử, bằng deadline là hết hạn; tiền muộn đối soát | Không grace period |
 | Q-002 | RESOLVED | 6 ghế/booking; một phân bổ chưa kết thúc/user/session; không gia hạn | Quota gồm ACTIVE hold và CONVERTED có booking AWAITING_PAYMENT còn hạn, khóa trước Event để không né quota bằng checkout |
 | Q-003 | PARTIALLY RESOLVED | Một currency, snapshot giá lúc hold; MVP vé trả tiền, không phí/discount/miễn phí | Chưa chọn currency cụ thể; giá/loại vé do Organizer cấu hình |
-| Q-004 | PARTIALLY RESOLVED | Giữ full refund mock, vé chưa USED, không resale; Organizer duyệt bình thường, Admin theo report | Deadline refund và tự động compensation còn mở; self check-in chưa là USED nên không tự làm mất quyền refund |
+| Q-004 | PARTIALLY RESOLVED | ADR-032: full refund thủ công, yêu cầu ít nhất24 giờ trước suất, vé chưa USED, không resale; Organizer duyệt, Admin theo report | Tự động compensation/hủy/vé USED còn mở; self check-in chưa là USED nên không tự làm mất quyền refund |
 | Q-005 | RESOLVED | Organizer là tổ chức, email công ty đã xác minh, Admin duyệt role; quyền quản lý thường xuyên thuộc Organizer; Admin duyệt role/event và can thiệp theo report | Bootstrap Admin ngoài đăng ký công khai; membership ràng buộc tổ chức, không dùng chung mật khẩu |
 | Q-006 | PARTIALLY RESOLVED | Customer dùng Google PKCE hoặc nhập email/SĐT + OTP email. Ngày 2026-10-09 chủ dự án chọn SMTP Gmail App Password, dùng chung User qua liên kết tường minh, không tự gộp email; SĐT là alias chưa xác minh. Organizer vẫn cần mail công ty; access 10 phút, refresh 7 ngày tuyệt đối/thiết bị | Customer không dùng SMS; cấu hình SMTP Gmail ngoài Git trước khi gửi thật. Email công ty, giới hạn thiết bị, MFA Admin và vận hành production còn mở. Xem ADR-021 và Docs/27 |
 | Q-007 | RESOLVED | Một session/booking, đăng nhập trước mua; người mua sở hữu đơn/vé, tên người tham dự riêng mỗi vé; không guest checkout/chuyển nhượng | Không yêu cầu tài khoản cho từng người đi cùng |
@@ -72,3 +72,19 @@ Khi chốt phần còn mở, giữ Q ID, ghi người/ngày/đáp án và cập 
 ### Q-026 — Kênh payOS và tiền đến muộn — RESOLVED 2026-10-11
 
 Chủ dự án chọn một kênh BE/.env cho toàn hệ thống, VND, ghi nhận doanh thu theo Organizer qua quan hệ payment/booking/event. Tiền muộn đối soát, không hồi sinh ghế/vé, chưa tự split/payout/refund. ADR-027 và [32](32-payos-booking-ticket-flow.md). Không mở rộng distributed system.
+
+### Q-027 — Đăng ký cá nhân và Organizer — RESOLVED 2026-10-11
+
+Chủ dự án chọn tạo nháp ngay, Admin duyệt tổ chức và sự kiện trước mở bán; Organizer và Customer riêng, bật Customer sau; chọn Organizer đã duyệt để theo dõi. Bốn trường role/displayName/gender/DOB bắt buộc; sở thích/city/follow optional. Không AI. ADR-029 thay yêu cầu company domain trong phạm vi này.
+
+### Q-028 — Admin quản lý câu hỏi — RESOLVED 2026-10-12
+
+Chủ dự án chọn giữ role/displayName/gender/DOB bắt buộc; Admin quản lý câu bổ sung, thêm/bỏ và required. Phiên bản mới áp dụng lượt đăng ký chưa hoàn tất; giữ câu trả lời cũ. ADR-030/Docs35; không tự cấp Admin thật.
+
+### Q-029 — Gộp catalog extensions và triển khai DB — RESOLVED 2026-10-12
+
+Chủ dự án yêu cầu gộp hai bảng1:1 được đề xuất ở Docs36 và áp dụng DB thật. ADR-031/migration011 đã thực hiện, cùng008–010 còn thiếu sau backup. Không gộp reason_notices hoặc bỏ bảng quota/lịch sử giao dịch.
+
+### Q-030 — Hoàn tiền, đánh giá tổ chức và góp ý web — RESOLVED cho phạm vi MVP 2026-10-12
+
+Chủ dự án chọn hạn yêu cầu refund24 giờ trước suất; hoàn toàn bộ chưa USED, Organizer duyệt/Admin theo report, chuyển tiền thủ công và ghi nhận chứng từ, không resale. Review tổ chức1–5 sao chỉ người đã mua sau suất/khi hủy, sửa7 ngày, một người/sự kiện; người gửi/Organizer đúng tổ chức/Admin xem, không public. Góp ý app mọi tài khoản đăng nhập được gửi, người gửi/Admin xem, sao optional; không ảnh hưởng tổ chức. ADR-032/Docs37. Q-004 vẫn mở compensation/vé USED/hủy; Q-020 còn cơ chế khiếu nại kiểm duyệt chi tiết, không chặn phạm vi đã chốt này.

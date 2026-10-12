@@ -1,5 +1,7 @@
 # payOS, thông tin từng vé và vào cửa
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 Quyết định chủ dự án ngày 2026-10-11: một kênh payOS trong BE/.env cho toàn hệ thống, VND; doanh thu truy về Organizer qua payment → booking → event → organization. Không tự chia tiền, chi trả hoặc hoàn tiền. Tiền đến muộn cần đối soát, không hồi sinh đơn/ghế/vé. Modular Monolith một API theo ADR-025.
 
 ## Trách nhiệm

@@ -12,8 +12,12 @@ import { assertSale } from '../shared/booking.policy.js';
 import { BookingPaymentRepository } from './booking-payment.repository.js';
 export class BookingPaymentAdapter implements BookingPaymentPort {
   constructor(private readonly repository = new BookingPaymentRepository()) {}
-  authorize(db: PoolClient, actor: RequestActor) {
-    return repo.requireBuyer(db, actor, 'booking.create');
+  authorize(
+    db: PoolClient,
+    actor: RequestActor,
+    permission: 'booking.create' | 'booking.read_self' = 'booking.create',
+  ) {
+    return repo.requireBuyer(db, actor, permission);
   }
   async lock(db: PoolClient, id: string, ownerId?: string): Promise<LockedPurchase> {
     const meta = await this.repository.lookup(db, id, ownerId);

@@ -141,8 +141,6 @@ export async function verifyOtp(
     let userId = existing?.user_id ?? linkedActor?.userId;
     if (!userId) {
       const created = await authRepository.createEmailUser(db);
-      if (!created.roleAdded)
-        throw new AppError(503, 'AUTH_UNAVAILABLE', 'Chưa nạp dữ liệu quyền.');
       userId = created.userId;
     }
     const identityId =

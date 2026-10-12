@@ -148,6 +148,8 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 
 ## ADR-016 — Customer/Organizer chung frontend, Admin tách frontend
 
+**Superseded trong phần hai frontend bởi ADR-028 ngày 2026-10-11; dùng một Fe/ với ba khu vực.**
+
 - **Trạng thái:** đã xác định theo yêu cầu chủ dự án ngày 2026-09-23.
 - **Bối cảnh:** Customer cần trải nghiệm public/mua vé; Organizer dùng cùng tài khoản và nền tảng nhưng cần workspace quản lý sự kiện chuyên biệt. Admin có phạm vi vận hành, dữ liệu và rủi ro khác, cần giao diện và bề mặt triển khai riêng. Cả ba vai trò vẫn dùng cùng nghiệp vụ backend.
 - **Quyết định:** `Fe/` là một ứng dụng/server cho Guest, Customer và Organizer. Organizer có `OrganizerLayout` và route riêng trong `Fe/`; không tạo frontend Organizer độc lập. `AdminFe/` là ứng dụng/build/server/origin độc lập và không nằm trong bundle `Fe/`. Cả hai frontend gọi duy nhất `BE/` qua `/api/v1`; backend/worker/PostgreSQL vẫn là modular monolith và nguồn sự thật chung.
@@ -250,3 +252,40 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - PaymentService qua các port/gateway/issuer; Booking sở hữu allocation, Tickets sở hữu mã/entry. Constructor injection; SQL ở repository. Provider network ngoài transaction, dùng outbox/inbox đã có. Không thêm bảng/framework/broker/load balancer hoặc thay auth.
 - Giá/đơn/owner/attendee/tuổi do BE xác minh. Chỉ nhận đủ đúng tiền khi đơn còn hạn mới phát vé cùng transaction confirmation. Callback trùng/idempotency không phát lại; thiếu/dư/muộn/đơn không khả dụng ghi đối soát. Không tự split/payout/refund.
 - Check-in giữ VALID; admission đúng company/org/permission/cửa sổ và giấy tờ thật mới USED một lần. Key QR AES-GCM độc lập, không PII trong QR. Xem [32](32-payos-booking-ticket-flow.md).
+
+## ADR-028 — Một FE với ba khu vực (2026-10-11)
+
+- Accepted theo chấp thuận trực tiếp của chủ dự án: dùng một ứng dụng Fe/, Customer ở /, Organizer /organizer/*, Admin /admin/*, layout riêng và lazy chunks. Thay phần hai frontend server của ADR-016; không tạo AdminFe/.
+- BE vẫn một Modular Monolith/API, kiểm tra role/permission/ownership; router/layout chỉ UX, không là ranh giới quyền. BE được ưu tiên, chưa dựng dashboard FE trong bước này.
+
+## ADR-029 — Vai trò lúc onboarding, hồ sơ bắt buộc và gợi ý theo quy tắc (2026-10-11)
+
+- **Accepted, chủ dự án quyết định.** Cơ chế email công ty của ADR-013/014/023 được thay trong phạm vi đăng ký/quyền Organizer; xác minh Google PKCE/email OTP, liên kết identity, JWT 10 phút, refresh 7 ngày/rotation, cookie, Origin/CSRF giữ nguyên.
+- Tài khoản mới sau xác minh chưa có vai trò nghiệp vụ. Onboarding chọn CUSTOMER hoặc ORGANIZER; displayName/gender/DOB bắt buộc, có UNDISCLOSED cho giới tính. Chỉ allowlist hai vai trò, không tự đăng ký Admin. Organizer không nhận Customer; bật Customer qua hành động riêng, không tự chuyển vai trò qua PATCH profile.
+- Organizer tạo Organization + membership PENDING và sự kiện nháp ngay. Admin vẫn duyệt Organization/membership và review event trước publication/inventory/check-in. Không lấy quyền từ email/domain hoặc frontend. Không cấp Admin thật, chỉ fixture trên PostgreSQL tạm.
+- Dùng users hiện có cho registration_role/completion/preferences; không thêm bảng onboarding. Rename metadata company → applicant/member/contact để dùng personal EMAIL/GOOGLE, giữ identity FK và lịch sử; không tự merge hoặc xóa identity/role/giao dịch trong migration.
+- Tài khoản cũ cần hoàn tất lựa chọn. Chọn Organizer chỉ bỏ vai trò Customer mặc định cũ granted_by NULL, giữ vai trò cấp tường minh/lịch sử; từ chối khi còn lượt hold/đơn chờ tiền hiệu lực. Bật Customer sau là hành động rõ ràng.
+- Category/city/approved Organizer follow tùy chọn; follow notification dành cho Customer, Organizer theo dõi chỉ phục vụ sở thích. Gợi ý RULES_V1: followed +40, category +30, city +20, sắp diễn ra +0..20, popularity +0..10; mỗi vị trí thứ tư lấy khám phá, không trùng/past/unpublished. Không AI/ML.
+- Trade-off: onboarding cần migration/hồ sơ trước lượt mua mới; quyền Organizer đăng ký không đồng nghĩa được mở bán. Metadata role/preference riêng với role grants và snapshot attendee/ticket. Chi tiết ở Docs/33 và Docs/34.
+
+## ADR-030 — Câu hỏi bổ sung do Admin quản lý (2026-10-12)
+
+- Accepted theo chủ dự án: giữ bốn trường lõi bắt buộc, Admin thêm/bỏ/sắp xếp/sửa nhãn/required câu bổ sung. Quyền onboarding.manage chỉ ADMIN; không gán quyền từ câu trả lời custom.
+- Bộ câu hỏi xuất bản có phiên bản bất biến, một ACTIVE; Admin dùng optimistic questionnaireId và idempotency, audit metadata. Người chưa hoàn tất phải gửi phiên bản hiện hành, mismatch trả409 trước role grant. Người đã hoàn tất giữ phiên bản/câu trả lời, không bị ép onboarding lại.
+- DB local metadata46 bảng, không có bảng cấu hình form phù hợp. Thêm onboarding_questionnaires cho vòng đời dùng chung/archived độc lập User; custom answers và FK nằm trong Users, không bảng answers1:1 và không copy category/city/follow. Migration010, fresh47 bảng, local chưa apply.
+- Trade-off: thêm một thực thể cấu hình/lịch sử và kiểm tra version, tránh câu trả lời đổi nghĩa hoặc mất dữ liệu khi Admin bỏ câu hỏi. Không AI/distributed changes; auth/ticket/payment không đổi. Chi tiết Docs/35.
+
+### ADR-031 — Gộp hai extension catalog vào bảng cha — ACCEPTED 2026-10-12
+
+- **Chủ dự án:** yêu cầu gộp và áp dụng ngay DB sau báo cáo36.
+- **Quyết định:** organization_profiles → organizations; event_publications → events. Hai quan hệ0..1 không có lịch sử nhiều phiên bản riêng. Metadata công khai nullable nhưng CHECK nguyên bộ; giữ unique public IDs/ranks, ảnh nháp và ảnh công bố/timestamp riêng. DTO công khai vẫn chỉ SELECT field được phép.
+- **Thực hiện:** migration011 transactional/lock/copy/EXCEPT/DROP không CASCADE, giữ dữ liệu/FK và deferred outbox hook. Không sửa migration đã áp dụng; schema/seed/query/readiness đã cập nhật. Apply008–011 DB local sau backup, không cấp Admin thật.
+- **Bằng chứng:** DB local/fresh45 bảng,12 profile/13 publication/ảnh được giữ; hash lịch sử credential/role assignment/tiền/vé/audit/outbox không đổi. Fresh/populated upgrade khớp; PG/Edge25 ca qua. Hoàn tác bằng backup + app release tương ứng, không drop lịch sử mới để rollback. Không mở rộng distributed system.
+
+### ADR-032 — Hoàn tiền thủ công và feedback riêng tư — ACCEPTED 2026-10-12
+
+- **Chủ dự án:** chốt yêu cầu trước suất ít nhất24 giờ; sao1–5 sau suất/khi hủy, sửa7 ngày; đánh giá tổ chức cho người gửi/Organizer/Admin, góp ý web cho người gửi/Admin.
+- **Quyết định:** full refund chưa USED, Organizer duyệt; Admin phải report đang được giao đúng booking/event. Duyệt thu hồi vé nguyên tử; kết quả chuyển tiền ghi thủ công có reference/evidence/time/actor, không gọi payOS refund. Không resale hoặc hồi sinh vé khi thất bại. Receipt sau refund giữ REFUNDED và đối soát.
+- **Dữ liệu:** dùng lại refunds/support_reports; một feedback chung SYSTEM/ORGANIZATION với CHECK/FK/unique và history/version. Không tái dùng event_reviews (hồ sơ duyệt) hoặc biến góp ý app thành report cấp quyền giao dịch. Private DTO/audit metadata, không public review hoặc tự tính uy tín để duyệt tổ chức.
+- **Kiến trúc:** RefundService phụ thuộc booking/payment ports và adapter trong module sở hữu; PostgreSQL transaction theo giao thức khóa, idempotency hiện có. Monolith, không broker/hạ tầng/auth provider mới.
+- **Triển khai:** migration012 đã áp dụng DB local sau backup và kiểm thử fresh/populated upgrade;46 bảng. Không cấp Admin thật hoặc chuyển/hoàn tiền thật. FE mới chưa nối. [Hợp đồng và bằng chứng](37-refunds-reviews-app-feedback.md).

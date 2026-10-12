@@ -7,10 +7,15 @@ import { mediaPaths } from './modules/media/openapi/media.openapi.js';
 import { featurePaths } from './modules/notifications/openapi/notifications.openapi.js';
 import { attendeePaths } from './modules/tickets/attendees/attendee.openapi.js';
 import { usersPaths } from './modules/users/openapi/users.openapi.js';
+import { onboardingPaths } from './modules/users/onboarding/onboarding.openapi.js';
+import { eventManagementPaths } from './modules/events/management/event-management.openapi.js';
+import { organizationPaths } from './modules/organizations/http/organization.openapi.js';
 import { usersSchemas } from './modules/users/openapi/users.openapi.schemas.js';
 import { systemPaths } from './shared/openapi/system.openapi.js';
 import { systemSchemas } from './shared/openapi/system.openapi.schemas.js';
 import { paymentPaths, ticketPaths } from './modules/payments/payment.openapi.js';
+import { refundPaths } from './modules/refunds/refund.openapi.js';
+import { feedbackPaths } from './modules/feedback/feedback.openapi.js';
 
 export const openApiDocument = {
   openapi: '3.0.3',
@@ -18,10 +23,14 @@ export const openApiDocument = {
     title: 'Event Ticketing API',
     version: '0.1.0',
     description:
-      'Catalog, auth Customer, booking, payOS và phát vé. Nhân viên kiểm tra vé cần phiên công ty và quyền trong đúng tổ chức.',
+      'Catalog, auth Customer, booking, payOS và phát vé. Nhân viên kiểm tra vé cần phiên Organizer và quyền trong đúng tổ chức.',
   },
   servers: [{ url: '/api/v1', description: 'Cùng origin với Public Web' }],
   tags: [
+    { name: 'Refund', description: 'Hoàn toàn bộ thủ công, thu hồi vé và report scope.' },
+    { name: 'Feedback', description: 'Đánh giá tổ chức và góp ý app riêng tư.' },
+    { name: 'Organizer', description: 'Tổ chức và sự kiện nháp theo onboarding.' },
+    { name: 'Admin', description: 'Duyệt tổ chức và sự kiện trước mở bán.' },
     { name: 'Booking', description: 'Giữ ghế, tạo/hủy đơn.' },
     {
       name: 'Payment',
@@ -48,6 +57,11 @@ export const openApiDocument = {
     },
   ],
   paths: {
+    ...refundPaths,
+    ...feedbackPaths,
+    ...onboardingPaths,
+    ...eventManagementPaths,
+    ...organizationPaths,
     ...paymentPaths,
     ...ticketPaths,
     ...featurePaths,

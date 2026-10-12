@@ -148,3 +148,5 @@ Không commit .env, token, khóa bí mật hoặc thông tin kết nối thật.
 - [Lộ trình](Docs/16-roadmap.md) · [Quyết định còn mở](Docs/18-open-questions.md)
 
 Auth Customer ADR-021: Google hoặc email/SĐT + OTP email SMTP Gmail; dùng chung User sau liên kết tường minh, SĐT alias chưa xác minh. DB cũ cần migration 002. Xem [cấu hình/test](Docs/27-email-otp-setup.md); email công ty/Organizer vẫn chưa triển khai.
+
+Onboarding hiện hành theo [ADR-029](Docs/17-architecture-decisions.md): chọn Customer hoặc Organizer bằng Google/email cá nhân, nhập tên/giới tính/ngày sinh; sở thích/thành phố/theo dõi tùy chọn. Organizer tạo nháp trước khi duyệt, bật Customer sau nếu muốn mua vé. [Hợp đồng đăng ký](Docs/33-registration-onboarding.md), [API Organizer/Admin](Docs/34-organizer-event-api.md). Mô tả email công ty ở các đoạn cũ đã được thay.

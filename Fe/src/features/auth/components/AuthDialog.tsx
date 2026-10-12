@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Mail, Phone, Ticket, X } from 'lucide-react';
@@ -7,6 +7,9 @@ import type { AuthIntent } from '../context/AuthDialogContext';
 import { ApiError, apiRequest } from '../../../shared/api/client';
 import { z } from 'zod';
 import { AvatarUpload } from '../../media/components/AvatarUpload';
+const ProfileOnboarding = lazy(() =>
+  import('./ProfileOnboarding').then((module) => ({ default: module.ProfileOnboarding })),
+);
 
 type AuthMode = 'login' | 'register';
 const methodsSchema = z.object({
@@ -30,7 +33,7 @@ const contextCopy: Record<AuthIntent, string> = {
   register: 'Tạo tài khoản để lưu vé và theo dõi những sự kiện bạn yêu thích.',
   tickets: 'Đăng nhập để xem vé và đơn hàng của bạn.',
   organizer:
-    'Dùng email công ty để đăng ký tổ chức. Tài khoản cần được Admin duyệt trước khi quản lý sự kiện.',
+    'Đăng nhập Google hoặc email cá nhân, rồi chọn vai trò Nhà tổ chức. Admin duyệt trước khi mở bán.',
   checkout: 'Đăng nhập trước khi giữ chỗ hoặc mua vé.',
   account: 'Quản lý phương thức đăng nhập của tài khoản.',
 };
@@ -49,6 +52,8 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; displayName: string } | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileRevision, setProfileRevision] = useState(0);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [localDialog, setLocalDialog] = useState<{
@@ -179,6 +184,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
               sessionEpoch.current++;
               setAccessToken(null);
               setUser(null);
+              setProfileEditing(false);
               setMethods(null);
             });
           },
@@ -200,6 +206,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
         sessionEpoch.current++;
         setAccessToken(null);
         setUser(null);
+        setProfileEditing(false);
         setMethods(null);
       }
     };
@@ -385,6 +392,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
       sessionEpoch.current++;
       setAccessToken(null);
       setUser(null);
+      setProfileEditing(false);
       setMethods(null);
       logoutChannel.current?.postMessage('logout');
     } catch {
@@ -426,8 +434,23 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
   }, [intent, closeAuth]);
 
   return (
-    <AuthDialogContext.Provider value={{ openAuth, user, accessToken, logout }}>
+    <AuthDialogContext.Provider value={{ openAuth, user, accessToken, logout, profileRevision }}>
       {children}
+      {user && accessToken && (
+        <Suspense fallback={null}>
+          <ProfileOnboarding
+            key={user.id}
+            token={accessToken}
+            editing={profileEditing}
+            onLogout={logout}
+            onClose={() => setProfileEditing(false)}
+            onSaved={(displayName) => {
+              setUser((current) => (current ? { ...current, displayName } : null));
+              setProfileRevision((revision) => revision + 1);
+            }}
+          />
+        </Suspense>
+      )}
       {intent && (
         <div
           className="auth-overlay"
@@ -484,7 +507,18 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
               </p>
             )}
             {user && accessToken && intent === 'account' && !challenge && (
-              <AvatarUpload key={user.id} accessToken={accessToken} />
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeAuth();
+                    setProfileEditing(true);
+                  }}
+                >
+                  Sửa hồ sơ, sở thích và vai trò
+                </button>
+                <AvatarUpload key={user.id} accessToken={accessToken} />
+              </>
             )}
             {!user && !challenge && intent !== 'organizer' && (
               <div className="auth-tabs" role="tablist" aria-label="Tài khoản">

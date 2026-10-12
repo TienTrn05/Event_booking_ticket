@@ -1,10 +1,16 @@
 import { expireBatch } from '../modules/bookings/allocation/allocation.service.js';
 import { runWorker } from '../shared/workers/run-worker.js';
 import { createCommerceServices } from '../startup/payment.dependencies.js';
+import { EventManagementService } from '../modules/events/management/event-management.service.js';
 const commerce = createCommerceServices();
 
 await runWorker(
   [
+    {
+      run: () => new EventManagementService().expire(),
+      failureCode: 'REVIEW_EXPIRY_FAILED',
+      failureMessage: 'Review expiry will retry.',
+    },
     {
       run: async () => (await expireBatch()) === 100,
       failureCode: 'BOOKING_EXPIRY_FAILED',

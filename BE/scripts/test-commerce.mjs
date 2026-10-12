@@ -70,8 +70,88 @@ try {
     'validation_upgrade',
     await readFile(resolve(root, '../database/migrations/007-payos-payment.sql'), 'utf8'),
   );
+  for (const file of ['001-reference-data.sql', '002-public-catalog.sql']) {
+    const seed = await readFile(
+      resolve(
+        root,
+        file === '002-public-catalog.sql'
+          ? 'tests/fixtures/catalog-before-011.sql'
+          : '../database/seeds/001-reference-data.sql',
+      ),
+      'utf8',
+    );
+    await load(
+      'validation_upgrade',
+      seed
+        .replaceAll('contact_domain', 'company_domain')
+        .replaceAll('applicant_identity_id', 'company_identity_id')
+        .replaceAll('applicant_identity_provider', 'company_identity_provider')
+        .replaceAll('member_identity_id', 'company_identity_id')
+        .replaceAll('member_identity_provider', 'company_identity_provider'),
+    );
+  }
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/008-registration-onboarding.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/009-session-pricing-config.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(
+      resolve(root, '../database/migrations/010-admin-onboarding-questions.sql'),
+      'utf8',
+    ),
+  );
+  const upgrade = new pg.Client({
+    host: '127.0.0.1',
+    port,
+    user: 'validation_fixture',
+    database: 'validation_upgrade',
+  });
+  try {
+    await upgrade.connect();
+    await upgrade.query(
+      "UPDATE events SET cover_image_url='https://fixture.invalid/draft-cover.png' WHERE id=905001",
+    );
+    const before = (
+      await upgrade.query(
+        'SELECT (SELECT count(*) FROM outbox_messages)::int AS messages,(SELECT updated_at FROM events WHERE id=905001) AS updated_at',
+      )
+    ).rows[0];
+    await upgrade.query(
+      await readFile(
+        resolve(root, '../database/migrations/011-merge-catalog-metadata.sql'),
+        'utf8',
+      ),
+    );
+    const after = (
+      await upgrade.query(
+        "SELECT (SELECT count(*) FROM outbox_messages)::int AS messages,(SELECT updated_at FROM events WHERE id=905001) AS updated_at,(SELECT count(*) FROM organizations WHERE public_id IS NOT NULL)::int AS profiles,(SELECT count(*) FROM events WHERE public_id IS NOT NULL)::int AS publications,(SELECT count(*) FROM events WHERE publication_cover_image_url IS NOT NULL)::int AS covers,(SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE')::int AS tables,to_regclass('public.organization_profiles') IS NULL AND to_regclass('public.event_publications') IS NULL AS removed,(SELECT cover_image_url<>publication_cover_image_url FROM events WHERE id=905001) AS distinct_covers",
+      )
+    ).rows[0];
+    if (
+      after.tables !== 45 ||
+      after.profiles !== 12 ||
+      after.publications !== 13 ||
+      after.covers !== 13 ||
+      !after.removed ||
+      !after.distinct_covers ||
+      after.messages !== before.messages ||
+      +after.updated_at !== +before.updated_at
+    )
+      throw new Error('Catalog merge preservation failed');
+  } finally {
+    await upgrade.end();
+  }
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/012-refunds-feedback.sql'), 'utf8'),
+  );
   const columns =
-    "SELECT column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name='payments' ORDER BY ordinal_position";
+    "SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('payments','users','organizations','organization_memberships','event_sessions','onboarding_questionnaires','events','refunds','feedback') ORDER BY table_name,ordinal_position";
   async function metadata(name) {
     const client = new pg.Client({
       host: '127.0.0.1',
@@ -96,7 +176,9 @@ try {
       'validation_fixture',
       await readFile(resolve(root, '../database/seeds', file), 'utf8'),
     );
-  console.log('Fresh schema and migration 007 agree; isolated PostgreSQL ready.');
+  console.log(
+    'Fresh schema and populated upgrades 007/008/009/010/011/012 agree; isolated PostgreSQL ready.',
+  );
   const child = spawnSync(
     process.execPath,
     [
@@ -104,7 +186,9 @@ try {
       'run',
       '--config',
       'vitest.config.ts',
+      '--no-file-parallelism',
       'tests/commerce.integration.test.ts',
+      'tests/onboarding.integration.test.ts',
     ],
     {
       cwd: root,

@@ -33,3 +33,9 @@
 - Giữ Google Authorization Code + PKCE; phương thức thứ hai nhập email/SĐT và xác minh OTP email qua SMTP Gmail App Password ngoài Git. SĐT chỉ là alias chưa xác minh, không dùng SMS Customer.
 - Hai phương thức dùng chung User qua liên kết tường minh: phiên hiện tại được xác thực trong 5 phút, proof phương thức mới cùng email; identity đã thuộc User khác trả conflict, không tự merge theo email.
 - EMAIL Customer khác COMPANY_EMAIL, không cấp phiên công ty/Organizer. JWT 10 phút, refresh 7 ngày tuyệt đối/rotation, Origin/CSRF và bảo vệ credential giữ nguyên.
+
+## Onboarding — chủ dự án đổi quyết định 2026-10-11 / ADR-029
+
+Google/email OTP dùng được cho Customer và Organizer, không yêu cầu mail công ty. Vai trò chọn lúc onboarding (CUSTOMER hoặc ORGANIZER), displayName/gender/DOB bắt buộc. Organizer riêng Customer; chỉ bật Customer khi người dùng yêu cầu rõ qua API. Không tự cấp ADMIN. Tạo tổ chức/sự kiện nháp ngay, Admin duyệt tổ chức và sự kiện trước mở bán. Yêu cầu company session/domain cũ bị thay thế trong phạm vi này. JWT/refresh/cookie/CSRF/linking giữ nguyên. Xem Docs/33 và Docs/34.
+
+ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.

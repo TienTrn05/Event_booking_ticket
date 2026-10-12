@@ -133,7 +133,9 @@ function StaffContent() {
   return (
     <CheckoutFrame title="Kiểm tra vé và vào cửa">
       <div className="max-w-3xl space-y-6">
-        <p>Chỉ nhân viên có phiên công ty và quyền kiểm tra vé của tổ chức được dùng trang này.</p>
+        <p>
+          Chỉ nhân viên có vai trò Organizer và quyền kiểm tra vé của tổ chức được dùng trang này.
+        </p>
         {error && (
           <p role="alert" className="rounded-xl border border-red-400 p-4">
             {error}

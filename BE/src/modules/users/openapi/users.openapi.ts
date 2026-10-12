@@ -17,7 +17,7 @@ export const usersPaths = {
       summary: 'Cập nhật hồ sơ cá nhân',
       security: [{ bearerAuth: [] }],
       description:
-        'Origin khớp PUBLIC_APP_URL, Bearer JWT/phiên DB và profile.update_self. PATCH displayName/gender/dateOfBirth; cần ít nhất một field. Gender/DOB riêng tư, nullable, DOB ngày thật không ở tương lai. Không lưu tuổi cố định. Avatar thay qua media; email/phone/role/status/userId/avatarUrl không nhận ở đây.',
+        'Origin khớp PUBLIC_APP_URL, Bearer JWT/phiên DB và profile.update_self. PATCH displayName/gender/dateOfBirth; cần ít nhất một field. Gender/DOB riêng tư, không cho xóa (null trả 422), DOB ngày thật không ở tương lai. Không lưu tuổi cố định. Avatar thay qua media; email/phone/role/status/userId/avatarUrl không nhận ở đây.',
       requestBody: {
         required: true,
         content: {

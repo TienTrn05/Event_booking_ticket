@@ -62,3 +62,5 @@ ADR-021: Google hoặc email/SĐT + email OTP. Đăng ký email + SĐT tùy ch�
 Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\tooling\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.
 
 Checkout → payOS → vé/QR và kiểm tra tại cửa đã nối; chi tiết API, quyền staff, kiểm thử và giới hạn ở [Docs/32](../Docs/32-payos-booking-ticket-flow.md). Không lưu JWT/CCCD/QR trong storage; idempotency key không chứa credential.
+
+Đăng ký mới: xác minh Google/email rồi hoàn tất role/displayName/gender/DOB; sở thích/city/Organizer follow có thể bỏ qua. Sửa trong Tài khoản; Organizer bật Customer riêng khi cần mua vé. Home có gợi ý RULES_V1 từ BE, chưa dùng AI. Cần BE migration008/009 trước dùng, xem Docs/33/34.

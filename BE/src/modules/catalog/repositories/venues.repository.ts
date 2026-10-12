@@ -12,14 +12,12 @@ export const venuesRepository: Pick<
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogLocation>>(`
         SELECT cp.display_name AS name, cp.city AS "queryValue",
-          COUNT(DISTINCT CASE WHEN ep.event_id IS NOT NULL THEN e.id END) AS "eventCount",
+          COUNT(DISTINCT CASE WHEN e.public_id IS NOT NULL AND e.published_at <= CURRENT_TIMESTAMP THEN e.id END) AS "eventCount",
           cp.image_url AS image
         FROM city_profiles cp
         LEFT JOIN venues v ON v.city = cp.city
         LEFT JOIN event_sessions s ON s.venue_id = v.id AND s.status = 'SCHEDULED'
         LEFT JOIN events e ON e.id = s.event_id AND e.status = 'PUBLISHED'
-        LEFT JOIN event_publications ep ON ep.event_id = e.id
-          AND ep.published_at <= CURRENT_TIMESTAMP
         GROUP BY cp.city, cp.display_name, cp.image_url, cp.sort_order
         ORDER BY cp.sort_order, cp.display_name
       `);

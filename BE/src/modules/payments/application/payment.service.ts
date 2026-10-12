@@ -99,7 +99,7 @@ export class PaymentService {
   }
   async get(actor: RequestActor, id: string) {
     return withTransaction(async (db) => {
-      await this.bookings.authorize(db, actor);
+      await this.bookings.authorize(db, actor, 'booking.read_self');
       const payment = await this.repository.find(db, id);
       if (!payment) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy thanh toán.');
       await this.bookings.lock(db, payment.booking_id, actor.id);
@@ -197,7 +197,9 @@ export class PaymentService {
             : purchase.canConfirm
               ? 'ATTENDEE_CREDENTIALS_REQUIRED'
               : 'BOOKING_UNAVAILABLE';
-      const status = total >= expected ? 'SUCCESS' : payment.status;
+      if (payment.status === 'REFUNDED') reason = 'FUNDS_AFTER_REFUND';
+      const status =
+        payment.status === 'REFUNDED' ? 'REFUNDED' : total >= expected ? 'SUCCESS' : payment.status;
       await this.repository.recordFunds(
         db,
         payment.id,

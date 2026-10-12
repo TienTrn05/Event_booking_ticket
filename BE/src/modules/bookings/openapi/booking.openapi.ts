@@ -50,6 +50,7 @@ export const bookingSchemas = {
     type: 'object',
     properties: {
       id,
+      eventId: id,
       sessionId: id,
       holdId: id,
       status: {

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { apiRequest } from '../../../shared/api/client';
 import type { HomeCatalog } from '../types';
 
-const eventSchema = z.object({
+export const eventSchema = z.object({
   id: z.string(),
   title: z.string(),
   minimumAge: z.number().int().nullable(),

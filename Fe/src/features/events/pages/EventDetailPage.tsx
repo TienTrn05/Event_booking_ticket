@@ -2,11 +2,29 @@ import { ui } from '../../../shared/styles/classes';
 import { Link, useParams } from 'react-router-dom';
 import { useCatalog } from '../../catalog/hooks/useCatalog';
 import { formatPrice } from '../../../shared/utils/format';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
+import { apiRequest } from '../../../shared/api/client';
+import { eventSchema } from '../../catalog/api/catalog.api';
 
 export function EventDetailPage() {
   const { eventId } = useParams();
   const { catalog } = useCatalog();
-  const event = catalog.events.find((item) => item.id === eventId);
+  const [remote, setRemote] = useState<z.infer<typeof eventSchema> | null>(null);
+  const cached = catalog.events.find((item) => item.id === eventId);
+  useEffect(() => {
+    let cancelled = false;
+    if (!cached && eventId)
+      void apiRequest(`/events/${encodeURIComponent(eventId)}`)
+        .then((data) => {
+          if (!cancelled) setRemote(z.object({ data: eventSchema }).parse(data).data);
+        })
+        .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [cached, eventId]);
+  const event = cached ?? (remote?.id === eventId ? remote : null);
   if (!event)
     return (
       <main id="main" className={ui('container content-page empty-state')}>

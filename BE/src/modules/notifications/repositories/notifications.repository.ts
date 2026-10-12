@@ -2,8 +2,8 @@ import type { PoolClient } from 'pg';
 import { AppError } from '../../../shared/errors/app-error.js';
 import type { PageInput } from '../../../shared/validation/common.schema.js';
 const visible = `AND (n.type<>'FOLLOWED_ORGANIZER_EVENT' OR EXISTS (
-  SELECT 1 FROM events e JOIN event_publications ep ON ep.event_id=e.id JOIN organizations o ON o.id=e.organization_id
-  WHERE e.id=n.event_id AND e.status='PUBLISHED' AND ep.published_at<=CURRENT_TIMESTAMP AND o.status='APPROVED'))`;
+  SELECT 1 FROM events e  JOIN organizations o ON o.id=e.organization_id
+  WHERE e.id=n.event_id AND e.status='PUBLISHED' AND e.published_at<=CURRENT_TIMESTAMP AND o.status='APPROVED' AND o.public_id IS NOT NULL))`;
 export const notificationsRepository = {
   async inbox(db: PoolClient, userId: string, page: PageInput) {
     const { rows } = await db.query(
@@ -40,13 +40,12 @@ export const notificationsRepository = {
     if (!message) return false;
     const batch = await db.query<{ last: string | null; count: number }>(
       `WITH eligible AS (SELECT f.user_id,e.id AS event_id,
-        jsonb_build_object('eventId',ep.public_id,'organizerId',op.public_id,'title',e.title) AS payload
-      FROM events e JOIN event_publications ep ON ep.event_id=e.id
-      JOIN organizations o ON o.id=e.organization_id AND o.status='APPROVED'
-      JOIN organization_profiles op ON op.organization_id=o.id
+        jsonb_build_object('eventId',e.public_id,'organizerId',o.public_id,'title',e.title) AS payload
+      FROM events e
+      JOIN organizations o ON o.id=e.organization_id AND o.status='APPROVED' AND o.public_id IS NOT NULL
       JOIN organization_follows f ON f.organization_id=o.id
       JOIN users u ON u.id=f.user_id AND u.status='ACTIVE'
-      WHERE e.id=$1 AND e.status='PUBLISHED' AND ep.published_at<=clock_timestamp()
+      WHERE e.id=$1 AND e.status='PUBLISHED' AND e.published_at<=clock_timestamp()
         AND f.user_id>$3::bigint AND f.notifications_enabled AND f.created_at<=$2::timestamptz AND f.notifications_enabled_at<=$2::timestamptz
         AND EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=f.user_id AND r.code='CUSTOMER')
       ORDER BY f.user_id LIMIT 500), inserted AS (

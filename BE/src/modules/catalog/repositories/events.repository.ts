@@ -6,23 +6,21 @@ import type {
   EventChangeRequest,
   EventFilters,
 } from '../types/catalog.types.js';
-const eventSelect = `
-  SELECT ep.public_id AS id, e.title, e.minimum_age AS "minimumAge", CASE WHEN e.minimum_age IS NULL THEN NULL ELSE e.minimum_age::text||'+' END AS "ageTag", ep.display_name AS "displayName",
-    c.name AS category, c.slug AS "categorySlug", COALESCE(e.cover_image_url, ep.cover_image_url) AS image,
+export const eventSelect = `
+  SELECT e.public_id AS id, e.title, e.minimum_age AS "minimumAge", CASE WHEN e.minimum_age IS NULL THEN NULL ELSE e.minimum_age::text||'+' END AS "ageTag", e.display_name AS "displayName",
+    c.name AS category, c.slug AS "categorySlug", COALESCE(e.cover_image_url, e.publication_cover_image_url) AS image,
     to_char(s.starts_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS date,
     to_char(s.starts_at AT TIME ZONE 'UTC', 'Mon FMDD, YYYY · FMHH12:MI AM') AS "dateLabel",
     to_char(s.starts_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "startsAt",
-    v.name AS venue, v.city, ep.starting_price_minor AS "startingPrice",
-    ep.currency, o.name AS organizer, op.public_id AS "organizerId",
-    e.description, lower(ep.admission_type) AS admission,
-    lower(replace(ep.catalog_status, '_', '-')) AS status,
-    ep.card_badge AS badge, ep.featured_rank IS NOT NULL AS featured,
-    ep.spotlight_rank IS NOT NULL AS spotlight, ep.reopening_note AS "reopeningNote"
+    v.name AS venue, v.city, e.starting_price_minor AS "startingPrice",
+    e.currency, o.name AS organizer, o.public_id AS "organizerId",
+    e.description, lower(e.admission_type) AS admission,
+    lower(replace(e.catalog_status, '_', '-')) AS status,
+    e.card_badge AS badge, e.featured_rank IS NOT NULL AS featured,
+    e.spotlight_rank IS NOT NULL AS spotlight, e.reopening_note AS "reopeningNote"
   FROM events e
-  JOIN event_publications ep ON ep.event_id = e.id
   JOIN event_categories c ON c.id = e.category_id
   JOIN organizations o ON o.id = e.organization_id
-  JOIN organization_profiles op ON op.organization_id = o.id
   JOIN event_sessions s ON s.id = (
     SELECT s2.id FROM event_sessions s2
     WHERE s2.event_id = e.id AND s2.status = 'SCHEDULED'
@@ -32,7 +30,7 @@ const eventSelect = `
 `;
 
 function eventParams(filters: EventFilters) {
-  const clauses = ["e.status = 'PUBLISHED'", 'ep.published_at <= CURRENT_TIMESTAMP'];
+  const clauses = ["e.status = 'PUBLISHED'", 'e.published_at <= CURRENT_TIMESTAMP'];
   const params: Array<string | number> = [];
   const parameter = (value: string | number) => {
     params.push(value);
@@ -47,8 +45,8 @@ function eventParams(filters: EventFilters) {
   }
   if (filters.category) clauses.push(`c.slug = ${parameter(filters.category)}`);
   if (filters.city) clauses.push(`v.city = ${parameter(filters.city)}`);
-  if (filters.featured) clauses.push('ep.featured_rank IS NOT NULL');
-  if (filters.spotlight) clauses.push('ep.spotlight_rank IS NOT NULL');
+  if (filters.featured) clauses.push('e.featured_rank IS NOT NULL');
+  if (filters.spotlight) clauses.push('e.spotlight_rank IS NOT NULL');
 
   const limit = parameter(filters.pageSize);
   const offset = parameter((filters.page - 1) * filters.pageSize);
@@ -67,12 +65,10 @@ export const eventsRepository: Pick<
       const { rows } = await connection.query<CatalogRow<EventCategory>>(`
         SELECT c.slug AS id, c.name,
           COUNT(DISTINCT CASE
-            WHEN e.status = 'PUBLISHED' AND ep.event_id IS NOT NULL AND s.id IS NOT NULL THEN e.id
+            WHEN e.status = 'PUBLISHED' AND e.public_id IS NOT NULL AND e.published_at <= CURRENT_TIMESTAMP AND s.id IS NOT NULL THEN e.id
           END) AS "eventCount"
         FROM event_categories c
         LEFT JOIN events e ON e.category_id = c.id
-        LEFT JOIN event_publications ep ON ep.event_id = e.id
-          AND ep.published_at <= CURRENT_TIMESTAMP
         LEFT JOIN event_sessions s ON s.event_id = e.id AND s.status = 'SCHEDULED'
         WHERE c.is_active = TRUE
         GROUP BY c.id, c.slug, c.name
@@ -86,7 +82,7 @@ export const eventsRepository: Pick<
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogEvent>>(
         `${eventSelect} WHERE ${clauses.join(' AND ')}
-         ORDER BY COALESCE(ep.featured_rank, 9999), s.starts_at, e.id
+         ORDER BY COALESCE(e.featured_rank, 9999), s.starts_at, e.id
          LIMIT ${limit} OFFSET ${offset}`,
         params,
       );
@@ -97,7 +93,7 @@ export const eventsRepository: Pick<
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogEvent>>(
         `${eventSelect} WHERE e.status = 'PUBLISHED'
-          AND ep.published_at <= CURRENT_TIMESTAMP AND ep.public_id = $1 LIMIT 1`,
+          AND e.published_at <= CURRENT_TIMESTAMP AND e.public_id = $1 LIMIT 1`,
         [id],
       );
       return rows[0] ? mapEvent(rows[0]) : null;
@@ -106,17 +102,16 @@ export const eventsRepository: Pick<
   async listChangeRequests() {
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<EventChangeRequest>>(`
-        SELECT ecr.public_id AS id, ep.public_id AS "eventId", e.title AS "eventTitle",
-          o.name AS organizer, COALESCE(e.cover_image_url, ep.cover_image_url) AS image,
+        SELECT ecr.public_id AS id, e.public_id AS "eventId", e.title AS "eventTitle",
+          o.name AS organizer, COALESCE(e.cover_image_url, e.publication_cover_image_url) AS image,
           ecr.request_type AS type, ecr.reason, ecr.impact_summary AS "impactSummary",
           ecr.status,
           to_char(ecr.requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "requestedAt"
         FROM event_change_requests ecr
         JOIN events e ON e.id = ecr.event_id
-        JOIN event_publications ep ON ep.event_id = e.id
         JOIN organizations o ON o.id = ecr.organization_id
         WHERE ecr.visible_on_catalog = TRUE AND ecr.status = 'APPROVED'
-          AND e.status = 'PUBLISHED' AND ep.published_at <= CURRENT_TIMESTAMP
+          AND e.status = 'PUBLISHED' AND e.published_at <= CURRENT_TIMESTAMP
         ORDER BY ecr.requested_at DESC, ecr.id DESC
       `);
       return rows;

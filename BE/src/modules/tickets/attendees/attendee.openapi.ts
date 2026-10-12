@@ -57,7 +57,7 @@ export const attendeePaths = {
       summary: 'Staff đúng tổ chức đối chiếu CCCD thật tại cửa',
       parameters: [pathId()],
       description:
-        'ticket.checkin_own, company session/membership/ownership; vé VALID, booking CONFIRMED và trong cửa sổ admission. Kiểm tra CCCD/họ tên/DOB và tuổi. Không đánh dấu vé USED hoặc thay quy trình check-in/admission.',
+        'ticket.checkin_own, phiên hợp lệ/membership/ownership; vé VALID, booking CONFIRMED và trong cửa sổ admission. Kiểm tra CCCD/họ tên/DOB và tuổi. Không đánh dấu vé USED hoặc thay quy trình check-in/admission.',
       requestBody: body({
         type: 'object',
         additionalProperties: false,

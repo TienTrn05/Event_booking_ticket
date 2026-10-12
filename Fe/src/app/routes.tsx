@@ -9,6 +9,11 @@ const SeatSelectionPage = lazy(() =>
     default: m.SeatSelectionPage,
   })),
 );
+const OnboardingAdminPage = lazy(() =>
+  import('../features/auth/pages/OnboardingAdminPage').then((module) => ({
+    default: module.OnboardingAdminPage,
+  })),
+);
 const CheckoutPage = lazy(() =>
   import('../features/checkout/pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
 );
@@ -61,6 +66,14 @@ export function AppRoutes() {
         <Route path="/register" element={<AuthRedirect intent="register" />} />
         <Route path="/organizer" element={<AuthRedirect intent="organizer" />} />
         <Route element={<SiteLayout />}>
+          <Route
+            path="/admin/onboarding"
+            element={
+              <LazyPage>
+                <OnboardingAdminPage />
+              </LazyPage>
+            }
+          />
           <Route
             path="/my-tickets"
             element={

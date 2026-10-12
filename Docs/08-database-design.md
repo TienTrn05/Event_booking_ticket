@@ -1,8 +1,12 @@
 # 08. Thiết kế cơ sở dữ liệu
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 ## Quy ước
 
-Thiết kế logic theo [23](23-organization-review-seatmap.md), bổ sung profile/follow/tuổi/attendee ADR-023. [database/schema.sql](../database/schema.sql) có 46 bảng: 38 bảng lõi, 6 bảng catalog, phone_login_aliases, organization_follows. Database cũ nâng cấp bằng migration phù hợp sau backup/review; không chạy lại schema. PostgreSQL; phiên bản production cần chốt Q-016 và phải thực thi CHECK. API biểu diễn BIGINT ID và tiền thành chuỗi; timestamp UTC, FK lịch sử RESTRICT.
+ADR-031/011: Organization chứa public_id/avatar_url/summary/category_label/featured_rank và profile timestamps nullable theo CHECK nguyên bộ. Event chứa metadata công bố và publication timestamps, CHECK nguyên bộ/giá/currency/admission/status. Không còn organization_profiles/event_publications sau migration011. Giữ cover_image_url riêng cho ảnh nháp và publication_cover_image_url cho ảnh công bố. DTO công khai riêng; ERD phần thay đổi tại [36](36-schema-audit.md).
+
+Thiết kế logic theo [23](23-organization-review-seatmap.md), bổ sung profile/follow/tuổi/attendee ADR-023. [database/schema.sql](../database/schema.sql) có46 bảng sau ADR-032: gộp hai extension catalog vào organizations/events, thêm onboarding_questionnaires và feedback chung; xem [36](36-schema-audit.md). Database cũ nâng cấp bằng migration phù hợp sau backup/review; không chạy lại schema. PostgreSQL; phiên bản production cần chốt Q-016 và phải thực thi CHECK. API biểu diễn BIGINT ID và tiền thành chuỗi; timestamp UTC, FK lịch sử RESTRICT.
 
 Users thêm gender/DOB nullable private; event minimum_age nullable và ageTag tính từ minimum_age ở query/DTO. Notification hỗ trợ event_id/type mới, giữ review FK/dedupe. Follows PK(User,Organization), preference; BookingItem chứa thông tin từng người, dùng lại attendee_name_snapshot, CCCD mã hóa và marker purge 30 ngày sau suất. Chi tiết và ERD phần mới tại [29](29-profile-follow-age-attendees.md).
 
@@ -47,8 +51,8 @@ PK của mọi hàng là `id` trừ bảng nối ghi rõ composite PK. “UQ” 
 | Thực thể | Trường/quan hệ | Bất biến DB và service |
 | --- | --- | --- |
 | ExternalIdentity | user_id, provider GOOGLE/PHONE/COMPANY_EMAIL, subject/canonical_target, verified_at | UQ(provider,subject); không tự merge khi trùng email; một identity không thuộc hai User |
-| Organization | name, company_domain, status, version, reviewed_by/at | Domain chuẩn hóa và xác minh email đại diện trước Admin duyệt; không password chung |
-| OrganizationMembership | organization_id,user_id,company_identity_id,status,approved_by/at | UQ(org,user); identity thuộc đúng User; role chỉ có hiệu lực trong Organization APPROVED |
+| Organization | name, contact_domain, applicant_identity_id/provider, status, version, reviewed_by/at | Identity cá nhân đã xác minh; contact domain chỉ metadata. Admin duyệt tổ chức trước mở bán |
+| OrganizationMembership | organization_id,user_id,member_identity_id/provider,status,approved_by/at | UQ(org,user); identity thuộc đúng User. PENDING soạn nháp, ACTIVE trong Organization APPROVED mới vận hành |
 | ReservationQuota | customer_id,session_id | Composite PK; khóa FOR UPDATE trước Event; không cần cached counter, đếm phân bổ hiện hành dưới khóa |
 | SeatLayout | organization_id,event_id,venue_id,venue_version,version,status DRAFT/FROZEN,geometry_json,bounds_snapshot,capacity_snapshot | UQ(id,event_id,venue_id) cho scope FK session; frozen bất biến; layout cùng Organization với Event |
 | TicketType | session_id,code,name | UQ(session_id,code), scope FK SessionSeat; snapshot code/name vào item |
@@ -133,3 +137,60 @@ ADR-021 thêm EMAIL Customer và phone_login_aliases trỏ EMAIL identity, khôn
 ADR-024: migration [006](../database/migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](30-schema-consolidation.md).
 
 ADR-027 / migration 007: payments thêm checkout_url (nullable), received_minor (BIGINT nonnegative mặc định 0, số tiền thực nhận độc lập expected amount_minor) và last_polled_at (nullable); index phục hồi polling. Reuse payments/payment_webhooks/outbox/tickets/check_ins, không thêm bảng. Chi tiết và kiểm chứng local/fresh/upgrade ở [32](32-payos-booking-ticket-flow.md).
+
+## Bổ sung trường ADR-029 / migration008–009
+
+Không thêm bảng, quan hệ cũ giữ nguyên. Vai trò đăng ký không thay user_roles; giá nháp không thay inventory sau duyệt.
+
+```mermaid
+erDiagram
+    User {
+        varchar registration_role
+        timestamptz onboarding_completed_at
+        varchar_array favorite_categories
+        varchar preferred_city
+        varchar gender
+        date date_of_birth
+    }
+    Organization {
+        varchar contact_domain
+        bigint applicant_identity_id
+        varchar applicant_identity_provider
+    }
+    OrganizationMembership {
+        bigint member_identity_id
+        varchar member_identity_provider
+        varchar status
+    }
+    EventSession {
+        jsonb pricing_config
+    }
+    User ||--o{ OrganizationMembership : member
+    Organization ||--o{ OrganizationMembership : owns
+    Organization ||--o{ Event : owns
+    Event ||--o{ EventSession : schedules
+    EventSession ||--o{ SessionSeat : materializes_after_approval
+```
+
+ADR-030: onboarding_questionnaires(id,questions JSONB,status,created_by,created_at) lưu phiên bản form dùng chung; Users thêm onboarding_questionnaire_id FK nullable và onboarding_answers JSONB object. User N:1 Questionnaire; không bảng answers1:1 hoặc duplicate category/city/follow. Fresh47 bảng; DB local46 chưa apply010.
+
+```mermaid
+erDiagram
+    User {
+        bigint onboarding_questionnaire_id FK
+        jsonb onboarding_answers
+    }
+    OnboardingQuestionnaire {
+        bigint id PK
+        jsonb questions
+        varchar status
+        bigint created_by FK
+        timestamptz created_at
+    }
+    OnboardingQuestionnaire o|--o{ User : answered_version
+    User o|--o{ OnboardingQuestionnaire : authored
+```
+
+## Hoàn tiền/feedback — ADR-032/012
+
+Refunds dùng lại, thêm version/decision/evidence/recording fields. Một bảng feedback chung ORGANIZATION/SYSTEM, CHECK target/status/stars/reply/history, FK event/org, unique author/event, index theo author/org/admin. History là dữ liệu phiên bản trên cùng entity, không đưa vào DTO/audit text. SupportReports giữ scope event/booking và chỉ report đang được giao mới cho Admin can thiệp refund. Schema/local46 bảng; ERD phần bổ sung và API [37](37-refunds-reviews-app-feedback.md).

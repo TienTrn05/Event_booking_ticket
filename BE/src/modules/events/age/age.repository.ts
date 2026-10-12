@@ -11,10 +11,10 @@ export const ageRepository = {
       `SELECT e.minimum_age,
         to_char((s.starts_at AT TIME ZONE v.timezone)::date,'YYYY-MM-DD') AS reference_date,
         to_char(CURRENT_DATE,'YYYY-MM-DD') AS today FROM events e
-        JOIN event_publications ep ON ep.event_id=e.id JOIN organizations o ON o.id=e.organization_id
+         JOIN organizations o ON o.id=e.organization_id
         JOIN event_sessions s ON s.event_id=e.id JOIN venues v ON v.id=s.venue_id
-        WHERE ep.public_id=$1 AND s.id=$2 AND e.status='PUBLISHED' AND o.status='APPROVED'
-          AND ep.published_at<=CURRENT_TIMESTAMP AND s.status='SCHEDULED'`,
+        WHERE e.public_id=$1 AND s.id=$2 AND e.status='PUBLISHED' AND o.status='APPROVED' AND o.public_id IS NOT NULL
+          AND e.published_at<=CURRENT_TIMESTAMP AND s.status='SCHEDULED'`,
       [eventId, sessionId],
     );
     return rows[0] ?? null;
@@ -29,13 +29,10 @@ export const ageRepository = {
     const { rows } = await db.query<{ status: string; version: number }>(
       `SELECT e.status,e.version FROM events e
       JOIN organizations o ON o.id=e.organization_id JOIN organization_memberships m ON m.organization_id=o.id
-      JOIN auth_sessions s ON s.user_id=m.user_id AND s.identity_id=m.company_identity_id
+      JOIN auth_sessions s ON s.user_id=m.user_id
       JOIN external_identities i ON i.id=s.identity_id
-      WHERE e.id=$1 AND m.user_id=$2 AND s.id=$3 AND o.status='APPROVED' AND m.status='ACTIVE'
+      WHERE e.id=$1 AND m.user_id=$2 AND s.id=$3 AND o.status IN ('PENDING_REVIEW','APPROVED','REJECTED') AND m.status IN ('PENDING','ACTIVE')
         AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND i.revoked_at IS NULL
-        AND i.email_verified_at IS NOT NULL AND i.provider=m.company_identity_provider
-        AND i.provider IN('GOOGLE','COMPANY_EMAIL') AND split_part(i.email_canonical,'@',2)=o.company_domain
-        AND (i.provider='COMPANY_EMAIL' OR i.hosted_domain=o.company_domain)
       FOR UPDATE OF e FOR SHARE OF o,m,s,i`,
       [id, actor.id, actor.sessionId],
     );

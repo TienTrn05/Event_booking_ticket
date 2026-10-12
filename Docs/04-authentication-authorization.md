@@ -1,5 +1,7 @@
 # 04. Xác thực và phân quyền
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 Nguồn hiện hành: Q-006 cập nhật 2026-10-09 xác nhận Google OAuth + OTP email Customer, Organizer dùng email công ty; ADR-003 phần phiên tiếp tục áp dụng, ADR-013 thay phần đăng nhập mật khẩu. Không triển khai OAuth/SSO khác ngoài nhu cầu này.
 
 ## Đăng nhập và tạo tài khoản
@@ -49,3 +51,5 @@ EMAIL Customer dùng email làm subject; Google vẫn dùng sub. Alias SĐT tr�
 OTP 6 số, TTL 5 phút, HMAC gắn challenge ID, browser binding cookie độc lập CSRF. Tối đa 5 lần sai tổng/email trong 5 phút, resend không reset attempts; resend cách 60 giây, 5 request/email/giờ, 100 request tổng/giờ trong DB và 10/IP/15 phút. Challenge mới thu hồi mã cũ; quota/attempts/consume được commit. Request trả 202 chung, không trả email tra từ SĐT; SĐT chưa có alias không tạo proof. Alias unique chỉ thêm khi tạo User mới hoặc linking, không chuyển alias thuộc identity khác.
 
 SMTP Gmail TLS 465/App Password, timeout hữu hạn; logger/debug tắt, không lộ lỗi SMTP thô. EMAIL Customer không là COMPANY_EMAIL và không cấp Organizer. Lifetime JWT/refresh giữ nguyên. Gửi Gmail thật/Google live cần kiểm tra riêng sau cấu hình; xem [27](27-email-otp-setup.md).
+
+ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.

@@ -3,6 +3,7 @@ import CatalogTabs from '../components/home/CatalogTabs';
 import SectionDock from '../components/home/SectionDock';
 import FeaturedOrganizers from '../components/home/FeaturedOrganizers';
 import FeaturedEvents from '../components/home/FeaturedEvents';
+import RecommendedEvents from '../components/home/RecommendedEvents';
 import ExploreEvents from '../components/home/ExploreEvents';
 import ResaleTickets from '../components/home/ResaleTickets';
 import BrowseByLocation from '../components/home/BrowseByLocation';
@@ -24,6 +25,7 @@ export function HomePage() {
       <CatalogTabs category={category} onCategoryChange={setCategory} />
       <SectionDock />
       <main id="main">
+        <RecommendedEvents />
         <FeaturedOrganizers />
         <FeaturedEvents />
         <ExploreEvents category={category} onCategoryChange={setCategory} />

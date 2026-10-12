@@ -22,14 +22,9 @@ Nội dung và số liệu trang chủ là demo theo bản mẫu, không thay đ
 
 Click một item trên Home đặt `preview` và `previewId` vào query hiện tại rồi mở `QuickPreviewDialog`; đóng dialog xóa hai query này và giữ nguyên bộ lọc/hash. Nút **Xem toàn bộ** điều hướng tới route chi tiết. Các page chi tiết được khai báo bằng `React.lazy` trong `app/routes.tsx`, vì vậy browser chỉ tải chunk JavaScript của page sau khi người dùng yêu cầu xem đầy đủ. Query chỉ chứa loại và ID công khai, không chứa token, giá tin cậy hay dữ liệu xác thực.
 
-## Ranh giới ba giao diện và hai frontend server
+## Một frontend, ba khu vực — ADR-028
 
-Đây là quyết định kiến trúc bắt buộc:
-
-- **Customer và Organizer dùng chung ứng dụng `Fe/`, cùng một frontend server và cùng design system.** Một tài khoản có thể dùng các chức năng Customer và, khi có membership/phiên công ty hợp lệ, mở thêm workspace Organizer trong chính ứng dụng này. Không dựng một website Organizer độc lập.
-- **Organizer có shell và route riêng trong `Fe/`** cho tạo sự kiện, thông tin sự kiện, thời gian/loại vé, layout, cài đặt, thanh toán, bán hàng, check-in và báo cáo. Shell này có điều hướng làm việc riêng nhưng vẫn dùng session, theme, component và API client của web Customer/Organizer.
-- **Admin là một ứng dụng frontend độc lập**, dự kiến đặt tại `AdminFe/`, build và triển khai trên một frontend server/origin riêng. Không đưa page, route, asset hoặc code nghiệp vụ Admin vào bundle public `Fe/`.
-- **Cả `Fe/` và `AdminFe/` chỉ giao tiếp với một backend `BE/` duy nhất qua `/api/v1`.** Tách frontend Admin không tạo backend Admin thứ hai, database thứ hai hoặc logic nghiệp vụ song song. Backend vẫn là nơi kiểm tra role, permission, ownership, trạng thái và audit.
+Chủ dự án chốt ngày 2026-10-11: một ứng dụng Fe/ cho Customer, Organizer và Admin; các route /, /organizer/*, /admin/* có layout/lazy chunks riêng, cùng gọi một BE. Không tạo frontend/server AdminFe riêng. Mọi quyền/phạm vi kiểm tra tại BE; route guard chỉ phục vụ UX. Phần cây folder AdminFe/ và topology hai frontend bên dưới thuộc thiết kế trước ADR-028 và sẽ chuyển thành khu vực admin trong Fe/ khi triển khai.
 
 Trang [Ticketbox Organizer — Legal document](https://ticketbox.vn/organizer/legal-document) chỉ là nguồn tham khảo sơ bộ cho cách tổ chức workspace Organizer. [Tài liệu hướng dẫn công khai của Ticketbox](https://static.ticketbox.vn/static-page/landingpages/vba-quychehoatdong-v2/docs/quy-che-hoat-dong.pdf) cho thấy luồng chỉnh sửa có các nhóm như thông tin sự kiện, thời gian và loại vé, cài đặt và thông tin thanh toán. Dự án học cách chia khu vực công việc này, không sao chép nhận diện, nội dung pháp lý hoặc coi hành vi Ticketbox là hợp đồng nghiệp vụ của hệ thống.
 
@@ -445,3 +440,7 @@ Organizer shell yêu cầu role + membership + Organization APPROVED + phiên ma
 FE refresh JWT sau 9 phút khi có phiên và Web Locks, serialize refresh bằng Web Locks như trước, không kéo dài hạn refresh 7 ngày hoặc authenticated_at. Epoch ngăn response refresh cũ phục hồi User sau logout; BroadcastChannel chỉ phát sự kiện logout, không credential, để các tab xóa state. Account hiển thị phương thức đã liên kết từ `/auth/methods`, tự điền email đã biết và ẩn nút liên kết Google khi đã có Google. Metadata không cấp quyền. Google lỗi/cancel hiển thị mã lỗi allowlist, không log token.
 
 OTP verify và logout cũng dùng cùng Web Lock với refresh để serialize refresh cookie; epoch chặn phản hồi cũ sau logout (cả metadata). Menu mobile ẩn/inert khi đóng và hiển thị Tài khoản/Đăng xuất khi đã login.
+
+## Onboarding hiện hành ADR-029
+
+Google/email cá nhân cho Customer và Organizer, hỏi vai trò/tên/giới tính/DOB sau xác minh; category/city/follow có thể bỏ qua. ProfileOnboarding tải lazy, thông tin và token chỉ memory, có focus trap; Tài khoản mở sửa hồ sơ/sở thích/follow hoặc bật Customer riêng. Home gọi recommendations RULES_V1, không AI. OTP/checkout/payOS/vé/kiểm tra cửa đã có source và PG/Edge fixture test; đoạn mô tả chưa triển khai ở đầu tài liệu là lịch sử. Dashboard Organizer/Admin chưa dựng. Xem Docs/33/34.

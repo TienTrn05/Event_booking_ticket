@@ -13,8 +13,8 @@ export const followsRepository = {
   async organization(db: PoolClient, publicId: string, approved = true) {
     const { rows } = await db.query<{ id: string }>(
       `SELECT o.id::text FROM organizations o
-      JOIN organization_profiles op ON op.organization_id=o.id WHERE op.public_id=$1
-      ${approved ? "AND o.status='APPROVED'" : ''} FOR SHARE OF o`,
+       WHERE o.public_id=$1
+      ${approved ? "AND o.status='APPROVED' AND o.public_id IS NOT NULL" : ''} FOR SHARE OF o`,
       [publicId],
     );
     if (!rows[0]) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy nhà tổ chức.');
@@ -65,16 +65,15 @@ export const followsRepository = {
   },
   async list(db: PoolClient, userId: string, page: PageInput) {
     const { rows } = await db.query(
-      `SELECT op.public_id AS id,o.name,op.avatar_url AS avatar,
+      `SELECT o.public_id AS id,o.name,o.avatar_url AS avatar,
       f.notifications_enabled AS "notificationsEnabled",f.created_at AS "followedAt"
       FROM organization_follows f JOIN organizations o ON o.id=f.organization_id
-      JOIN organization_profiles op ON op.organization_id=o.id
-      WHERE f.user_id=$1 AND o.status='APPROVED' ORDER BY f.created_at DESC,f.organization_id DESC LIMIT $2 OFFSET $3`,
+      WHERE f.user_id=$1 AND o.status='APPROVED' AND o.public_id IS NOT NULL ORDER BY f.created_at DESC,f.organization_id DESC LIMIT $2 OFFSET $3`,
       [userId, page.pageSize, (page.page - 1) * page.pageSize],
     );
     const count = await db.query<{ total: number }>(
       `SELECT count(*)::int AS total FROM organization_follows f
-      JOIN organizations o ON o.id=f.organization_id WHERE f.user_id=$1 AND o.status='APPROVED'`,
+      JOIN organizations o ON o.id=f.organization_id WHERE f.user_id=$1 AND o.status='APPROVED' AND o.public_id IS NOT NULL`,
       [userId],
     );
     return { items: rows, total: count.rows[0]!.total };

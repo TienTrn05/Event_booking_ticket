@@ -1,5 +1,7 @@
 # 03. Vai trò và phân quyền
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 Nguồn: quyết định chủ dự án 2026-09-12, Q-005/Q-010 và [23](23-organization-review-seatmap.md). Organizer là Organization; User đăng nhập đại diện qua membership được Admin duyệt.
 
 ## Tác nhân
@@ -53,3 +55,9 @@ Ngoài scope trả 404; thiếu permission chung trả 403. Admin không bypass 
 ADR-021: Customer dùng Google hoặc email OTP; SĐT là alias chưa xác minh. EMAIL Customer không đáp ứng bằng chứng phiên công ty hoặc cấp Organizer.
 
 ADR-023: profile gender/DOB chỉ User đọc/sửa; không tạo permission từ dữ liệu này. Staff ticket.checkin_own cần company session/membership/Organization/ownership để đối chiếu CCCD thật trong cửa sổ admission; Customer không tự xác minh. Theo dõi không cấp role hoặc quyền quản lý; xem [29](29-profile-follow-age-attendees.md).
+
+ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+## Refund/feedback — ADR-032
+
+refund.request_self dùng Customer sở hữu đơn; refund.approve cần Organizer membership ACTIVE trong organization APPROVED, hoặc Admin/report.handle và report IN_REVIEW được giao đúng booking/event. Đóng report thu hồi scope can thiệp. Admin không có quyền vô điều kiện lên mọi refund. feedback.reply_own chỉ Organizer đúng tổ chức; feedback.manage chỉ Admin. Góp ý SYSTEM chỉ tác giả/Admin, không cấp report scope. Review ORGANIZATION không public, chỉ tác giả/Organizer/Admin. JWT/refresh/linking/Origin/CSRF giữ nguyên. [37](37-refunds-reviews-app-feedback.md).

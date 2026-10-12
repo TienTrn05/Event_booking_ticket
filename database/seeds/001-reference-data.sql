@@ -22,6 +22,9 @@ INSERT INTO permissions (code,description) VALUES
 ('event.update_own','event.update_own — phạm vi theo docs/03'),
 ('layout.manage_own','layout.manage_own — phạm vi theo docs/03'),
 ('organization.apply','organization.apply — phạm vi theo docs/03'),
+('feedback.manage','Admin xử lý feedback'),
+('feedback.reply_own','Organizer trả lời đánh giá tổ chức mình'),
+('onboarding.manage','Admin quản lý câu hỏi onboarding bổ sung'),
 ('organizer.approve','organizer.approve — phạm vi theo docs/03'),
 ('profile.update_self','profile.update_self — phạm vi theo docs/03'),
 ('refund.approve','refund.approve — phạm vi theo docs/03'),
@@ -45,10 +48,10 @@ WHERE r.code='CUSTOMER' AND p.code IN ('event.read_public','profile.update_self'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
-WHERE r.code='ORGANIZER' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','event.create','event.update_own','event.submit_own','event.cancel_own','layout.manage_own','ticket_type.manage_own','sales.read_own','ticket.checkin_own','refund.approve','report.create','report.handle')
+WHERE r.code='ORGANIZER' AND p.code IN ('feedback.reply_own','organization.apply','event.read_public','profile.update_self','venue.read_catalog','event.create','event.update_own','event.submit_own','event.cancel_own','layout.manage_own','ticket_type.manage_own','sales.read_own','ticket.checkin_own','refund.approve','report.create','report.handle')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
-WHERE r.code='ADMIN' AND p.code IN ('event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
+WHERE r.code='ADMIN' AND p.code IN ('feedback.manage','onboarding.manage','event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 COMMIT;

@@ -1,5 +1,7 @@
 # 12. Bảo mật, logging và auditing
 
+> Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
+
 ## Quy tắc kiểm soát
 
 | Rủi ro | Biện pháp bắt buộc |
@@ -70,3 +72,9 @@ SĐT chỉ là alias, không dùng để xác minh/khôi phục. EMAIL OTP gửi
 Liên kết có login mới 5 phút + proof mới cùng email; revalidate dưới khóa, không auto merge email. EMAIL Customer không tạo company session/Organizer. JWT/refresh không đổi. SMTP unavailable không bypass; Gmail quota/khả năng gửi thật phải test riêng.
 
 ADR-027: payOS webhook xác minh SDK/checksum, chuẩn hóa receipt trước lưu và bỏ raw bank payload; reference duy nhất chống callback trùng. Không tin browser redirect. Mã vé ngẫu nhiên 128 bit, DB hash + AES-GCM/AAD item/session với TICKET_ENCRYPTION_KEY độc lập. GET chỉ owner, staff cần company session/membership/permission và đúng cửa sổ; admission kiểm CCCD thật rồi USED nguyên tử. FE không lưu JWT/CCCD/QR trong storage hoặc URL. Chi tiết [32](32-payos-booking-ticket-flow.md).
+
+ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+## Hoàn tiền và nội dung feedback — ADR-032
+
+Khóa đơn/ghế/payment/refund/ticket theo giao thức để approval không tranh chấp với admission; đủ mọi vé chưa USED, full amount, payment đúng và không cần đối soát. Admin phải report IN_REVIEW được giao đúng tài nguyên; reference hoàn tiền unique, evidence/time/actor bắt buộc, callback sau refund không hồi sinh. Nội dung feedback JSON/plain text, DTO không có history/contact/identity credential; audit không lưu text/refund evidence, nhưng giữ organization/report scope và version/status. Review riêng tư tác giả/Organizer/Admin, SYSTEM chỉ tác giả/Admin. Không suy quyền từ trường kind, role, eventId hoặc reportId do client gửi.

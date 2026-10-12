@@ -170,8 +170,6 @@ export async function finishGoogle(
         emailVerified,
         hd,
       );
-      if (!created.roleAdded)
-        throw new AppError(503, 'AUTH_UNAVAILABLE', 'Chưa nạp dữ liệu quyền.');
       account = {
         userId: created.userId,
         identityId: created.identityId,
