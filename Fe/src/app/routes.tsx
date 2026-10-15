@@ -14,6 +14,9 @@ const OnboardingAdminPage = lazy(() =>
     default: module.OnboardingAdminPage,
   })),
 );
+const RbacPage = lazy(() =>
+  import('../features/access-control/RbacPage').then((m) => ({ default: m.RbacPage })),
+);
 const CheckoutPage = lazy(() =>
   import('../features/checkout/pages/CheckoutPage').then((m) => ({ default: m.CheckoutPage })),
 );
@@ -66,6 +69,14 @@ export function AppRoutes() {
         <Route path="/register" element={<AuthRedirect intent="register" />} />
         <Route path="/organizer" element={<AuthRedirect intent="organizer" />} />
         <Route element={<SiteLayout />}>
+          <Route
+            path="/admin/rbac"
+            element={
+              <LazyPage>
+                <RbacPage />
+              </LazyPage>
+            }
+          />
           <Route
             path="/admin/onboarding"
             element={

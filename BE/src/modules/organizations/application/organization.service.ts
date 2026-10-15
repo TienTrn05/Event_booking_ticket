@@ -6,6 +6,23 @@ import { AppError } from '../../../shared/errors/app-error.js';
 import { claimKey, finishKey } from '../../../shared/idempotency/idempotency.repository.js';
 import { OrganizationRepository } from '../repositories/organization.repository.js';
 export class OrganizationService {
+  async memberships(actor: RequestActor, page: number, pageSize: number) {
+    return withTransaction(async (db) => {
+      await this.access.permission(db, actor, 'event.create');
+      await usersRepository.requireOnboarding(db, actor.id);
+      await this.access.identity(db, actor);
+      const result = await this.repository.memberships(db, actor.id, page, pageSize);
+      return {
+        items: result.items,
+        pagination: {
+          page,
+          pageSize,
+          total: result.total,
+          totalPages: Math.ceil(result.total / pageSize),
+        },
+      };
+    });
+  }
   async own(actor: RequestActor) {
     return withTransaction(async (db) => {
       await usersRepository.profile(db, actor);

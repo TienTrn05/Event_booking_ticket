@@ -1,10 +1,10 @@
-export type Schema = Record<string, unknown>;
+type Schema = Record<string, unknown>;
 
 export const ref = (name: string): Schema => ({ $ref: `#/components/schemas/${name}` });
 
 export const arrayOf = (name: string): Schema => ({ type: 'array', items: ref(name) });
 
-export const envelope = (data: Schema): Schema => ({
+const envelope = (data: Schema): Schema => ({
   type: 'object',
   required: ['data', 'meta'],
   properties: {

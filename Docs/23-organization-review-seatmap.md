@@ -1,5 +1,7 @@
 # 23. Tổ chức, duyệt sự kiện và công cụ thiết kế sơ đồ
 
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 Merchandise theo sự kiện và tên hiển thị nghệ sĩ/chương trình được bổ sung ở phần 10. Đây là đặc tả sản phẩm/UI, chưa phải chức năng BE/SQL đã triển khai.

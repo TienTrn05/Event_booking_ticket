@@ -1,29 +1,36 @@
-import type { PoolClient } from 'pg';
+import type { Prisma } from '@prisma/client';
 export class OrganizerBlockRepository {
-  async change(db: PoolClient, userId: string, organizationId: string, blocked: boolean) {
-    if (blocked)
-      await db.query(
-        'INSERT INTO organization_blocks(user_id,organization_id) VALUES($1,$2) ON CONFLICT DO NOTHING',
-        [userId, organizationId],
-      );
-    else
-      await db.query('DELETE FROM organization_blocks WHERE user_id=$1 AND organization_id=$2', [
-        userId,
-        organizationId,
-      ]);
+  async change(
+    db: Prisma.TransactionClient,
+    userId: string,
+    organizationId: string,
+    blocked: boolean,
+  ) {
+    const where = { userId: BigInt(userId), organizationId: BigInt(organizationId) };
+    if (blocked) await db.organizationBlock.createMany({ data: [where], skipDuplicates: true });
+    else await db.organizationBlock.deleteMany({ where });
     return { blocked };
   }
-  async list(db: PoolClient, userId: string, page: number, pageSize: number) {
-    return (
-      await db.query<{ items: Record<string, unknown>[]; total: number }>(
-        `WITH matches AS(SELECT o.public_id AS id,o.name,o.avatar_url AS avatar,b.created_at AS "blockedAt",o.id AS sort_id
-       FROM organization_blocks b JOIN organizations o ON o.id=b.organization_id WHERE b.user_id=$1),
-       page AS(SELECT * FROM matches ORDER BY "blockedAt" DESC,sort_id DESC LIMIT $2 OFFSET $3)
-       SELECT (SELECT count(*)::int FROM matches) AS total,
-       COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id,'name',name,'avatar',avatar,'blockedAt',"blockedAt")
-         ORDER BY "blockedAt" DESC,sort_id DESC) FROM page),'[]'::jsonb) AS items`,
-        [userId, pageSize, (page - 1) * pageSize],
-      )
-    ).rows[0]!;
+  async list(db: Prisma.TransactionClient, userId: string, page: number, pageSize: number) {
+    const where = { userId: BigInt(userId) };
+    const rows = await db.organizationBlock.findMany({
+      where,
+      select: {
+        createdAt: true,
+        organization: { select: { publicId: true, name: true, avatar: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { organizationId: 'desc' }],
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+    });
+    return {
+      items: rows.map(({ organization, createdAt }) => ({
+        id: organization.publicId,
+        name: organization.name,
+        avatar: organization.avatar,
+        blockedAt: createdAt.toISOString(),
+      })),
+      total: await db.organizationBlock.count({ where }),
+    };
   }
 }

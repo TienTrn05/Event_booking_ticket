@@ -197,8 +197,16 @@ try {
     'validation_upgrade',
     await readFile(resolve(root, '../database/migrations/016-outdoor-zone-inventory.sql'), 'utf8'),
   );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/017-backend-v1-extensions.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/018-dynamic-rbac.sql'), 'utf8'),
+  );
   const columns =
-    "SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('payments','users','organizations','organization_memberships','event_sessions','onboarding_questionnaires','events','refunds','feedback','event_change_requests','notifications','organization_blocks','seat_layouts','layout_sections','session_seats') ORDER BY table_name,ordinal_position";
+    "SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('roles','permissions','user_roles','role_permissions','payments','users','organizations','organization_memberships','event_sessions','onboarding_questionnaires','events','refunds','feedback','event_change_requests','notifications','organization_blocks','seat_layouts','layout_sections','session_seats','merchandise_products','merchandise_skus','merchandise_orders','merchandise_order_items','organization_reputation_entries','support_reports','event_reviews') ORDER BY table_name,ordinal_position";
   async function metadata(name) {
     const client = new pg.Client({
       host: '127.0.0.1',
@@ -224,7 +232,7 @@ try {
       'validation_fixture',
       await readFile(resolve(root, '../database/seeds', file), 'utf8'),
     );
-  console.log('Fresh schema and populated upgrades 007–016 agree; isolated PostgreSQL ready.');
+  console.log('Fresh schema and populated upgrades 007–018 agree; isolated PostgreSQL ready.');
   for (let n = 0; n < 2; n++)
     await load(
       'validation_fixture',
@@ -264,12 +272,15 @@ try {
       'vitest.config.ts',
       '--no-file-parallelism',
       'tests/commerce.integration.test.ts',
+      'tests/auth.integration.test.ts',
       'tests/onboarding.integration.test.ts',
       'tests/https.integration.test.ts',
       'tests/operations.integration.test.ts',
       'tests/backend-completion.integration.test.ts',
       'tests/search.integration.test.ts',
       'tests/outdoor.integration.test.ts',
+      'tests/v1-extensions.integration.test.ts',
+      'tests/rbac.integration.test.ts',
     ],
     {
       cwd: root,

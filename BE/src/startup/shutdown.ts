@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 
 import { pool } from '../shared/database/pool.js';
+import { closePrisma } from '../shared/database/prisma.js';
 import { logger } from '../shared/logging/logger.js';
 import { closeRedis } from '../shared/redis/client.js';
 import { env } from '../config/env.js';
@@ -26,7 +27,7 @@ export function registerShutdown(server: Server) {
     deadline.unref();
 
     server.close(() => {
-      void Promise.all([pool.end(), closeRedis()])
+      void Promise.all([closePrisma().then(() => pool.end()), closeRedis()])
         .then(() => {
           clearTimeout(deadline);
 

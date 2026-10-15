@@ -1,46 +1,42 @@
-# 19. Bộ sơ đồ hệ thống
+# 19. Kiến trúc và sơ đồ hệ thống
 
-**Phiên bản hiện hành:** 19 Mermaid/SVG theo ADR-014, topology ADR-016 và catalog ADR-017 cập nhật ngày 2026-09-23. Bốn ERD phản ánh 44 bảng của schema; 38 bảng lõi đã được đối chiếu information_schema trong đợt kiểm tra lịch sử, 6 bảng catalog được bổ sung cùng migration/API.
+Cập nhật2026-10-15 theo ADR-025/028/029/036/037/038. Sơ đồ hiện hành dùng Mermaid trực tiếp trong tài liệu; bộ gallery/SVG lịch sử đã được xóa, không còn đường dẫn `Docs/diagrams/` để mở.
 
-## Xem sơ đồ
+```mermaid
+flowchart LR
+    Web["Một FE: Customer / Organizer / Admin"] --> API["Express API — một instance"]
+    subgraph Monolith["Cùng codebase, cùng máy"]
+        API
+        BookingWorker["Bookings worker"]
+        NotificationWorker["Notifications worker"]
+    end
+    API --> PG[("PostgreSQL: dữ liệu gốc")]
+    BookingWorker --> PG
+    NotificationWorker --> PG
+    API --> Redis[("Redis: phòng chờ / rate limit / cache")]
+    API --> ES[("Elasticsearch: một instance search")]
+    NotificationWorker --> ES
+    API --> R2["Cloudflare R2: ảnh"]
+    API --> Providers["Google / SMTP Gmail / payOS"]
+```
 
-**Mở [index.html](diagrams/index.html)** bằng trình duyệt để xem toàn bộ sơ đồ offline, chọn từng sơ đồ trong mục lục và mở SVG để phóng to/in. Không cần chạy server, CDN hoặc tải dữ liệu dự án lên dịch vụ ngoài. Cũng có thể xem [README có ảnh](diagrams/README.md) trong trình xem Markdown.
+Hai worker là process cùng ứng dụng hiện có, không phải microservice. Redis/R2/search trong phạm vi đã duyệt; sơ đồ không cấp quyền thêm API instance, broker, cluster hoặc replication. PostgreSQL giữ nguồn sự thật inventory/idempotency/tiền/vé; cache và search không thay kiểm tra quyền hoặc khóa tồn kho.
 
-| Nhóm | Sơ đồ | Tài liệu liên quan |
-| -------------------- | ------------------------------------------------------ | --------------------------------------------------------------------- |
-| Phạm vi và kiến trúc | 01 Context, 02 Components, 03 Deployment, 04 Use cases | 01, 03, 06, 10, 14; ADR-001/ADR-008 |
-| Dữ liệu vật lý | 05 Identity, 06 Events, 07 Booking, 08 Operations | [schema.sql](../database/schema.sql), [20](20-physical-sql-design.md) |
-| Trình tự giao dịch | 09 Booking, 10 Seat race, 11 Late payment | FR-013–FR-023, BR-001–BR-019; [11](11-booking-concurrency.md) |
-| Bảo mật và tiền/vé | 12 Auth refresh, 13 Refund/check-in, 18 Authorization | FR-002/FR-015/FR-018/FR-020, [04](04-authentication-authorization.md) |
-| Vòng đời | 14 Booking, 15 Payment/refund, 16 Ticket/seat/hold | [07](07-business-rules.md) |
-| Duyệt sự kiện | 19 Event review, expiry và phiếu lý do | [23](23-organization-review-seatmap.md), [21](21-sql-transactions.md) |
-| Phục hồi | 17 Outbox worker | NFR-002/NFR-011; ADR-006/ADR-011 |
+| Nội dung | Nguồn hiện hành |
+| --- | --- |
+| Cấu trúc module và trách nhiệm file | [10 — Backend](10-backend-architecture.md), [31 — Cấu trúc code](31-backend-code-structure.md) |
+| Auth, onboarding và quyền | [04 — Auth](04-authentication-authorization.md), [33 — Onboarding](33-registration-onboarding.md), [35 — Questionnaire](35-admin-onboarding-questions.md) |
+| Schema và quan hệ vật lý | [schema.sql](../database/schema.sql), [08 — Database](08-database-design.md), [20 — SQL vật lý](20-physical-sql-design.md) |
+| Hồ sơ/follow/attendee và gộp schema | [29](29-profile-follow-age-attendees.md), [30](30-schema-consolidation.md), [36](36-schema-audit.md) |
+| Hold, tranh chấp và tiền đến muộn | [11 — Concurrency](11-booking-concurrency.md), [21 — Transaction](21-sql-transactions.md), [32 — Payment/vé](32-payos-booking-ticket-flow.md) |
+| Refund, feedback và vận hành sự kiện | [37](37-refunds-reviews-app-feedback.md), [38 — ERD thay đổi/hủy](38-organizer-sales-operations.md) |
+| Quan hệ ẩn Organizer và Admin gỡ event | [40 — ERD organization_blocks](40-backend-functional-completion.md) |
+| Search/outbox và outdoor inventory | [41](41-home-event-search.md), [42 — ERD inventory](42-outdoor-zone-ticketing.md) |
+| SKU/order/ledger/membership và mở bán | [44 — ERD v1](44-backend-v1-extensions.md) |
+| Quản trị role/permission/UserRole/audit | [46 — RBAC018](46-dynamic-rbac.md) |
+| Readiness, worker, HTTPS và restore | [39](39-backend-operational-readiness.md) |
+| Phạm vi v1 và quyết định còn chờ | [43](43-backend-v1.md), [18](18-open-questions.md) |
 
-Sơ đồ use case dùng flowchart biểu diễn tác nhân và hành động; đây không phải tuyên bố UML đầy đủ. Context/components/deployment thể hiện hai frontend deployable (Public Customer/Organizer và Admin) cùng gọi một backend; không tự suy ra thêm backend service hoặc database độc lập.
+ERD dùng tên bảng/cột snake_case và chỉ vẽ FK vật lý. `aggregate_type/id`, `resource_type/id` là tham chiếu đa hình do service quản lý; không vẽ thành FK DB. Mermaid chỉ hiển thị cột trọng yếu; schema.sql và migration giữ định nghĩa đầy đủ của51 bảng hiện hành.
 
-## Quy ước đọc
-
-- Nét liền là quan hệ/luồng đang được thiết kế cho MVP; nét đứt trong context/deployment là tích hợp sau MVP hoặc còn quyết định.
-- ERD dùng đúng tên bảng/cột snake_case trong SQL, chỉ hiển thị cột trọng yếu để đọc được. Danh sách cột đầy đủ ở schema, không sửa SQL dựa vào việc một cột không được vẽ.
-- Nét đứt trong ERD là đường quan hệ vật lý để dễ phân biệt với luồng; không biểu diễn trạng thái triển khai. Nhãn liệt kê nhóm cột composite FK. Bảng tham chiếu ngoài miền chỉ hiện PK.
-- PK = khóa chính, FK = khóa ngoại, UK = unique đơn cột; crow's foot là nhiều, vòng tròn là có thể không có. Một số bảng xuất hiện ở nhiều ERD vì là điểm nối giữa module.
-- ERD chỉ vẽ FK vật lý. `aggregate_type/id`, `resource_type/id` ở outbox/audit/idempotency là tham chiếu đa hình do service quản lý, không giả vẽ thành FK DB.
-- Unique trên generated guards không thể diễn đạt đầy đủ bằng cardinality; xem [20](20-physical-sql-design.md). State diagram thể hiện chuyển hợp lệ ở service; CHECK trong DDL không tự kiểm tra trạng thái trước đó.
-- Q-xxx có phần đã chốt và phần còn mở theo 18, không mặc định mọi Q đều chưa chốt. Sơ đồ mô tả phương án review, không chứng minh đã có ứng dụng chạy.
-
-## Chỉnh và xuất lại
-
-Sửa nguồn `.mmd` rồi xuất SVG bằng trình hỗ trợ Mermaid khi cần. Với ERD, đối chiếu tên bảng, cột và quan hệ trong SQL; cập nhật nguồn sơ đồ cùng thay đổi schema. SVG, gallery và README ảnh là sản phẩm bàn giao có thể mở ngay, không cần cài công cụ.
-
-Các script sinh/xuất sơ đồ và dependency phụ trợ đã được dọn theo yêu cầu, repo không có build command riêng. Khi thay sơ đồ, xuất lại SVG cùng tên và cập nhật mục lục gallery/README nếu thêm hoặc bỏ sơ đồ; không sửa SVG thủ công.
-
-Cú pháp ERD dựa trên [Mermaid Entity Relationship Diagrams](https://mermaid.js.org/syntax/entityRelationshipDiagram.html). Các nhãn Việt và các bước nghiệp vụ là thiết kế của dự án, không phải nội dung quy phạm từ thư viện.
-
-## Bổ sung hiện hành 2026-10-12
-
-ERD các field mới của event_change_requests/events/notifications và workflow hậu xử lý theo ADR-034 được ghi trực tiếp trong [Docs38](38-organizer-sales-operations.md). Source SQL local/fresh vẫn46 bảng; outbox aggregate ID là tham chiếu đa hình, không vẽ như FK. Phần gallery lịch sử bên trên không thay hợp đồng/schema hiện hành này.
-
-
-## Bổ sung ADR-035 / 2026-10-14
-
-Mermaid quan hệ organization_blocks giữa Users và Organizations tại Docs40 khớp schema.sql/migration014. Admin gỡ PUBLISHED→ARCHIVED dừng public/bán/check-in/vào cửa, giữ lịch sử, không compensation. Modular Monolith một API; không khôi phục bộ SVG cũ đã bị xóa.
+Khi đổi model, cập nhật SQL, migration, ERD Mermaid và hợp đồng cùng nhau. Không dựng lại công cụ xuất SVG/gallery hoặc thêm dependency chỉ để xem sơ đồ. Sơ đồ thiết kế và kết quả kiểm chứng là hai loại bằng chứng riêng; xem log tại [26](26-auth-progress.md).

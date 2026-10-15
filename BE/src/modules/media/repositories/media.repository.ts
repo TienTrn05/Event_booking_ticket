@@ -24,7 +24,7 @@ export const mediaRepository = {
             [input.targetId],
           )
         : await db.query<{ id: string; organization_id: string; status: string; version: number }>(
-            `SELECT e.id::text, e.organization_id::text, e.status, e.version FROM events e
+            `SELECT e.id::text, e.organization_id::text, mp.status, mp.version FROM events e
          JOIN merchandise_products mp ON mp.event_id=e.id AND mp.organization_id=e.organization_id
          WHERE mp.id=$1 ${lock ? 'FOR UPDATE OF e,mp' : ''}`,
             [input.targetId],
@@ -70,14 +70,10 @@ export const mediaRepository = {
         url,
       ]);
     } else {
-      await db.query('UPDATE merchandise_products SET image_url=$2 WHERE id=$1', [
+      await db.query('UPDATE merchandise_products SET image_url=$2,version=version+1 WHERE id=$1', [
         input.targetId,
         url,
       ]);
-      await db.query(
-        'UPDATE events SET version=version+1 WHERE id=(SELECT event_id FROM merchandise_products WHERE id=$1)',
-        [input.targetId],
-      );
     }
     await db.query(
       `INSERT INTO audit_logs (actor_type,actor_id,action,resource_type,resource_id,request_id)

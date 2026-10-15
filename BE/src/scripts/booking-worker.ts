@@ -1,3 +1,4 @@
+import { MerchandiseService } from '../modules/merchandise/merchandise.service.js';
 import { expireBatch } from '../modules/bookings/allocation/allocation.service.js';
 import { runWorker } from '../shared/workers/run-worker.js';
 import { createCommerceServices } from '../startup/payment.dependencies.js';
@@ -7,6 +8,11 @@ const commerce = createCommerceServices();
 
 await runWorker(
   [
+    {
+      run: () => new MerchandiseService().expire(),
+      failureCode: 'MERCHANDISE_EXPIRY_FAILED',
+      failureMessage: 'Merchandise expiry will retry.',
+    },
     {
       run: () => new EventOperationsService().recover(),
       failureCode: 'EVENT_OPERATIONS_FAILED',

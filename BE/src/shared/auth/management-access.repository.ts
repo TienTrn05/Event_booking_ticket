@@ -3,6 +3,18 @@ import type { RequestActor } from './request-actor.js';
 import { usersRepository } from '../../modules/users/repositories/users.repository.js';
 import { AppError } from '../errors/app-error.js';
 export class ManagementAccessRepository {
+  async admin(db: PoolClient, actor: RequestActor, permission: string) {
+    await this.permission(db, actor, permission);
+    if (
+      !(
+        await db.query(
+          "SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=$1 AND r.code='ADMIN' FOR SHARE OF ur",
+          [actor.id],
+        )
+      ).rowCount
+    )
+      throw new AppError(403, 'FORBIDDEN', 'Cần vai trò Admin.');
+  }
   async permission(db: PoolClient, actor: RequestActor, code: string) {
     await usersRepository.profile(db, actor, true);
     if (
@@ -55,7 +67,7 @@ export class ManagementAccessRepository {
       throw new AppError(
         401,
         'REAUTHENTICATION_REQUIRED',
-        'Cần đăng nhập lại trước khi duyệt quyền vận hành tổ chức.',
+        'Cần đăng nhập lại trong 5 phút trước thao tác quản trị nhạy cảm.',
       );
   }
 }

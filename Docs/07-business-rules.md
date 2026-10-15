@@ -1,5 +1,7 @@
 # 07. Quy tắc nghiệp vụ và máy trạng thái
 
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 Quyết định hiện hành theo [18](18-open-questions.md) và [23](23-organization-review-seatmap.md); chỉ phần ghi rõ còn mở mới cần quyết định thêm. Bất biến kỹ thuật luôn bắt buộc.
 
 ADR-023/Q-024 ngày 2026-10-11: DOB/gender hồ sơ riêng tư; Customer theo dõi Organization và nhận notification trong web khi event công khai, có mute riêng. Event có minimumAge nullable/tag sinh tự động, tuổi tính ngày suất theo timezone venue và từng người tham dự. Mỗi vé có họ tên/DOB/SĐT/CCCD riêng, không lấy tuổi người mua đại diện cả nhóm; tự khai chưa được xác minh, staff đúng tổ chức đối chiếu giấy tờ thật tại cửa. CCCD mã hóa/che số/xóa sau ends_at +30 ngày, không xóa lịch sử giao dịch. Không confirm thiếu thông tin/không đủ tuổi hoặc chuyển vé USED khi chưa có proof danh tính. [29](29-profile-follow-age-attendees.md) ghi API/worker/retention và giới hạn triển khai.

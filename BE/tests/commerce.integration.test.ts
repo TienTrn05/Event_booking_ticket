@@ -1,4 +1,5 @@
 import { RefundService } from '../src/modules/refunds/refund.service.js';
+import { databaseTimestamp } from './fixtures/database-time.js';
 import { EventOperationsService } from '../src/modules/events/operations/event-operations.service.js';
 import { EventManagementService } from '../src/modules/events/management/event-management.service.js';
 import {
@@ -7,8 +8,13 @@ import {
 } from '../src/modules/events/management/event-management.schema.js';
 import { contentChange } from '../src/modules/events/operations/event-operations.schema.js';
 import { SalesService } from '../src/modules/sales/sales.service.js';
+import { OperationsService } from '../src/modules/operations/operations.service.js';
+import { statisticsQuery } from '../src/modules/operations/operations.schema.js';
 import { ordersQuery, ticketsQuery, overviewQuery } from '../src/modules/sales/sales.schema.js';
 import { FeedbackService } from '../src/modules/feedback/feedback.service.js';
+import { FeedbackRepository } from '../src/modules/feedback/feedback.repository.js';
+import { MembershipService } from '../src/modules/organizations/memberships/membership.service.js';
+import { withTransaction } from '../src/shared/database/transaction.js';
 import { refundResult } from '../src/modules/refunds/refund.schema.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
@@ -480,6 +486,37 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
     await payments.recover();
     expect(await state(b.order.id)).toEqual({ status: 'CONFIRMED', tickets: 1 });
   });
+  it('reports polling failures after processing the other payment candidates', async () => {
+    const failed = await booking(),
+      good = await booking();
+    const one = await payments.start(failed.actor, failed.order.id, randomUUID(), randomUUID());
+    const two = await payments.start(good.actor, good.order.id, randomUUID(), randomUUID());
+    const missing = await receipt(one.id),
+      received = await receipt(two.id);
+    gateway.receipts.set(Number(received.orderCode), [received]);
+    const original = gateway.status.bind(gateway);
+    const polling = vi.spyOn(gateway, 'status').mockImplementation(async (code) => {
+      if (code === Number(missing.orderCode)) throw new Error('Private provider failure');
+      return original(code);
+    });
+    try {
+      await query(
+        'UPDATE payments SET last_polled_at=CASE WHEN id=ANY($1::bigint[]) THEN NULL ELSE clock_timestamp() END',
+        [[one.id, two.id]],
+      );
+      await expect(payments.recover()).rejects.toThrow('Payment recovery polling failed.');
+      expect(await state(good.order.id)).toEqual({ status: 'CONFIRMED', tickets: 1 });
+      expect(await state(failed.order.id)).toEqual({ status: 'AWAITING_PAYMENT', tickets: 0 });
+    } finally {
+      polling.mockRestore();
+    }
+    await query(
+      'UPDATE payments SET last_polled_at=CASE WHEN id=$1 THEN NULL ELSE clock_timestamp() END',
+      [one.id],
+    );
+    await expect(payments.recover()).resolves.toBe(false);
+  });
+
   it('counter check-in and admission replay are idempotent', async () => {
     const b = await booking(),
       p = await payments.start(b.actor, b.order.id, randomUUID(), randomUUID());
@@ -769,7 +806,7 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
     const input = refundResult.parse({
         ...invalid,
         reference: randomUUID(),
-        transferredAt: new Date().toISOString(),
+        transferredAt: await databaseTimestamp(),
       }),
       resultKey = randomUUID();
     expect(
@@ -982,6 +1019,90 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       ),
     ).rejects.toMatchObject({ code: 'REVIEW_EDIT_CLOSED' });
   });
+  it('keeps invited and declined buyers eligible to review without treating an invitation as membership', async () => {
+    const feedback = new FeedbackService(),
+      memberships = new MembershipService();
+    const organizationId = (
+      await query('SELECT organization_id::text FROM events WHERE id=$1', [eventId])
+    ).rows[0].organization_id as string;
+    for (const decline of [false, true]) {
+      const b = await paidRefundFixture();
+      await query(
+        "INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE code='ORGANIZER'",
+        [b.actor.id],
+      );
+      const invitation = (await memberships.invite(
+        staff,
+        organizationId,
+        { userId: b.actor.id, version: 0 },
+        randomUUID(),
+        randomUUID(),
+      ))!;
+      if (decline)
+        await memberships.change(
+          b.actor,
+          invitation.id,
+          invitation.version,
+          'decline',
+          randomUUID(),
+          randomUUID(),
+        );
+      await query("UPDATE events SET status='CANCELLED' WHERE id=$1", [eventId]);
+      try {
+        expect(
+          (await feedback.create(
+            b.actor,
+            { kind: 'ORGANIZATION', eventId, stars: 2, content: 'Verified buyer fixture' },
+            randomUUID(),
+            randomUUID(),
+          ))!.stars,
+        ).toBe(2);
+      } finally {
+        await query("UPDATE events SET status='PUBLISHED' WHERE id=$1", [eventId]);
+      }
+    }
+    // Preserve the existing restriction for actual former members, including reinvitation.
+    const former = await customer();
+    await query(
+      "INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE code='ORGANIZER'",
+      [former.id],
+    );
+    let member = (await memberships.invite(
+      staff,
+      organizationId,
+      { userId: former.id, version: 0 },
+      randomUUID(),
+      randomUUID(),
+    ))!;
+    member = (await memberships.change(
+      former,
+      member.id,
+      member.version,
+      'accept',
+      randomUUID(),
+      randomUUID(),
+    ))!;
+    member = (await memberships.change(
+      staff,
+      member.id,
+      member.version,
+      'revoke',
+      randomUUID(),
+      randomUUID(),
+    ))!;
+    await memberships.invite(
+      staff,
+      organizationId,
+      { userId: former.id, version: member.version },
+      randomUUID(),
+      randomUUID(),
+    );
+    expect(
+      (await withTransaction((db) => new FeedbackRepository().purchase(db, former.id, eventId)))!
+        .self_review,
+    ).toBe(true);
+  });
+
   it('app feedback is restricted to its author and Admin, never Organizer or other customers', async () => {
     const feedback = new FeedbackService(),
       author = await customer(),
@@ -1154,7 +1275,7 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       );
     }
     const reference = randomUUID(),
-      transferredAt = (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
+      transferredAt = await databaseTimestamp();
     const results = await Promise.allSettled(
       requests.map((r) =>
         refunds.change(
@@ -1261,6 +1382,127 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       ).total,
     ).toBe(0);
     expect(overviewQuery.safeParse({ from, to: from }).success).toBe(false);
+  });
+  it('aggregates Admin statistics without multiplying ticket money and separates refunds and late receipts', async () => {
+    const from = (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
+    const admin = await adminFixture(),
+      paid = await paidRefundFixture(),
+      operations = new OperationsService();
+    await query(
+      "INSERT INTO payments(booking_id,provider,provider_key,amount_minor,currency,status) VALUES($1,'PAYOS',$2,20000,'VND','FAILED')",
+      [paid.order.id, String(Math.floor(Math.random() * 1000000000))],
+    );
+    const refunds = new RefundService();
+    const refund = (await refunds.request(
+      paid.actor,
+      paid.order.id,
+      'Statistics fixture',
+      randomUUID(),
+      randomUUID(),
+    ))!;
+    await refunds.change(
+      staff,
+      refund.id,
+      'approve',
+      { version: 0, reason: 'Statistics fixture' },
+      'organization',
+      randomUUID(),
+      randomUUID(),
+    );
+    await refunds.change(
+      staff,
+      refund.id,
+      'result',
+      refundResult.parse({
+        version: 1,
+        status: 'SUCCESS',
+        reference: randomUUID(),
+        evidenceNote: 'Synthetic transfer evidence',
+        transferredAt: await databaseTimestamp(),
+      }),
+      'organization',
+      randomUUID(),
+      randomUUID(),
+    );
+    const late = await booking(),
+      attempt = await payments.start(late.actor, late.order.id, randomUUID(), randomUUID());
+    await cancelBooking(
+      late.actor,
+      late.order.id,
+      'Statistics fixture',
+      randomUUID(),
+      randomUUID(),
+    );
+    await payments.accept(await receipt(attempt.id));
+    const to = (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
+    const result = await operations.statistics(admin, statisticsQuery.parse({ from, to }));
+    expect(result.bookings).toMatchObject({ total: 2, refunded: 1, cancelled: 1 });
+    expect(result.tickets).toMatchObject({ total: 2, refunded: 2 });
+    expect(result.money).toEqual([
+      {
+        currency: 'VND',
+        grossTicketSalesMinor: '20000',
+        receivedMinor: '30000',
+        refundedMinor: '20000',
+        pendingRefundMinor: '0',
+        netReceivedMinor: '10000',
+        reconciliationReceivedMinor: '10000',
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toMatch(
+      /customerName|attendee|email|cccd|ticketCode|provider_reference|evidenceNote/,
+    );
+    const auth =
+      'Bearer ' +
+      (await accessToken({
+        userId: admin.id,
+        sessionId: admin.sessionId,
+        authVersion: 0,
+        displayName: 'Stats fixture',
+        identityId: '1',
+        expiresAt: new Date(Date.now() + 60000),
+        refreshToken: '',
+      }));
+    const app = createApp({ checkDatabase: async () => {} });
+    expect((await request(app).get('/api/v1/admin/statistics')).status).toBe(401);
+    const response = await request(app)
+      .get('/api/v1/admin/statistics')
+      .query({ from, to })
+      .set('Authorization', auth);
+    expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(response.body.data.money).toEqual(result.money);
+    for (const invalid of [
+      { from, to: from },
+      { from: 'yesterday' },
+      { from: [from, from] },
+      { organizationId: '1' },
+    ])
+      expect(
+        (
+          await request(app)
+            .get('/api/v1/admin/statistics')
+            .query(invalid)
+            .set('Authorization', auth)
+        ).status,
+      ).toBe(400);
+    await expect(operations.statistics(paid.actor, {})).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(operations.statistics(staff, {})).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    const empty = await operations.statistics(admin, {
+      from: to,
+      to: new Date(new Date(to).getTime() + 1).toISOString(),
+    });
+    expect(empty.bookings.total).toBe(0);
+    expect(empty.money).toEqual([]);
+    await query(
+      "DELETE FROM user_roles WHERE user_id=$1 AND role_id=(SELECT id FROM roles WHERE code='ADMIN')",
+      [admin.id],
+    );
+    expect(
+      (await request(app).get('/api/v1/admin/statistics').set('Authorization', auth)).status,
+    ).toBe(403);
   });
   it('reviews published content without changing schedule, inventory or sold tickets', async () => {
     const service = new EventOperationsService(),
@@ -1669,7 +1911,7 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
           status: 'SUCCESS',
           reference: randomUUID(),
           evidenceNote: 'Cancellation transfer fixture',
-          transferredAt: (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString(),
+          transferredAt: await databaseTimestamp(),
         },
         'organization',
         randomUUID(),

@@ -1,3 +1,5 @@
+import { MerchandisePaymentAdapter } from '../modules/merchandise/merchandise-payment.adapter.js';
+import { PaymentRepository } from '../modules/payments/repositories/payment.repository.js';
 import { PayOS } from '@payos/node';
 import { env } from '../config/env.js';
 import type {
@@ -31,6 +33,8 @@ export function createCommerceServices(gateway?: PaymentGateway, issuer?: Ticket
       bookingPort,
       issuer ?? new DatabaseTicketIssuer(),
       env.PUBLIC_APP_URL,
+      new PaymentRepository(),
+      new MerchandisePaymentAdapter(),
     ),
     tickets: new TicketService(bookingPort),
   };

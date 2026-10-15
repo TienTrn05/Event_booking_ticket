@@ -4,4 +4,6 @@ API đọc công khai phục vụ event/category, organizer, merchandise, articl
 
 Repository SQL chia theo events/organizers/content/venues. `catalog.repository.ts` ghép `postgresCatalogRepository` và giữ hợp đồng `CatalogRepository` để inject/test; không đổi public DTO. OpenAPI paths và response schemas thuộc module này.
 
+Venue list/detail nằm trong `repositories/venues.repository.ts`; Organizer chọn venue tại events/management. API bảo trì/tạo/sửa venue chưa được chốt, không có module venue độc lập.
+
 Query có allowlist, chuỗi scalar và trần phân trang; featured/spotlight chỉ true/false. ID venue dùng BIGINT chuỗi từ shared; public ID giữ định dạng hiện hành. Xem [cấu trúc và validation](../../../../Docs/31-backend-code-structure.md).

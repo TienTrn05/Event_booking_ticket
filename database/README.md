@@ -1,6 +1,6 @@
 # PostgreSQL database
 
-Schema hiện hành có **46 bảng**: 38 bảng lõi, 6 bảng catalog, alias SĐT ADR-021, organization_follows ADR-023. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
+Schema hiện hành có **51 bảng**, gồm các thay đổi đến migration017: onboarding/questionnaire, gộp catalog metadata, refund/feedback, organization_blocks, search outbox và outdoor inventory. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit là chuỗi để không mất độ chính xác trong JavaScript. Các số bảng/kết quả ở phần nâng cấp bên dưới là lịch sử từng phiên bản; không dùng chúng thay trạng thái schema hiện hành.
 
 Ảnh upload mới lưu ở Cloudflare R2; DB chỉ lưu URL theo ADR-022. Database cũ cần [migration 003](migrations/003-r2-images.sql) sau backup/review; database mới dùng schema.sql đã có hai cột nullable. Chi tiết và kết quả local ở [Docs/28](../Docs/28-r2-image-upload.md).
 
@@ -10,8 +10,8 @@ Migration [004](migrations/004-profile-follow-notifications.sql) thêm hồ sơ/
 
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | Tạo mới toàn bộ 46 bảng theo ADR-023, PK/FK/UQ/CHECK/index và trigger |
-| [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp 3 role, 29 permission và ánh xạ quyền |
+| [schema.sql](schema.sql) | Tạo mới toàn bộ51 bảng đến ADR-038/migration017, PK/FK/UQ/CHECK/index và trigger |
+| [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp role/permission và ánh xạ quyền hiện hành; không cấp vai trò cho User thật |
 | [002-public-catalog.sql](seeds/002-public-catalog.sql) | Nạp dữ liệu demo liên kết đầy đủ cho Public Web, gồm cả venue |
 | [001-public-catalog.sql](migrations/001-public-catalog.sql) | Nâng schema PostgreSQL 38 bảng lõi theo ADR-014 lên 44 bảng |
 | [queries](queries) | Query vận hành và audit, dùng tham số có tên của DBeaver |
@@ -35,6 +35,8 @@ database/seeds/002-public-catalog.sql  (tùy chọn, chỉ để demo)
 ```
 
 Database PostgreSQL cũ đã có **đúng schema 38 bảng lõi ADR-014**:
+
+Đoạn lệnh dưới đây chỉ đưa schema lõi lên mốc catalog001. Để chạy BE hiện hành, tiếp tục đối chiếu/apply các migration còn thiếu002–017 theo đúng thứ tự sau backup/review, rồi dùng seed hiện hành. Không dựa riêng vào số bảng để xác định phiên bản.
 
 ```text
 database/migrations/001-public-catalog.sql
@@ -76,7 +78,7 @@ WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
 -- Schema mới ADR-021: 45; database cũ trước migration 002: 44
 ```
 
-## Kiểm chứng
+## Kiểm chứng lịch sử catalog2026-09/10
 
 - `schema.sql` tạo đủ 44 bảng trên một PostgreSQL 18 tạm, độc lập với database người dùng.
 - Migration catalog chạy thành công trên schema lõi tối thiểu và tạo đủ 6 bảng mới.
@@ -134,3 +136,13 @@ DB local đã apply015 sau backup backups/before-015-1791977547583.dump (257083 
 DB có015: backup/review rồi chạy016 một lần; DB rỗng dùng schema.sql đã gồm016. Dùng lại47 bảng, thêm mode/khu và inventory unit theo section/ordinal, không physical seats giả. Backfill mode giữ timestamps/historical rows, không tự cấu hình sức chứa cho catalog demo cũ. Sau khi016 đã áp dụng không chạy lại. [Schema/ERD/rollback và trạng thái thực tế](../Docs/42-outdoor-zone-ticketing.md).
 
 Kiểm chứng cuối2026-10-14: BE97 unit/HTTP/config/architecture + lint/typecheck/build/format/secret guard qua; PG/ES59 passed/2 browser skipped. DB local đã apply016 sau backup backups/before-016-1791983829678.dump263060 bytes (pg_restore --list qua), vẫn47 bảng; fingerprint mọi giá trị lịch sử và timestamps giữ nguyên khi loại đúng các cột mới. Không chạy016 lại. Smoke health/ready200, search200/Elasticsearch, Admin health401 khi chưa login, Swagger4 outdoor paths. Fixture PG/index/API key đã dọn, BE/tmp rỗng; không provider/tiền thật hoặc FE mới.
+
+## Nâng bốn phần BE v1 / ADR-038
+
+[017](migrations/017-backend-v1-extensions.sql) additive sau016: SKU/order/items/ledger và membership/product/payment/report/review. Fresh/populated upgrade khớp; chỉ apply sau backup/review/test, không chạy lại DB đã có marker backend_v1_extensions_installed(). [Docs44](../Docs/44-backend-v1-extensions.md) có ERD/API/lock/stock/PII, trạng thái apply và kiểm chứng tại [Docs26](../Docs/26-auth-progress.md).
+
+## Quản trị RBAC / migration018
+
+[018](migrations/018-dynamic-rbac.sql) sau017 thêm metadata role/users.roles_version, vẫn51 bảng; không thêm UserRole. Cấp rbac.manage cho role ADMIN hiện có theo chủ dự án. Backup/review trước apply, không chạy lại nếu dynamic_rbac_installed() tồn tại. DB rỗng dùng schema.sql rồi seed, không chạy migration riêng. API/UI/policy và khôi phục tại [Docs46](../Docs/46-dynamic-rbac.md), trạng thái local tại [Docs26](../Docs/26-auth-progress.md).
+
+Local đã áp018 ngày2026-10-15 sau backup before-018-1792075233118.dump295705 bytes, pg_restore --list qua. Fingerprint51 bảng/351 dòng lịch sử và mọi UserRole giữ nguyên;44 sequence chỉ permissions_id_seq tăng đúng một permission mới. Readiness/schema check và smoke OpenAPI/RBAC qua. **Không chạy018 lại trên DB local.**

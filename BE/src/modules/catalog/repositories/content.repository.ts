@@ -32,7 +32,7 @@ export const contentRepository: Pick<
         FROM merchandise_products mp
         JOIN events e ON e.id = mp.event_id
         JOIN organizations o ON o.id = mp.organization_id
-        WHERE mp.status = 'PUBLISHED' AND e.status = 'PUBLISHED'
+        WHERE mp.status = 'PUBLISHED' AND e.status = 'PUBLISHED' AND o.status='APPROVED'
           AND e.published_at <= CURRENT_TIMESTAMP
           AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.organization_id=o.id AND ob.user_id=$1::bigint)
         ORDER BY mp.sort_order, mp.id

@@ -6,13 +6,14 @@ export function createOrganizationRouter() {
   const router = Router(),
     controller = new OrganizationController();
   router.use(
-    ['/organizations/applications', '/admin/organization-applications'],
+    ['/organizations/applications', '/organizer/organizations', '/admin/organization-applications'],
     noStore,
     (req, _res, next) => {
       if (req.method !== 'GET') requireAppOrigin(req);
       next();
     },
   );
+  router.get('/organizer/organizations', controller.memberships);
   router.post('/organizations/applications', controller.apply);
   router.get('/organizations/applications', controller.own);
   router.get('/organizations/applications/:id', controller.get);

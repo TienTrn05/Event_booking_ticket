@@ -48,6 +48,10 @@ export async function checkDatabase(): Promise<void> {
       'events',
       'city_profiles',
       'merchandise_products',
+      'merchandise_skus',
+      'merchandise_orders',
+      'merchandise_order_items',
+      'organization_reputation_entries',
       'blog_articles',
       'event_change_requests',
       'users',
@@ -103,6 +107,22 @@ export async function checkDatabase(): Promise<void> {
     if (Number(rows[0]?.table_count ?? 0) !== requiredTables.length) {
       throw new Error('Application database schema is not installed.');
     }
+    if (
+      !(
+        await connection.query<{ installed: boolean }>(
+          "SELECT to_regprocedure('backend_v1_extensions_installed()') IS NOT NULL AS installed",
+        )
+      ).rows[0]?.installed
+    )
+      throw new Error('Backend v1 migration017 is required.');
+    if (
+      !(
+        await connection.query<{ installed: boolean }>(
+          "SELECT to_regprocedure('dynamic_rbac_installed()') IS NOT NULL AS installed",
+        )
+      ).rows[0]?.installed
+    )
+      throw new Error('Dynamic RBAC migration018 is required.');
     const searchTrigger = await connection.query<{ installed: boolean }>(
       "SELECT to_regprocedure('enqueue_search_event(bigint)') IS NOT NULL AS installed",
     );

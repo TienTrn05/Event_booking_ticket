@@ -18,7 +18,7 @@ GOOGLE_CLIENT_ID=<Google OAuth web client ID>
 
 FE bắt đầu POST với CSRF, chuyển đến Google, callback đặt refresh cookie rồi redirect về FE. FE POST refresh để lấy access JWT vào memory; không đặt JWT vào URL, localStorage hay sessionStorage. Email OTP Customer và liên kết Google/EMAIL có mã nguồn theo ADR-021; Email công ty cũ đã được thay theo ADR-029: role chọn khi onboarding, không suy quyền từ email/hd. Logout-all, danh sách phiên và thu hồi từng phiên đã triển khai theo Docs/40; Organizer/Admin dùng quyền DB và scope hiện hành.
 
-Chạy `npm test` và `npm run check` trong BE. Bộ test hiện tại kiểm tra validation/HTTP/dependency/OpenAPI/worker với fixture, không đọc `.env` thật. Auth tests cũ đã bị xóa trước đợt làm sạch và không được khôi phục; không còn tùy chọn AUTH_TEST_DB cho bộ test hiện tại. Đợt refactor đã kiểm tra PostgreSQL riêng cho phiên/refresh/reuse và booking, tài nguyên tạm đã dọn. Google live cần OAuth client/trình duyệt thật; đợt này không chạy lại provider live.
+Chạy `npm run check` cho validation/HTTP/dependency/OpenAPI/worker. `npm run test:commerce` chạy `tests/auth.integration.test.ts` trên PostgreSQL fixture: OTP delivery/binding/attempts/resend/consume/expiry khi chờ khóa, Google state/PKCE/nonce/linking và refresh rotation/reuse/absolute expiry. Không dùng `.env` thật, gửi SMTP hoặc gọi Google thật trong các test này. Provider live cần OAuth client/trình duyệt riêng; kết quả và giới hạn tại [Docs26](../../../../Docs/26-auth-progress.md).
 
 ## ADR-021
 

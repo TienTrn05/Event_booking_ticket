@@ -1,12 +1,14 @@
 # Event Ticketing Platform
 
+Quản trị phân quyền: API `/api/v1/admin/rbac`, giao diện `/admin/rbac`, migration018. Admin có rbac.manage tạo/sửa role bổ sung, gán/thu hồi role và ADMIN cho người khác có xác thực lại/lý do/audit. [Chính sách và kiểm chứng](Docs/46-dynamic-rbac.md); role bổ sung cộng quyền, không giảm quyền gốc.
+
 Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn vị tổ chức. Dự án hướng tới quy trình chọn ghế, thanh toán, nhận vé, check-in và quản lý sự kiện có kiểm soát.
 
-**Giai đoạn hiện tại (2026-10-14):** BE có catalog, Google/email OTP, onboarding Customer/Organizer, tạo nháp/duyệt sự kiện, giữ ghế, payOS/phát vé/check-in, hoàn tiền thủ công, feedback và API Organizer theo dõi bán vé/doanh thu/sửa-hủy. FE đã nối một phần luồng mua vé; dashboard quản lý mới chưa nối. payOS đã thử tạo/hủy link, chưa chuyển hoặc hoàn tiền thật. Demo local bán vé và hướng dẫn Swagger tại [Docs38](Docs/38-organizer-sales-operations.md).
+**Giai đoạn hiện tại (2026-10-15):** hoàn thiện BE v1 gồm bán vé indoor/outdoor, auth/onboarding, tổ chức/event, payOS/vé/check-in/refund/report, search/thống kê và bốn phần merchandise/mở bán lại/membership/uy tín. [Nghiệm thu v1](Docs/43-backend-v1.md), [hợp đồng FE](Docs/44-backend-v1-extensions.md). FE đã nối một phần mua vé, bước tiếp theo là dashboard/luồng mới. CMS sau v1; chưa chuyển/hoàn tiền thật hoặc deploy production.
 
 ## Phạm vi sản phẩm
 
-BE đã bổ sung quản lý phiên/logout-all, bộ lọc ngày–giá–ghế, xóa nháp rỗng, report hỗ trợ/audit, phiếu lý do nháp/xem trước, Admin gỡ sự kiện và Customer ẩn Organizer. Hợp đồng hiện hành, migration014 và giới hạn tại [Docs40](Docs/40-backend-functional-completion.md). Dashboard FE cho các chức năng mới chưa nối; merchandise mua/giao hàng, uy tín và mở bán lại còn cần chính sách.
+BE đã bổ sung quản lý phiên/logout-all, bộ lọc ngày–giá–ghế, xóa nháp rỗng, report hỗ trợ/audit, phiếu lý do nháp/xem trước, Admin gỡ sự kiện và Customer ẩn Organizer. Hợp đồng hiện hành, migration014 và giới hạn tại [Docs40](Docs/40-backend-functional-completion.md). Dashboard FE cho các chức năng mới chưa nối; merchandise/giao/hoàn, uy tín, mở bán lại và membership đã chốt/triển khai theo [Docs44](Docs/44-backend-v1-extensions.md).
 
 - **Khách hàng:** đăng nhập Google/email OTP, chọn ghế, mua vé, khai tên người tham dự và check-in bằng mã vé do hệ thống cấp.
 - **Tổ chức:** đăng ký Google/email và chọn Organizer, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
@@ -26,7 +28,7 @@ BE đã có hồ sơ gender/DOB, theo dõi Organizer/inbox, giới hạn tuổi 
 | --------------- | ---------------------------------------------- |
 | Frontend        | React, TypeScript, Vite, React Router          |
 | Backend         | Node.js, Express, TypeScript; modular monolith |
-| Database        | PostgreSQL 16+, `pg`, SQL có tham số            |
+| Database        | PostgreSQL 16+, `pg`/SQL; Prisma thử nghiệm preference ẩn Organizer |
 | Chất lượng code | ESLint, Prettier, Vitest, Supertest            |
 
 Phiên bản dependency được cố định độc lập trong `BE/package.json` + `BE/package-lock.json` và `Fe/package.json` + `Fe/package-lock.json`. Runtime local dùng Node **24.21.0**, npm **11.19.0**; database yêu cầu PostgreSQL **16+**, đã kiểm tra local trên **18**.
@@ -82,7 +84,7 @@ Trong terminal đang đứng ở **BE/**, điền thông tin PostgreSQL vào `.e
 npm.cmd run db:check
 ```
 
-Lệnh này chỉ đọc `SELECT 1` và kiểm tra 6 bảng catalog ADR-017, không tạo bảng hoặc thay đổi dữ liệu. Nếu cần khởi tạo một database **rỗng** hoặc nâng database 38 bảng, làm theo [hướng dẫn SQL](database/README.md). Không dùng schema.sql để nâng cấp database đang có dữ liệu.
+Lệnh này chỉ đọc, kiểm tra kết nối,51 bảng nghiệp vụ và các mốc schema cần thiết đến018, không tạo bảng hoặc thay đổi dữ liệu. Nếu cần khởi tạo database **rỗng** hoặc nâng schema cũ, làm theo [hướng dẫn SQL](database/README.md). Không dùng schema.sql để nâng cấp database đang có dữ liệu.
 
 ### 3. Chạy BE và FE
 
@@ -122,7 +124,7 @@ cd BE
 npm.cmd run dev
 ```
 
-FE dùng **5173**, BE dùng **3000**, không trùng nhau. Gốc repository không còn package npm và không còn lệnh chạy chung. Folder `project/` là bản export tham khảo; app phát triển và chạy chính thức nằm ở `Fe/`, không chạy hai FE cùng lúc trên 5173.
+FE dùng **5173**, BE dùng **3000**, không trùng nhau. Mỗi app giữ package npm và lockfile riêng; chạy lệnh trong `BE/` hoặc `Fe/` tương ứng.
 
 Chạy trong từng thư mục `BE/` hoặc `Fe/`:
 
@@ -146,10 +148,10 @@ Không commit .env, token, khóa bí mật hoặc thông tin kết nối thật.
 - [Mục lục tài liệu](Docs/README.md)
 - [Môi trường local và kết quả rà soát setup](Docs/24-local-development.md)
 - [Thiết kế backend](Docs/10-backend-architecture.md) · [Thiết kế frontend](Docs/22-frontend-architecture.md)
-- [SQL và cách nạp](database/README.md) · [Sơ đồ hệ thống](Docs/diagrams/index.html)
+- [SQL và cách nạp](database/README.md) · [Sơ đồ và kiến trúc hiện hành](Docs/19-system-diagrams.md)
 - [Lộ trình](Docs/16-roadmap.md) · [Quyết định còn mở](Docs/18-open-questions.md)
 
-Auth Customer ADR-021: Google hoặc email/SĐT + OTP email SMTP Gmail; dùng chung User sau liên kết tường minh, SĐT alias chưa xác minh. DB cũ cần migration 002. Xem [cấu hình/test](Docs/27-email-otp-setup.md); email công ty/Organizer vẫn chưa triển khai.
+Auth ADR-021/029: Google hoặc email/SĐT + OTP email SMTP Gmail; dùng chung User sau liên kết tường minh, SĐT alias chưa xác minh. Vai trò Customer/Organizer chọn khi onboarding, không bắt buộc mail công ty. Xem [cấu hình OTP](Docs/27-email-otp-setup.md) và [đăng ký](Docs/33-registration-onboarding.md).
 
 Onboarding hiện hành theo [ADR-029](Docs/17-architecture-decisions.md): chọn Customer hoặc Organizer bằng Google/email cá nhân, nhập tên/giới tính/ngày sinh; sở thích/thành phố/theo dõi tùy chọn. Organizer tạo nháp trước khi duyệt, bật Customer sau nếu muốn mua vé. [Hợp đồng đăng ký](Docs/33-registration-onboarding.md), [API Organizer/Admin](Docs/34-organizer-event-api.md). Mô tả email công ty ở các đoạn cũ đã được thay.
 

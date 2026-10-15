@@ -1,5 +1,7 @@
 # Frontend
 
+Admin có trang `/admin/rbac` quản trị role bổ sung, cấp/thu hồi ADMIN người khác, xem quyền hiệu lực và audit. API yêu cầu ADMIN+rbac.manage, xác thực trong5 phút/lý do/version. Khi cần xác thực mới, đăng xuất phiên hiện tại rồi đăng nhập lại bằng Google/email OTP hiện có. [Chính sách/giới hạn](../Docs/46-dynamic-rbac.md); không dùng role bổ sung để giảm quyền gốc.
+
 Popup Tài khoản có upload avatar qua presigned PUT trực tiếp lên R2. Component `ImageUpload` và helper `uploadImage` dùng chung cho avatar/event/merchandise; editor Organizer chưa có. CORS bucket cần cấu hình theo [Docs/28](../Docs/28-r2-image-upload.md) trước khi upload từ browser hoạt động.
 
 React + TypeScript + Vite. `src/app` điều phối router/providers; `src/features` chia theo nghiệp vụ; `src/shared` chứa HTTP client và thành phần dùng chung.

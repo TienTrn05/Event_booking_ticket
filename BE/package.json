@@ -1,7 +1,7 @@
 {
   "name": "@event-ticketing/api",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.0.0 <25",
@@ -9,6 +9,9 @@
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "postinstall": "npm run prisma:generate",
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
@@ -21,8 +24,9 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.{json,md,ts,mjs}\"",
     "test": "vitest run --config vitest.config.ts",
     "test:commerce": "npm run build && node scripts/test-commerce.mjs",
+    "check:v1": "npm run check && npm run test:search",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "check": "npm run check:secrets && npm run lint && npm run typecheck && npm test && npm run build && npm run format:check",
+    "check": "npm run check:secrets && npm run prisma:validate && npm run lint && npm run typecheck && npm test && npm run build && npm run format:check",
     "worker:bookings": "tsx src/scripts/booking-worker.ts",
     "infra:redis": "docker compose --env-file .env up -d redis",
     "infra:stop": "docker compose --env-file .env stop",
@@ -40,13 +44,14 @@
     "@aws-sdk/client-s3": "3.1149.0",
     "@aws-sdk/s3-request-presigner": "3.1149.0",
     "@payos/node": "2.0.5",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "dotenv": "17.4.2",
     "express": "5.2.1",
     "express-rate-limit": "8.7.0",
     "google-auth-library": "11.1.0",
     "helmet": "8.3.0",
     "jose": "6.2.12",
-    "multer": "2.4.0",
     "nodemailer": "10.0.16",
     "pg": "8.23.0",
     "pino": "10.3.1",
@@ -57,7 +62,6 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "5.0.6",
-    "@types/multer": "2.3.0",
     "@types/node": "24.13.4",
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",
@@ -67,6 +71,7 @@
     "eslint-config-prettier": "10.1.8",
     "globals": "17.12.0",
     "prettier": "3.9.6",
+    "prisma": "7.10.0",
     "supertest": "7.2.2",
     "tsx": "4.23.13",
     "typescript": "5.9.3",
@@ -78,6 +83,14 @@
     "trailingComma": "all",
     "printWidth": 100,
     "endOfLine": "lf"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "prisma": {
+      "mysql2": "3.24.6"
+    }
   },
   "allowScripts": {
     "esbuild@0.28.2": true,

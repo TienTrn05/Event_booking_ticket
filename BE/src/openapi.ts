@@ -1,3 +1,6 @@
+import { merchandisePaths } from './modules/merchandise/merchandise.openapi.js';
+import { rbacPaths } from './modules/access-control/rbac.openapi.js';
+import { saleChangePaths } from './modules/events/sales-changes/sale-change.openapi.js';
 import { authPaths } from './modules/auth/openapi/auth.openapi.js';
 import { searchPaths } from './modules/search/search.openapi.js';
 import { supportReportPaths } from './modules/support-reports/support-report.openapi.js';
@@ -14,6 +17,8 @@ import { usersPaths } from './modules/users/openapi/users.openapi.js';
 import { onboardingPaths } from './modules/users/onboarding/onboarding.openapi.js';
 import { eventManagementPaths } from './modules/events/management/event-management.openapi.js';
 import { organizationPaths } from './modules/organizations/http/organization.openapi.js';
+import { membershipPaths } from './modules/organizations/memberships/membership.openapi.js';
+import { reputationPaths } from './modules/reputation/reputation.openapi.js';
 import { usersSchemas } from './modules/users/openapi/users.openapi.schemas.js';
 import { systemPaths } from './shared/openapi/system.openapi.js';
 import { systemSchemas } from './shared/openapi/system.openapi.schemas.js';
@@ -27,12 +32,16 @@ export const openApiDocument = {
   openapi: '3.0.3',
   info: {
     title: 'Event Ticketing API',
-    version: '0.1.0',
+    version: '1.0.0',
     description:
       'Catalog, auth Customer, booking, payOS và phát vé. Nhân viên kiểm tra vé cần phiên Organizer và quyền trong đúng tổ chức.',
   },
   servers: [{ url: '/api/v1', description: 'Cùng origin với Public Web' }],
   tags: [
+    {
+      name: 'RBAC',
+      description: 'Admin quản lý role, cấp/thu hồi quyền và tra cứu audit (ADR-040).',
+    },
     { name: 'Search', description: 'English public event search/autocomplete for Home.' },
     { name: 'Support', description: 'Report và Admin hỗ trợ theo phạm vi tài nguyên.' },
     { name: 'Audit', description: 'Tra cứu metadata audit theo phạm vi duyệt/report.' },
@@ -70,6 +79,11 @@ export const openApiDocument = {
     },
   ],
   paths: {
+    ...rbacPaths,
+    ...saleChangePaths,
+    ...merchandisePaths,
+    ...membershipPaths,
+    ...reputationPaths,
     ...searchPaths,
     ...supportReportPaths,
     ...auditPaths,

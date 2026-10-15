@@ -1,6 +1,6 @@
 # 31. Cấu trúc mã Backend
 
-Ngày 2026-10-11, theo yêu cầu chủ dự án làm sạch toàn bộ BE trước FE. Giữ Modular Monolith/một API instance theo ADR-025; tổ chức lại code trong cùng ứng dụng, không mở rộng hạ tầng.
+Khởi đầu refactor2026-10-11, cập nhật cấu trúc2026-10-15. Giữ Modular Monolith/một API instance theo ADR-025; tổ chức code trong cùng ứng dụng, không mở rộng hạ tầng. Phần kiểm chứng refactor bên dưới là lịch sử; trạng thái hiện hành tại [43](43-backend-v1.md).
 
 ## Thư mục con trong module
 
@@ -25,16 +25,28 @@ modules/
     allocation/   khóa/cleanup/expiry và repository
     inventory/    controller, service, repository, schema snapshot
     waiting-room/ controller, service, repository, schema cache
-    shared/       context/policy, types và idempotency
+    shared/       context/policy và types
+    payments/, refunds/  adapter giữa booking với payment/refund
     openapi/      contract booking/phòng chờ
   catalog/
     catalog.routes.ts, catalog.service.ts, catalog.repository.ts, README.md
     http/, schemas/, types/, repositories/, openapi/
-  events/age/          toàn bộ giới hạn/kiểm tra tuổi
-  tickets/attendees/   toàn bộ chức năng người tham dự/giấy tờ
+  events/
+    age/          giới hạn/kiểm tra tuổi
+    management/   draft, layout, session, giá, review và reason notice
+    operations/   sửa nội dung đã công bố, hủy và hậu xử lý
+  tickets/
+    attendees/    người tham dự/giấy tờ
+    issuance/, check-in/, application/, http/, repositories/
   users/, notifications/, media/
     http/, schemas/, services/, repositories/, openapi/
     media/storage/    adapter R2
+  organizations/  application/, http/, repositories/
+  payments/       application/, gateways/, http/, repositories/, refunds/
+  audit/, feedback/, operations/, refunds/, sales/, search/, support-reports/
+shared/
+  idempotency/    claim/replay/finish key dùng chung
+  workers/        runner, readiness, heartbeat và supervisor
 ```
 
 Import source/test và tham chiếu tài liệu được cập nhật theo vị trí mới. Không giữ shim ở từng đường dẫn cũ làm danh sách phẳng dài trở lại; giữ entry point auth/booking/catalog khi có caller thực sự.
@@ -63,6 +75,8 @@ Luồng: routes → controller → schema/service → repository/adapter. Servic
 
 ## Phần sử dụng chung và dependency
 
+Pilot Prisma ADR-039: shared/database/prisma.ts quản lý ORM transaction trên pool hiện có; SqlReader cho guard đọc/khóa trên chính transaction đó. Chỉ users/blocks dùng ORM; không ép Prisma thành PoolClient hoặc dùng connection khác giữa use case. Client projection/đánh giá tại [Docs45](45-prisma-pilot-rbac.md).
+
 - `shared/validation/common.schema.ts`: ID BIGINT dạng chuỗi, public ID, ngày lịch, version INTEGER, phân trang và body rỗng. Các module không lấy schema chung từ notifications nữa. ID sai bị chặn trước BigInt.
 - `shared/validation/contact.schema.ts`: chuẩn hóa email/SĐT cho auth và attendee; validation attendee không kéo theo OTP/SMTP.
 - `shared/validation/cached-json.ts`: cache sai JSON/schema trở thành cache miss, tải lại PostgreSQL.
@@ -82,7 +96,7 @@ Auth xác minh phiên; users repository recheck User/session/authVersion dưới
 - **Events/age:** controller không có SQL/logic tuổi; service điều phối transaction/profile/tuổi, repository tải context và ghi/audit.
 - **Users/notifications/tickets/media:** routes lắp middleware, controller chuyển input/output, schema/service/repository riêng. Media đọc avatar qua service.
 
-Folder audit/event-reviews/layouts/organizations/payments/sessions/support-reports/venues mới có README vẫn giữ phạm vi sản phẩm. Không tạo endpoint giả/lớp rỗng cho phần chưa triển khai.
+Các module audit/organizations/payments/support-reports đã có code thực. Review/layout/session nằm trong events/management, public venue trong catalog/repositories; không giữ thư mục chỉ có README cho các miền này. Outbox do repository/job của module sở hữu xử lý, không có shared/outbox rỗng hoặc payments/adapters dự phòng.
 
 ## Validation được siết lại
 
@@ -100,3 +114,7 @@ Folder audit/event-reviews/layouts/organizations/payments/sessions/support-repor
 Đợt refactor đã chạy 25 kiểm tra PostgreSQL 18 riêng: phiên/JWT, refresh rotation/reuse/expiry tuyệt đối, tranh chấp ghế, idempotency/replay, ownership, tạo/đọc/hủy/hết hạn booking, hồ sơ/follow/catalog. Database/process/script/cluster tạm đã dọn. Không kiểm thử lại provider live hoặc payment/issuance/admission đầy đủ; flow chưa có không được ghi hoàn thành.
 
 Bổ sung ADR-027: payment application/gateway/HTTP/repository; booking payment adapter; ticket issuance/check-in/application/HTTP/repository. Idempotency repository/schema chuyển vào shared/idempotency để các module dùng chung. Luồng và kiểm thử mới ở [32](32-payos-booking-ticket-flow.md); các giới hạn payment ghi phía trên thuộc thời điểm refactor trước đó.
+
+## Module mở rộng v1
+
+organizations/memberships giữ invite/accept/decline/revoke; reputation giữ đọc điểm và ledger/đảo; events/sales-changes giữ delta có duyệt; merchandise giữ product/SKU/order/fulfillment/payment/refund. modules/index.ts và OpenAPI mount đầy đủ. PurchasePaymentPort tách common purchase khỏi LockedPurchase vé; chỉ booking gọi TicketIssuer. SQL trong repository, expiry dùng bookings worker hiện có. [44](44-backend-v1-extensions.md).

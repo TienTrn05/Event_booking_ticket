@@ -1,5 +1,5 @@
 export type ThemePreference = 'light' | 'dark' | 'system';
-export type ResolvedTheme = 'light' | 'dark';
+type ResolvedTheme = 'light' | 'dark';
 
 export const THEME_STORAGE_KEY = 'event-ticketing.theme';
 
@@ -7,7 +7,7 @@ export function parseThemePreference(value: string | null): ThemePreference {
   return value === 'light' || value === 'dark' ? value : 'system';
 }
 
-export function resolveTheme(preference: ThemePreference, systemDark: boolean): ResolvedTheme {
+function resolveTheme(preference: ThemePreference, systemDark: boolean): ResolvedTheme {
   return preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
 }
 

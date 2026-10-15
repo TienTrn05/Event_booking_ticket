@@ -1,5 +1,9 @@
 # 08. Thiết kế cơ sở dữ liệu
 
+ADR-040/migration018 vẫn51 bảng: bổ sung metadata roles và users.roles_version; reuse user_roles/role_permissions/audit_logs/idempotency_records. Không cấp UserRole hoặc thêm bảng phân quyền trùng. [DDL/ERD và transaction](46-dynamic-rbac.md).
+
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 ## Quy ước

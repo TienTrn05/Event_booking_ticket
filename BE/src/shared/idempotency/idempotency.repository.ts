@@ -68,6 +68,7 @@ export async function finishKey(
   id: string,
   type:
     | 'HOLD'
+    | 'RBAC_CHANGE'
     | 'BOOKING'
     | 'PAYMENT'
     | 'TICKET'
@@ -84,7 +85,11 @@ export async function finishKey(
     | 'FEEDBACK'
     | 'SUPPORT_REPORT'
     | 'QUESTIONNAIRE'
-    | 'EVENT_CHANGE',
+    | 'EVENT_CHANGE'
+    | 'MEMBERSHIP'
+    | 'REPUTATION_ENTRY'
+    | 'MERCHANDISE'
+    | 'MERCHANDISE_ORDER',
   resourceId: string,
   status: number,
 ) {

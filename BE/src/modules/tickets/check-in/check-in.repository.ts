@@ -40,14 +40,6 @@ export class CheckInRepository {
       )
     ).rows[0];
   }
-  async lookupId(db: PoolClient, id: string) {
-    return (
-      await db.query<{ booking_id: string }>(
-        'SELECT bi.booking_id::text FROM tickets t JOIN booking_items bi ON bi.id=t.booking_item_id WHERE t.id=$1',
-        [id],
-      )
-    ).rows[0];
-  }
   async staff(db: PoolClient, actor: RequestActor, organizationId?: string) {
     const access = await db.query<{ organization_id: string }>(
       `SELECT m.organization_id::text FROM organization_memberships m JOIN organizations o ON o.id=m.organization_id

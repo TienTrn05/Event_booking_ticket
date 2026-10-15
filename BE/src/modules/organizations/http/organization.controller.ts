@@ -2,7 +2,11 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { authenticatedUser } from '../../auth/auth.service.js';
 import { sendData } from '../../../shared/http/response.js';
-import { numericId, paginationShape } from '../../../shared/validation/common.schema.js';
+import {
+  numericId,
+  paginationShape,
+  paginationSchema,
+} from '../../../shared/validation/common.schema.js';
 import { idempotencyKey } from '../../../shared/idempotency/idempotency.schema.js';
 import { OrganizationService } from '../application/organization.service.js';
 import {
@@ -11,6 +15,17 @@ import {
   organizationDecision,
 } from './organization.schema.js';
 export class OrganizationController {
+  memberships: RequestHandler = async (req, res) => {
+    const q = paginationSchema.parse(req.query);
+    sendData(
+      res,
+      await this.service.memberships(
+        await authenticatedUser(req.get('authorization')),
+        q.page,
+        q.pageSize,
+      ),
+    );
+  };
   own: RequestHandler = async (req, res) =>
     sendData(res, await this.service.own(await authenticatedUser(req.get('authorization'))));
   constructor(private readonly service = new OrganizationService()) {}

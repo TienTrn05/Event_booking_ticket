@@ -33,7 +33,10 @@ export class FeedbackRepository {
       await db.query<{ organization_id: string; eligible: boolean; self_review: boolean }>(
         `SELECT e.organization_id::text,
  EXISTS(SELECT 1 FROM bookings b JOIN event_sessions s ON s.id=b.session_id WHERE b.event_id=e.id AND b.customer_id=$1 AND b.status IN ('CONFIRMED','REFUNDED') AND (s.ends_at<=clock_timestamp() OR e.status='CANCELLED' OR s.status='CANCELLED') AND EXISTS(SELECT 1 FROM booking_items bi JOIN tickets t ON t.booking_item_id=bi.id WHERE bi.booking_id=b.id)) AS eligible,
- EXISTS(SELECT 1 FROM organization_memberships m WHERE m.organization_id=e.organization_id AND m.user_id=$1) AS self_review FROM events e WHERE e.id=$2 FOR SHARE OF e`,
+ EXISTS(SELECT 1 FROM organization_memberships m WHERE m.organization_id=e.organization_id AND m.user_id=$1
+   AND (m.status IN ('PENDING','ACTIVE') OR m.approved_at IS NOT NULL
+     OR EXISTS(SELECT 1 FROM audit_logs a WHERE a.resource_type='MEMBERSHIP' AND a.resource_id=m.id AND a.action='membership.accept'))
+ ) AS self_review FROM events e WHERE e.id=$2 FOR SHARE OF e`,
         [userId, eventId],
       )
     ).rows[0];

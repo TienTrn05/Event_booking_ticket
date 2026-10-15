@@ -9,7 +9,7 @@ export type EventSearchInput = {
   page: number;
   pageSize: number;
 };
-export const eventSearchResponse = z.object({
+const eventSearchResponse = z.object({
   data: z.object({
     items: z.array(eventSchema),
     total: z.number().int().nonnegative(),

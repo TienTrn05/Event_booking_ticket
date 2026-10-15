@@ -81,7 +81,7 @@ export const otpRepository = {
   async find(db: PoolClient, id: Buffer, lock = false) {
     const { rows } = await db.query<OtpRow>(
       `SELECT id::text,challenge_id,target_canonical,code_mac,user_id::text,browser_binding_hash,purpose,
-      login_phone,delivery_ready,attempts,used_at,revoked_at,expires_at > CURRENT_TIMESTAMP AS active
+      login_phone,delivery_ready,attempts,used_at,revoked_at,expires_at > clock_timestamp() AS active
       FROM otp_challenges WHERE challenge_id=$1 AND channel='EMAIL' ${lock ? 'FOR UPDATE' : ''}`,
       [id],
     );

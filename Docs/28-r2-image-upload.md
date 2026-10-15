@@ -51,3 +51,7 @@ Sau khi chủ dự án lưu rule đúng, lượt thử browser/CORS đã qua nh�
 29 kiểm tra HTTP/PostgreSQL/R2 live đã qua: auth/Origin, loại/kích thước, receipt sai/hết hạn, chéo User/tổ chức, membership bị thu hồi, DRAFT/version, chữ ký Content-Length/Content-Type/If-None-Match, R2 PUT, chặn overwrite 412, xác minh HEAD/signature, lưu URL/audit của avatar/event/product, tăng version event cha, version conflict và replay hoàn tất avatar. Company provider trong fixture không phải login công ty live. Ảnh thử và DB riêng được dọn sau chạy; không gửi SMTP hoặc đăng nhập Google trong kiểm thử này. FE lint/typecheck/format và Vite build qua; build output tạm được dọn. BE lint/typecheck/build với noEmit và format source qua; npm test/format toàn BE vẫn vướng bộ tests đã bị xóa từ trước.
 
 Chưa xác nhận E2E toàn bộ popup avatar với login live; đã xác nhận browser upload File trực tiếp và hiển thị ảnh public. Signature header là kiểm tra định dạng ban đầu, không phải giải mã/re-encode toàn ảnh hay dịch vụ quét nội dung. Object upload bị bỏ dở hoặc ảnh đã thay thế chưa được tự động xóa; không tự đặt lifecycle xóa cả prefix vì có thể xóa ảnh đang được tham chiếu.
+
+## Version merchandise / ADR-038
+
+purpose=merchandise dùng product.version. Product DRAFT được upload khi event PUBLISHED; complete kiểm tra receipt/quyền như trước và tăng product.version, giữ event.version. Không sửa ảnh sản phẩm đã publish để vượt Admin review; REJECTED cần edit về DRAFT. [44](44-backend-v1-extensions.md).

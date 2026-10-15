@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg';
 import type { ReportInput, ReportQuery } from './support-report.schema.js';
 const fields = `r.id::text,r.reporter_id::text AS "reporterId",r.event_id::text AS "eventId",
-  r.booking_id::text AS "bookingId",r.status,r.version,r.reason,r.assigned_admin_id::text AS "assignedAdminId",
+  r.booking_id::text AS "bookingId",r.merchandise_order_id::text AS "merchandiseOrderId",r.status,r.version,r.reason,r.assigned_admin_id::text AS "assignedAdminId",
   r.resolution,r.created_at AS "createdAt",r.resolved_at AS "resolvedAt"`;
 export class SupportReportRepository {
   async adminRole(db: PoolClient, userId: string) {
@@ -30,20 +30,26 @@ export class SupportReportRepository {
     return (
       await db.query<{ organization_id: string }>(
         `SELECT e.organization_id::text FROM events e WHERE e.id=$1 AND
-       (CASE WHEN $3::bigint IS NOT NULL THEN EXISTS(SELECT 1 FROM bookings b
+       (CASE WHEN $4::bigint IS NOT NULL THEN EXISTS(SELECT 1 FROM merchandise_orders mo WHERE mo.id=$4 AND mo.event_id=e.id AND (mo.customer_id=$2 OR EXISTS(SELECT 1 FROM organization_memberships m WHERE m.organization_id=e.organization_id AND m.user_id=$2 AND m.status='ACTIVE'))) WHEN $3::bigint IS NOT NULL THEN EXISTS(SELECT 1 FROM bookings b
          WHERE b.id=$3 AND b.event_id=e.id AND b.customer_id=$2)
         ELSE EXISTS(SELECT 1 FROM organization_memberships m WHERE m.organization_id=e.organization_id
           AND m.user_id=$2 AND m.status='ACTIVE') OR EXISTS(SELECT 1 FROM bookings b
           WHERE b.event_id=e.id AND b.customer_id=$2) END)`,
-        [input.eventId, actorId, input.bookingId ?? null],
+        [input.eventId, actorId, input.bookingId ?? null, input.merchandiseOrderId ?? null],
       )
     ).rows[0];
   }
   async create(db: PoolClient, actorId: string, input: ReportInput) {
     return (
       await db.query<{ id: string }>(
-        'INSERT INTO support_reports(reporter_id,event_id,booking_id,reason) VALUES($1,$2,$3,$4) RETURNING id::text',
-        [actorId, input.eventId, input.bookingId ?? null, input.reason],
+        'INSERT INTO support_reports(reporter_id,event_id,booking_id,reason,merchandise_order_id) VALUES($1,$2,$3,$4,$5) RETURNING id::text',
+        [
+          actorId,
+          input.eventId,
+          input.bookingId ?? null,
+          input.reason,
+          input.merchandiseOrderId ?? null,
+        ],
       )
     ).rows[0]!.id;
   }
@@ -51,7 +57,7 @@ export class SupportReportRepository {
     return (
       await db.query(
         `SELECT ${fields} FROM support_reports r WHERE r.id=$1 AND
-      ($3 OR r.reporter_id=$2 OR (r.booking_id IS NULL AND EXISTS(SELECT 1 FROM organization_memberships m
+      ($3 OR r.reporter_id=$2 OR (r.booking_id IS NULL AND r.merchandise_order_id IS NULL AND EXISTS(SELECT 1 FROM organization_memberships m
         JOIN organizations o ON o.id=m.organization_id WHERE m.organization_id=(SELECT organization_id FROM events WHERE id=r.event_id)
         AND m.user_id=$2 AND m.status='ACTIVE' AND o.status='APPROVED'
         AND EXISTS(SELECT 1 FROM user_roles ur JOIN roles role ON role.id=ur.role_id JOIN role_permissions rp ON rp.role_id=role.id

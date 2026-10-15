@@ -3,7 +3,8 @@ import type { PoolClient } from 'pg';
 import type { PaymentRequest, Receipt } from '../application/payment.ports.js';
 export type PaymentRow = {
   id: string;
-  booking_id: string;
+  booking_id: string | null;
+  merchandise_order_id: string | null;
   provider_key: string;
   provider_reference: string | null;
   status: string;
@@ -23,7 +24,7 @@ export type LinkJob = {
 };
 export class PaymentRepository {
   private readonly select =
-    'id::text,booking_id::text,provider_key,provider_reference,status,amount_minor::text,received_minor::text,currency,checkout_url,reconciliation_status,reconciliation_reason';
+    'id::text,booking_id::text,merchandise_order_id::text,provider_key,provider_reference,status,amount_minor::text,received_minor::text,currency,checkout_url,reconciliation_status,reconciliation_reason';
   async find(db: PoolClient, id: string, lock = false) {
     return (
       await db.query<PaymentRow>(
@@ -32,29 +33,30 @@ export class PaymentRepository {
       )
     ).rows[0];
   }
-  async pending(db: PoolClient, bookingId: string) {
+  async pending(db: PoolClient, bookingId: string, merchandise = false) {
     return (
       await db.query<PaymentRow>(
-        `SELECT ${this.select} FROM payments WHERE booking_id=$1 AND status='PENDING' ORDER BY id FOR UPDATE`,
+        `SELECT ${this.select} FROM payments WHERE ${merchandise ? 'merchandise_order_id' : 'booking_id'}=$1 AND status='PENDING' ORDER BY id FOR UPDATE`,
         [bookingId],
       )
     ).rows[0];
   }
-  async create(db: PoolClient, bookingId: string, amount: string) {
+  async create(db: PoolClient, bookingId: string, amount: string, merchandise = false) {
     const orderCode = ((randomBytes(8).readBigUInt64BE() % 9007199254740991n) + 1n).toString();
     return (
       await db.query<PaymentRow>(
-        `INSERT INTO payments(booking_id,provider,provider_key,amount_minor,currency)
+        `INSERT INTO payments(${merchandise ? 'merchandise_order_id' : 'booking_id'},provider,provider_key,amount_minor,currency)
       VALUES($1,'PAYOS',$3,$2,'VND') RETURNING ${this.select}`,
         [bookingId, amount, orderCode],
       )
     ).rows[0]!;
   }
-  async hasReceivedFunds(db: PoolClient, bookingId: string) {
+  async hasReceivedFunds(db: PoolClient, bookingId: string, merchandise = false) {
     return !!(
-      await db.query('SELECT 1 FROM payments WHERE booking_id=$1 AND received_minor>0 LIMIT 1', [
-        bookingId,
-      ])
+      await db.query(
+        `SELECT 1 FROM payments WHERE ${merchandise ? 'merchandise_order_id' : 'booking_id'}=$1 AND received_minor>0 LIMIT 1`,
+        [bookingId],
+      )
     ).rowCount;
   }
   async enqueue(db: PoolClient, payment: PaymentRow, payload: PaymentRequest) {

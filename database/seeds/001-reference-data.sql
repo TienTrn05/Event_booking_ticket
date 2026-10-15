@@ -32,6 +32,7 @@ INSERT INTO permissions (code,description) VALUES
 ('report.create','report.create — phạm vi theo docs/03'),
 ('report.handle','report.handle — phạm vi theo docs/03'),
 ('role.assign','role.assign — phạm vi theo docs/03'),
+('rbac.manage','Admin quản trị role, cấp và thu hồi quyền có xác thực lại và audit'),
 ('sales.read_own','sales.read_own — phạm vi theo docs/03'),
 ('seat.hold','seat.hold — phạm vi theo docs/03'),
 ('statistics.read_system','statistics.read_system — phạm vi theo docs/03'),
@@ -52,6 +53,6 @@ WHERE r.code='ORGANIZER' AND p.code IN ('feedback.reply_own','organization.apply
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 INSERT INTO role_permissions (role_id,permission_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
-WHERE r.code='ADMIN' AND p.code IN ('feedback.manage','onboarding.manage','event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
+WHERE r.code='ADMIN' AND p.code IN ('rbac.manage','feedback.manage','onboarding.manage','event.read_public','profile.update_self','venue.read_catalog','organizer.approve','role.assign','event.review','event.cancel_own','refund.approve','booking.read_support','user.block','event.block_any','report.handle','audit.read','statistics.read_system')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 COMMIT;

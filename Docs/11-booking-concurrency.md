@@ -1,5 +1,7 @@
 # 11. Giữ ghế, transaction và xử lý đồng thời
 
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 Đây là giao thức bắt buộc cho FR-013–FR-023, BR-001–BR-019, NFR-001–NFR-003. Mục tiêu là một nguồn tồn kho có thẩm quyền, không giữ khóa xuyên thời gian thao tác của khách.
 
 ## Lựa chọn PostgreSQL
@@ -96,3 +98,7 @@ Online và quầy cùng ticket: khóa event/session/hold/booking/ghế/payment/t
 ## Outdoor allocation — ADR-037
 
 SessionSeat tên legacy nay là inventory unit: physical seat indoor hoặc zone/ordinal outdoor. PostgreSQL vẫn authoritative; unique(session,section,ordinal) và trigger ordinal≤capacity giới hạn tối đa số quyền vào cửa/khu. Request quantity sort section ID; approval tạo units theo section ID; mutation chọn/khóa units theo ID, giữ quota→event/session→hold/booking→units→payment/refund/ticket. Thiếu một khu rollback cả nhóm, stale hold cleanup/retry cũ; không counter/cache/mutex phân tán mới. [Docs42](42-outdoor-zone-ticketing.md).
+
+## Merchandise và capacity / ADR-038
+
+Khóa User (nhiều ID tăng dần) → Organization/Event SHARE → order UPDATE → product IDs SHARE → SKU IDs UPDATE tăng dần → payment → refund. Reserve tính từ đơn AWAITING_PAYMENT chưa quá expires_at bằng clock_timestamp() sau khóa SKU; sold tăng khi confirm, giảm một lần sau refund SUCCESS chưa giao. Không chờ mạng trong transaction; worker không là điều kiện hết hạn đúng. Capacity khóa Event/Session/Layout và append inventory, giữ pointer/giá hàng cũ; layout chung tính tồn kho từng suất. [44](44-backend-v1-extensions.md).

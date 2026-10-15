@@ -1,5 +1,11 @@
 # 12. Bảo mật, logging và auditing
 
+ADR-040: quản trị RBAC cần ADMIN+rbac.manage, mutation xác thực trong5 phút/lý do/Origin/version/audit trong cùng transaction pg. Cấm tự sửa quyền, bảo vệ role gốc và Admin cuối, role tùy chỉnh chỉ bổ sung trong nhóm đã có. [Chính sách/giới hạn/khôi phục](46-dynamic-rbac.md).
+
+ADR-039: guard phiên đọc lại expiry sau khóa; Prisma preference dùng cùng guard SQL và ORM trên một connection/transaction, không gọi pg pool/root ORM giữa transaction. RBAC và scope tài nguyên giữ nguyên; regression rollback/FK/thu hồi role/expiry tại [Docs45](45-prisma-pilot-rbac.md).
+
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 ## Quy tắc kiểm soát
@@ -83,3 +89,7 @@ Khóa đơn/ghế/payment/refund/ticket theo giao thức để approval không t
 ## Bổ sung 2026-10-14
 
 Quản lý phiên giữ Bearer/Origin/CSRF, User→Session locks và revalidation; logout-all tăng authVersion/revoke toàn bộ. Audit chỉ metadata theo scope, không raw JSON/evidence/credential/PII. report.handle của Organizer không là Admin; queue/claim/support-booking/gỡ cần ADMIN/permission/report được giao đúng tài nguyên. Đóng report thu hồi scope kể cả replay. Catalog cá nhân từ JWT, no-store/Vary Authorization, token sai không fallback Guest. Chặn cá nhân không là quyền, đơn/vé/tiền giữ nguyên. Readiness cần014; cache ghế revalidate event hiện hành trước trả snapshot. Docs40/ADR-035.
+
+## Bốn phần v1 / ADR-038
+
+INVITED không cấp quyền; replay membership recheck scope, owner không bị thu hồi. Uy tín riêng tư, ledger append-only không tự cấp quyền/khóa. Địa chỉ merchandise AES-GCM/HKDF/AAD order ID từ ATTENDEE_PII_KEY; không vào provider/outbox/audit/list. Admin theo exact assigned report không xem địa chỉ; Organizer chỉ xem đơn CONFIRMED để giao. Mutation dùng Origin/Bearer/idempotency/version/DB ownership. [44](44-backend-v1-extensions.md).

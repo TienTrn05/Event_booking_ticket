@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ReputationRepository } from '../../reputation/reputation.repository.js';
 import type { PoolClient } from 'pg';
 import { AppError } from '../../../shared/errors/app-error.js';
 import type {
@@ -38,6 +39,7 @@ export type EventReviewDetail = {
   event_version: number;
   status: string;
   snapshot_json: unknown;
+  reputation_snapshot: unknown;
   submitted_at: Date;
   expires_at: Date;
   notice: unknown;
@@ -120,7 +122,7 @@ export class EventManagementRepository {
     return (
       await db.query<{ items: Record<string, unknown>[]; total: number }>(
         `WITH matches AS (
-      SELECT r.id::text,r.event_id::text AS "eventId",e.organization_id::text AS "organizationId",e.title AS "eventTitle",o.name AS "organizationName",r.event_version AS "eventVersion",r.status,r.submitted_at AS "submittedAt",r.expires_at AS "expiresAt",r.decided_at AS "decidedAt"
+      SELECT r.id::text,r.event_id::text AS "eventId",e.organization_id::text AS "organizationId",e.title AS "eventTitle",o.name AS "organizationName",r.event_version AS "eventVersion",r.status,r.submitted_at AS "submittedAt",r.expires_at AS "expiresAt",r.decided_at AS "decidedAt",r.reputation_snapshot AS reputation
       FROM event_reviews r JOIN events e ON e.id=r.event_id JOIN organizations o ON o.id=e.organization_id
       WHERE ($1::bigint IS NULL OR r.event_id=$1) AND ($2::bigint IS NULL OR e.organization_id=$2) AND ($3::text IS NULL OR r.status=$3)),
       page_rows AS(SELECT * FROM matches ORDER BY "submittedAt" DESC,id::bigint DESC LIMIT $4 OFFSET $5)
@@ -152,7 +154,7 @@ export class EventManagementRepository {
   async reviewDetail(db: PoolClient, id: string) {
     return (
       await db.query<EventReviewDetail>(
-        `SELECT r.id::text,r.event_id::text,r.event_version,r.status,r.snapshot_json,r.submitted_at,r.expires_at,(SELECT jsonb_build_object('id',n.id::text,'version',n.version,'status',n.status,'reason',n.reason_text,'guidance',n.guidance) FROM reason_notices n WHERE n.review_id=r.id) AS notice FROM event_reviews r WHERE r.id=$1`,
+        `SELECT r.id::text,r.event_id::text,r.event_version,r.status,r.snapshot_json,r.reputation_snapshot,r.submitted_at,r.expires_at,(SELECT jsonb_build_object('id',n.id::text,'version',n.version,'status',n.status,'reason',n.reason_text,'guidance',n.guidance) FROM reason_notices n WHERE n.review_id=r.id) AS notice FROM event_reviews r WHERE r.id=$1`,
         [id],
       )
     ).rows[0];
@@ -617,8 +619,13 @@ export class EventManagementRepository {
     reasonCode = 'REVIEW_REJECTED',
   ) {
     await db.query(
-      'UPDATE event_reviews SET status=$2,decided_by=$3,decided_at=clock_timestamp() WHERE id=$1',
-      [review.id, action, actorId],
+      'UPDATE event_reviews SET status=$2,decided_by=$3,decided_at=clock_timestamp(),reputation_snapshot=$4 WHERE id=$1',
+      [
+        review.id,
+        action,
+        actorId,
+        JSON.stringify(await new ReputationRepository().summary(db, event.organization_id)),
+      ],
     );
     if (action === 'APPROVED') {
       const sessions = await this.sessions(db, event.id);

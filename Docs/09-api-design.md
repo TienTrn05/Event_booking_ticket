@@ -1,5 +1,7 @@
 # 09. Thiết kế REST API
 
+ADR-040: API `/admin/rbac` và UI `/admin/rbac` quản trị role bổ sung/cấp–thu hồi ADMIN, ADMIN+rbac.manage, mutation reauth5 phút/reason/version/idempotency/audit; không tự sửa quyền. [Hợp đồng đầy đủ](46-dynamic-rbac.md).
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 Nguồn quyết định hiện hành: [18](18-open-questions.md), [23](23-organization-review-seatmap.md). API catalog, auth Customer/linking, hold/booking/phòng chờ và payOS/phát vé/check-in/admission đã có mã nguồn. Hợp đồng payment hiện hành và giới hạn kiểm chứng ở [32](32-payos-booking-ticket-flow.md); mutation/onboarding Organizer đầy đủ vẫn là hợp đồng đích.
@@ -153,7 +155,7 @@ Các đường dẫn sau đều có prefix `/api/v1`. “Chủ” luôn kiểm t
 | GET `/notifications` | Chủ | Đã triển khai inbox review + event Organizer theo dõi; items/unreadCount/pagination; 200 |
 | POST `/notifications/:notificationId/read` | Chủ | đánh dấu đọc; 204 |
 | GET `/admin/audit-logs` | audit.read | lọc thời gian/tài nguyên, phân trang; 200 |
-| GET `/admin/statistics` | statistics.read_system | số liệu tổng hợp; 200 |
+| GET `/admin/statistics` | ADMIN + statistics.read_system | from/to ISO, `[from,to)`; số lượng/trạng thái thực thể theo ngày tạo, vé/tiền theo ngày tạo booking; tiền chuỗi minor nhóm currency, không PII; 200. Hợp đồng hiện hành tại Docs43 |
 
 Route lồng phải kiểm tra `session.event_id == eventId`, layout thuộc event/Organization, row/section/seat thuộc layout; không chỉ kiểm tra ID cuối. Endpoint mock không được mount ở production; môi trường demo không công khai quyền mô phỏng tùy ý.
 
@@ -249,3 +251,7 @@ GET /search/events và /search/events/suggestions đã mount/Swagger, optional B
 ## Outdoor BE — ADR-037
 
 POST draft thêm ticketingMode NUMBERED/QUANTITY. POST Organizer zone-layouts, PUT session zone-prices, GET public session zones và POST zones/hold đã mount/Swagger. Zone/sức chứa/type/price, server chọn units, tối đa6 vé/hold5 phút, không gia hạn hoặc physical seats giả; checkout/payment/attendees/QR/check-in/refund/cancel dùng hợp đồng hiện có. [Payload và phạm vi](42-outdoor-zone-ticketing.md).
+
+## API v1 mở rộng
+
+[44](44-backend-v1-extensions.md) là hợp đồng FE cho merchandise/mở bán/membership/uy tín. OpenAPI1.0.0 tại /api/v1/openapi.json; mutation Origin/Bearer/Idempotency-Key/version, tiền/ID string, private no-store. Merchandise dùng chung /payments/{id}/webhook, DTO merchandiseOrderId với bookingId=null. Admin statistics thêm merchandise riêng, không cộng vào ticket money.

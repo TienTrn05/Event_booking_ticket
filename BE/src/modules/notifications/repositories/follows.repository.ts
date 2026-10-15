@@ -1,8 +1,9 @@
 import type { PoolClient } from 'pg';
+import type { SqlReader } from '../../../shared/database/sql-reader.js';
 import { AppError } from '../../../shared/errors/app-error.js';
 import type { PageInput } from '../../../shared/validation/common.schema.js';
 export const followsRepository = {
-  async requireCustomer(db: PoolClient, userId: string) {
+  async requireCustomer(db: SqlReader, userId: string) {
     const result = await db.query(
       `SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id=ur.role_id
       WHERE ur.user_id=$1 AND r.code='CUSTOMER' FOR SHARE OF ur`,
@@ -10,7 +11,7 @@ export const followsRepository = {
     );
     if (!result.rowCount) throw new AppError(403, 'CUSTOMER_REQUIRED', 'Cần vai trò Customer.');
   },
-  async organization(db: PoolClient, publicId: string, approved = true) {
+  async organization(db: SqlReader, publicId: string, approved = true) {
     const { rows } = await db.query<{ id: string }>(
       `SELECT o.id::text FROM organizations o
        WHERE o.public_id=$1

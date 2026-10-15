@@ -21,6 +21,15 @@ const mutation = (schema: Parameters<typeof inputSchema>[0], summary: string, ha
   requestBody: body(inputSchema(schema)),
 });
 export const organizationPaths = {
+  '/organizer/organizations': {
+    get: {
+      ...own,
+      summary: 'Tổ chức APPROVED mà phiên Organizer hiện tại có membership ACTIVE',
+      description:
+        'Phân trang; gồm id/publicId/name/membershipId/isOwner, không identity/email. Kiểm tra quyền event.create và onboarding; không cấp thêm quyền hoặc thay danh sách hồ sơ ứng tuyển.',
+      parameters: page,
+    },
+  },
   '/organizations/applications': {
     get: { ...own, summary: 'Danh sách hồ sơ tổ chức của mình' },
     post: {

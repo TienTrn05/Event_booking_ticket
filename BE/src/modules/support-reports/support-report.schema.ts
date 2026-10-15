@@ -8,9 +8,11 @@ export const reportInput = z
   .object({
     eventId: numericId,
     bookingId: numericId.optional(),
+    merchandiseOrderId: numericId.optional(),
     reason: z.string().trim().min(3).max(2000),
   })
-  .strict();
+  .strict()
+  .refine((v) => !(v.bookingId && v.merchandiseOrderId), 'Choose one purchase');
 export const reportQuery = z
   .object({ ...paginationShape, status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED']).optional() })
   .strict();

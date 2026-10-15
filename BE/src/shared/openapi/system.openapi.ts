@@ -1,6 +1,16 @@
 import { errorResponse, ref, response } from './helpers.js';
 import { privateOperation } from './private-operation.js';
 export const systemPaths = {
+  '/admin/statistics': {
+    get: privateOperation(
+      '/admin/statistics',
+      'get',
+      'Admin',
+      'ADMIN + statistics.read_system. Tổng hợp tài khoản/tổ chức/sự kiện theo ngày tạo [from,to); đơn/vé/tiền theo ngày tạo booking. Tiền là chuỗi minor, tách tiền nhận/hoàn/đối soát; không PII.',
+      undefined,
+      ['from', 'to'],
+    ),
+  },
   '/admin/operations/health': {
     get: privateOperation(
       '/admin/operations/health',

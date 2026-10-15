@@ -1,14 +1,9 @@
-export const json = (schema: Record<string, unknown>) => ({ 'application/json': { schema } });
+import { response } from './helpers.js';
 
-export const envelope = (schema: Record<string, unknown>) => ({
-  type: 'object',
-  properties: { data: schema, meta: { $ref: '#/components/schemas/ResponseMeta' } },
-});
+const json = (schema: Record<string, unknown>) => ({ 'application/json': { schema } });
 
-export const result = (schema: Record<string, unknown>) => ({
-  description: 'Kết quả theo scope User hiện tại.',
-  content: json(envelope(schema)),
-});
+export const result = (schema: Record<string, unknown>) =>
+  response('Kết quả theo scope User hiện tại.', schema);
 
 export const errors = {
   '400': { description: 'Input không hợp lệ.' },
@@ -20,7 +15,7 @@ export const errors = {
   '422': { description: 'Chưa đủ tuổi, thiếu thông tin hoặc giấy tờ không khớp.' },
 };
 
-export const bearer = [{ bearerAuth: [] }];
+const bearer = [{ bearerAuth: [] }];
 
 export const pathId = (name = 'id') => ({
   name,

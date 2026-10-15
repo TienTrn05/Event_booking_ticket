@@ -1,5 +1,9 @@
 # 03. Vai trò và phân quyền
 
+**RBAC hiện hành:** quyền được cấp qua users → user_roles → roles → role_permissions → permissions. users.registration_role chỉ ghi lựa chọn onboarding, không dùng làm quyền. Lượt Prisma preference giữ guard DB/membership/ownership/report và có regression thu hồi Customer role. [Chi tiết](45-prisma-pilot-rbac.md).
+
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 Nguồn: quyết định chủ dự án 2026-09-12, Q-005/Q-010 và [23](23-organization-review-seatmap.md). Organizer là Organization; User đăng nhập đại diện qua membership được Admin duyệt.
@@ -18,10 +22,11 @@ UserRole có nhiều role tường minh; Organizer/Admin muốn mua cần Custom
 
 ## Ma trận quyền
 
-Seed hiện hành có 29 permission và ánh xạ theo ma trận này. Seed không cấp UserRole; membership, phiên công ty và report vẫn phải kiểm tra tại service.
+Seed hiện hành ánh xạ permission theo ma trận này và các ADR bổ sung. Seed không cấp UserRole; membership, ownership và report vẫn phải kiểm tra tại service.
 
 | Permission / hành động | Customer | Organizer | Admin |
 | --- | --- | --- | --- |
+| rbac.manage | Không | Không | Quản trị role/gán/thu hồi cho người khác, reauth/lý do/audit theo ADR-040 |
 | event.read_public | Có | Có | Có |
 | profile.update_self | Chính mình | Chính mình | Chính mình |
 | Theo dõi Organization / mute (hành động Customer) | Chính mình, Organization APPROVED | Cần role Customer riêng | Cần role Customer riêng |

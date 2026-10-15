@@ -34,6 +34,11 @@ export function createApp(deps: AppDependencies) {
     '/api/v1/organizer/events/:id/sessions/:sessionId/prices',
     express.json({ limit: '1mb' }),
   );
+  app.use('/api/v1/organizer/events/:id/sale-changes', express.json({ limit: '1mb' }));
+  app.use(
+    ['/api/v1/organizer/events/:id/merchandise', '/api/v1/organizer/merchandise/:id'],
+    express.json({ limit: '128kb' }),
+  );
   app.use(express.json({ limit: '32kb' }));
 
   registerSystemRoutes(app, {

@@ -71,8 +71,8 @@ export const sessionRepository = {
       `SELECT rt.id::text, rt.session_id::text, rt.used_at, rt.revoked_at,
         s.user_id::text, s.identity_id::text, s.revoked_at AS session_revoked_at, s.expires_at AS session_expires_at,
         u.display_name, u.status, u.auth_version,
-        rt.expires_at > CURRENT_TIMESTAMP AS token_active,
-        s.expires_at > CURRENT_TIMESTAMP AS session_active,
+        rt.expires_at > clock_timestamp() AS token_active,
+        s.expires_at > clock_timestamp() AS session_active,
         i.revoked_at IS NULL AS identity_active
        FROM refresh_tokens rt JOIN auth_sessions s ON s.id = rt.session_id
        JOIN users u ON u.id = s.user_id
@@ -85,16 +85,18 @@ export const sessionRepository = {
     await db.query('SELECT id FROM auth_sessions WHERE id = $1 FOR UPDATE', [sessionId]);
   },
   async lockedRefresh(db: PoolClient, tokenId: string): Promise<RefreshRow | undefined> {
+    // Validate time only after every potentially blocking lock has been acquired.
+    await db.query('SELECT id FROM refresh_tokens WHERE id=$1 FOR UPDATE', [tokenId]);
     const { rows } = await db.query<RefreshRow>(
       `SELECT rt.id::text, rt.session_id::text, rt.used_at, rt.revoked_at,
         s.user_id::text, s.identity_id::text, s.revoked_at AS session_revoked_at, s.expires_at AS session_expires_at,
         u.display_name, u.status, u.auth_version,
-        rt.expires_at > CURRENT_TIMESTAMP AS token_active,
-        s.expires_at > CURRENT_TIMESTAMP AS session_active,
+        rt.expires_at > clock_timestamp() AS token_active,
+        s.expires_at > clock_timestamp() AS session_active,
         i.revoked_at IS NULL AS identity_active
        FROM refresh_tokens rt JOIN auth_sessions s ON s.id = rt.session_id
        JOIN users u ON u.id = s.user_id
-       JOIN external_identities i ON i.id = s.identity_id WHERE rt.id = $1 FOR UPDATE OF rt`,
+       JOIN external_identities i ON i.id = s.identity_id WHERE rt.id = $1`,
       [tokenId],
     );
     return rows[0];
@@ -116,7 +118,7 @@ export const sessionRepository = {
        JOIN auth_sessions s ON s.user_id = u.id
        JOIN external_identities i ON i.id = s.identity_id AND i.revoked_at IS NULL
        WHERE u.id = $1 AND s.id = $2 AND u.status = 'ACTIVE'
-         AND s.revoked_at IS NULL AND s.expires_at > CURRENT_TIMESTAMP`,
+         AND s.revoked_at IS NULL AND s.expires_at > clock_timestamp()`,
       [userId, sessionId],
     );
     return rows[0];

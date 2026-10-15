@@ -2,7 +2,7 @@ import { checkDatabase, pool } from '../shared/database/pool.js';
 try {
   await checkDatabase();
   console.info(
-    'PostgreSQL connection and catalog schema OK (read-only checks; no schema changes).',
+    'PostgreSQL connection and application schema OK (read-only checks; no schema changes).',
   );
 } catch (error: unknown) {
   const code =
@@ -18,7 +18,7 @@ try {
           ? 'PostgreSQL role lacks permission to inspect the database schema (SQLSTATE 42501).'
           : code === 'ECONNREFUSED'
             ? 'PostgreSQL refused the connection. Check DB_HOST, DB_PORT and that the server is running.'
-            : 'PostgreSQL connection or catalog schema check failed. Check BE/.env, grants and database/README.md.';
+            : 'PostgreSQL connection or application schema check failed. Check BE/.env, grants and database/README.md.';
   console.error(message);
   process.exitCode = 1;
 } finally {

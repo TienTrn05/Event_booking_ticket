@@ -1,5 +1,7 @@
 # 20. Thiết kế SQL vật lý hiện hành
 
+> Cập nhật 2026-10-15 / ADR-038: chủ dự án đã chốt merchandise/SKU/đơn/giao/hoàn, NEW_SALE_WAVE/CAPACITY, membership và uy tín nội bộ. Những đề xuất/chờ chốt bên dưới được thay thế trong phạm vi bốn phần này bởi [Docs44](44-backend-v1-extensions.md). CMS để sau v1; auth và kiến trúc monolith giữ nguyên.
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 [schema.sql](../database/schema.sql) có **46 bảng** sau ADR-032/012: metadata công khai nằm trên organizations/events, onboarding_questionnaires giữ các phiên bản câu hỏi, feedback chứa đánh giá/góp ý; xem [36](36-schema-audit.md). Database mới dùng schema.sql; database cũ dùng migration phù hợp sau backup/review, không chạy lại schema.
@@ -119,3 +121,11 @@ Local đã áp dụng sau backup verified, không chạy lại. Schema fresh/upg
 ## Migration016 — khu outdoor
 
 Sau015: additive mode/zone fields/inventory XOR/FK/unique/index/trigger,47 bảng. Backfill admission QUANTITY và giữ timestamps; không tạo inventory cho catalog demo cũ. Fresh/upgrade kiểm tra cùng metadata; readiness đòi validate_zone_inventory(). Không nới các CHECK allocation/payment/ticket cũ. [DDL/ERD/khóa/vận hành/kiểm chứng](42-outdoor-zone-ticketing.md).
+
+## Schema hiện hành017 / ADR-038
+
+Canonical51 bảng: thêm merchandise_skus, merchandise_orders, merchandise_order_items, organization_reputation_entries với vòng đời nhiều–một. Reuse payments/refunds/inbox/outbox/reports, XOR target/pending unique/confirmed-payment FK và report-order/event FK; membership INVITED/version/inviter, product review/version/ship, review/change reputation snapshot. [017](../database/migrations/017-backend-v1-extensions.sql), [ERD44](44-backend-v1-extensions.md). Dữ liệu cũ không đổi/xóa; không sửa migration đã áp dụng.
+
+## Schema018 / ADR-040
+
+Vẫn51 bảng; roles thêm base_role/description/status/version, users thêm roles_version. Giữ PK/FK/unique/constraint cũ; CHECK nhóm/trạng thái/role gốc, trigger version UserRole và lifecycle archived bổ sung. Chỉ cấp rbac.manage cho role ADMIN, không cấp UserRole. [Migration018](../database/migrations/018-dynamic-rbac.sql), [ERD/API/khôi phục](46-dynamic-rbac.md).

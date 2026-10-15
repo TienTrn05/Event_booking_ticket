@@ -4,6 +4,9 @@ import { publicSeats } from '../src/modules/bookings/inventory/inventory.service
 import { inbox } from '../src/modules/notifications/services/notifications.service.js';
 import request from 'supertest';
 import { pool, checkDatabase } from '../src/shared/database/pool.js';
+import { closePrisma, withPrismaTransaction } from '../src/shared/database/prisma.js';
+import { OrganizerBlockRepository } from '../src/modules/users/blocks/organizer-block.repository.js';
+import { usersRepository } from '../src/modules/users/repositories/users.repository.js';
 import { withTransaction } from '../src/shared/database/transaction.js';
 import {
   createSession,
@@ -24,6 +27,9 @@ import {
   pricingInput,
 } from '../src/modules/events/management/event-management.schema.js';
 import { OrganizationService } from '../src/modules/organizations/application/organization.service.js';
+import { MembershipService } from '../src/modules/organizations/memberships/membership.service.js';
+import { ReputationService } from '../src/modules/reputation/reputation.service.js';
+import { SalesService } from '../src/modules/sales/sales.service.js';
 import { OrganizerBlockService } from '../src/modules/users/blocks/organizer-block.service.js';
 import { postgresCatalogRepository as catalog } from '../src/modules/catalog/catalog.repository.js';
 import { RecommendationService } from '../src/modules/catalog/recommendations/recommendation.service.js';
@@ -35,7 +41,10 @@ import { createApp } from '../src/app.js';
 import { env } from '../src/config/env.js';
 import { createHold } from '../src/modules/bookings/holds/hold.service.js';
 import { releaseHold } from '../src/modules/bookings/holds/hold.service.js';
-import { createBooking } from '../src/modules/bookings/orders/booking-command.service.js';
+import {
+  createBooking,
+  cancelBooking,
+} from '../src/modules/bookings/orders/booking-command.service.js';
 import { saveAttendees } from '../src/modules/tickets/attendees/attendee.service.js';
 import { attendeesInput } from '../src/modules/tickets/attendees/attendee.schema.js';
 import { PaymentService } from '../src/modules/payments/application/payment.service.js';
@@ -144,7 +153,10 @@ async function token(actor: RequestActor) {
 describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)(
   'backend completion on isolated PostgreSQL',
   () => {
-    afterAll(async () => pool.end());
+    afterAll(async () => {
+      await closePrisma();
+      await pool.end();
+    });
     beforeAll(async () => {
       organizer = (await account('ORGANIZER')).actor;
       buyer = (await account()).actor;
@@ -290,6 +302,410 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)(
         ])
       ).rows[0]!.starts_at;
     }, 20000);
+    it('lists only the Organizer active memberships and removes revoked membership access without exposing identities', async () => {
+      const service = new OrganizationService();
+      const member = (await account('ORGANIZER')).actor;
+      const unrelated = (await account('ORGANIZER')).actor;
+      const owner = await service.memberships(organizer, 1, 20);
+      expect(owner.items).toContainEqual(
+        expect.objectContaining({ id: organizationId, isOwner: true }),
+      );
+      expect((await service.memberships(unrelated, 1, 20)).items).toEqual([]);
+      const membership = (
+        await pool.query<{ id: string }>(
+          `INSERT INTO organization_memberships(organization_id,user_id,member_identity_id,member_identity_provider,status,approved_by,approved_at)
+         SELECT $1,s.user_id,s.identity_id,'EMAIL','ACTIVE',$3,clock_timestamp() FROM auth_sessions s WHERE s.id=$2 RETURNING id::text`,
+          [organizationId, member.sessionId, admin.id],
+        )
+      ).rows[0]!;
+      const result = await service.memberships(member, 1, 1);
+      expect(result.items).toEqual([
+        {
+          id: organizationId,
+          publicId: organizerPublicId,
+          name: 'Completion organization',
+          membershipId: membership.id,
+          isOwner: false,
+        },
+      ]);
+      expect(result.pagination).toEqual({ page: 1, pageSize: 1, total: 1, totalPages: 1 });
+      expect((await service.memberships(member, 2, 1)).items).toEqual([]);
+      expect(JSON.stringify(result)).not.toMatch(/email|identity|token|dateOfBirth|gender/);
+      await expect(service.memberships(buyer, 1, 20)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      const app = createApp({ checkDatabase: async () => {} });
+      expect((await request(app).get('/api/v1/organizer/organizations')).status).toBe(401);
+      const header = await token(member);
+      const response = await request(app)
+        .get('/api/v1/organizer/organizations?pageSize=1')
+        .set('Authorization', header);
+      expect(response.status).toBe(200);
+      expect(response.body.data).toEqual(result);
+      expect(response.headers['cache-control']).toBe('no-store');
+      expect(
+        (
+          await request(app)
+            .get('/api/v1/organizer/organizations?userId=' + organizer.id)
+            .set('Authorization', header)
+        ).status,
+      ).toBe(400);
+      await pool.query("UPDATE organization_memberships SET status='REVOKED' WHERE id=$1", [
+        membership.id,
+      ]);
+      expect(
+        (await request(app).get('/api/v1/organizer/organizations').set('Authorization', header))
+          .body.data.items,
+      ).toEqual([]);
+    });
+    it('requires explicit invitation acceptance and immediately fences revoked members without granting roles', async () => {
+      const service = new MembershipService(),
+        member = (await account('ORGANIZER')).actor,
+        other = (await account('ORGANIZER')).actor;
+      const key = randomUUID(),
+        input = { userId: member.id, version: 0 };
+      const invited = (await service.invite(organizer, organizationId, input, key, randomUUID()))!;
+      expect(invited.status).toBe('INVITED');
+      expect((await service.invite(organizer, organizationId, input, key, randomUUID()))!.id).toBe(
+        invited.id,
+      );
+      expect((await new OrganizationService().memberships(member, 1, 20)).items).toEqual([]);
+      await expect(new SalesService().overview(member, organizationId, {})).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      expect((await service.invitations(member, 1, 20)).total).toBe(1);
+      expect((await service.invitations(other, 1, 20)).total).toBe(0);
+      await expect(
+        service.change(other, invited.id, 0, 'accept', randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      const acceptKey = randomUUID(),
+        accepted = (await service.change(
+          member,
+          invited.id,
+          0,
+          'accept',
+          acceptKey,
+          randomUUID(),
+        ))!;
+      expect(accepted.status).toBe('ACTIVE');
+      expect((await new SalesService().overview(member, organizationId, {})).basis).toBe(
+        'BOOKING_CREATED_COHORT',
+      );
+      await expect(
+        service.invite(
+          member,
+          organizationId,
+          { userId: other.id, version: 0 },
+          randomUUID(),
+          randomUUID(),
+        ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      await service.change(
+        organizer,
+        invited.id,
+        accepted.version,
+        'revoke',
+        randomUUID(),
+        randomUUID(),
+      );
+      await expect(new SalesService().overview(member, organizationId, {})).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      expect(
+        (await service.change(member, invited.id, 0, 'accept', acceptKey, randomUUID()))!.status,
+      ).toBe('REVOKED');
+      expect(
+        (
+          await pool.query(
+            'SELECT r.code FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=$1',
+            [member.id],
+          )
+        ).rows.map((r) => r.code),
+      ).toEqual(['ORGANIZER']);
+      const reinvited = (await service.invite(
+        organizer,
+        organizationId,
+        { userId: member.id, version: 2 },
+        randomUUID(),
+        randomUUID(),
+      ))!;
+      await service.change(
+        member,
+        reinvited.id,
+        reinvited.version,
+        'decline',
+        randomUUID(),
+        randomUUID(),
+      );
+      const own = (
+        await pool.query<{ id: string; version: number }>(
+          'SELECT id::text,version FROM organization_memberships WHERE organization_id=$1 AND user_id=$2',
+          [organizationId, organizer.id],
+        )
+      ).rows[0]!;
+      await expect(
+        service.change(organizer, own.id, own.version, 'revoke', randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'OWNER_MEMBERSHIP' });
+      await expect(
+        service.invite(
+          organizer,
+          organizationId,
+          { userId: buyer.id, version: 0 },
+          randomUUID(),
+          randomUUID(),
+        ),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    });
+    it('computes private reputation from visible verified reviews and keeps one reversible source per resolved report', async () => {
+      const service = new ReputationService();
+      expect(
+        (await service.read(organizer, organizationId, false, 1, 20)).summary.score,
+      ).toBeNull();
+      const reviews: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        const author = (await account()).actor;
+        reviews.push(
+          (
+            await pool.query<{ id: string }>(
+              "INSERT INTO feedback(author_id,kind,organization_id,event_id,category,stars,content,status) VALUES($1,'ORGANIZATION',$2,$3,'EVENT',5,'Reputation fixture','VISIBLE') RETURNING id::text",
+              [author.id, organizationId, eventId],
+            )
+          ).rows[0]!.id,
+        );
+      }
+      expect((await service.read(organizer, organizationId, false, 1, 20)).summary).toMatchObject({
+        reviewCount: 5,
+        score: 75,
+      });
+      const report = (
+        await pool.query<{ id: string }>(
+          "INSERT INTO support_reports(reporter_id,event_id,reason,status,assigned_admin_id,resolution,resolved_at) VALUES($1,$2,'Fixture report','RESOLVED',$3,'Verified fixture finding',clock_timestamp()) RETURNING id::text",
+          [organizer.id, eventId, admin.id],
+        )
+      ).rows[0]!;
+      const key = randomUUID(),
+        input = { reportId: report.id, delta: -20, reason: 'Verified fixture issue' };
+      const entry = (await service.adjust(admin, organizationId, input, key, randomUUID()))!;
+      expect((await service.adjust(admin, organizationId, input, key, randomUUID()))!.id).toBe(
+        entry.id,
+      );
+      expect((await service.read(admin, organizationId, true, 1, 20)).summary.score).toBe(55);
+      await expect(
+        service.adjust(admin, organizationId, input, randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'REPUTATION_SOURCE_EXISTS' });
+      await expect(service.read(buyer, organizationId, false, 1, 20)).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      });
+      await service.reverse(admin, entry.id, 'Finding corrected', randomUUID(), randomUUID());
+      expect((await service.read(organizer, organizationId, false, 1, 20)).summary.score).toBe(75);
+      await expect(
+        service.reverse(admin, entry.id, 'Repeated reversal', randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'REPUTATION_ALREADY_REVERSED' });
+      await pool.query(
+        "UPDATE feedback SET status='HIDDEN',moderation_reason='Fixture moderation' WHERE id=$1",
+        [reviews[0]],
+      );
+      expect((await service.read(organizer, organizationId, false, 1, 20)).summary).toMatchObject({
+        reviewCount: 4,
+        score: null,
+      });
+    });
+    it('serializes overlapping reversed seat groups and rolls back the losing group in full', async () => {
+      const actors = [(await account()).actor, (await account()).actor];
+      const seats = (
+        await pool.query<{ id: string }>(
+          'SELECT id::text FROM session_seats WHERE session_id=$1 ORDER BY id',
+          [sessionId],
+        )
+      ).rows.map((r) => r.id);
+      const blocker = await pool.connect();
+      await blocker.query('BEGIN');
+      await blocker.query('SELECT id FROM session_seats WHERE id=$1 FOR UPDATE', [seats[1]]);
+      const attempts = actors.map((actor, i) =>
+        createHold(
+          actor,
+          publicId,
+          sessionId,
+          i === 0 ? [seats[0]!, seats[1]!] : [seats[2]!, seats[1]!],
+          randomUUID(),
+          randomUUID(),
+          async () => {},
+        ),
+      );
+      const settled = Promise.allSettled(attempts);
+      try {
+        await vi.waitFor(async () => {
+          const waiting = await pool.query<{ count: number }>(
+            "SELECT count(*)::int FROM pg_stat_activity WHERE datname=current_database() AND state='active' AND wait_event_type='Lock' AND query LIKE '%session_seats%' AND pid<>pg_backend_pid()",
+          );
+          expect(waiting.rows[0]!.count).toBe(2);
+        });
+      } finally {
+        await blocker.query('ROLLBACK');
+        blocker.release();
+      }
+      const outcomes = await settled;
+      expect(outcomes.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      expect(outcomes.find((r) => r.status === 'rejected')).toMatchObject({
+        reason: { code: 'SEAT_UNAVAILABLE' },
+      });
+      const inventory = (
+        await pool.query<{ status: string; hold_id: string | null }>(
+          'SELECT status,hold_id::text FROM session_seats WHERE session_id=$1',
+          [sessionId],
+        )
+      ).rows;
+      expect(inventory.filter((s) => s.status === 'HELD')).toHaveLength(2);
+      expect(inventory.filter((s) => s.status === 'AVAILABLE')).toHaveLength(1);
+      expect(new Set(inventory.filter((s) => s.status === 'HELD').map((s) => s.hold_id)).size).toBe(
+        1,
+      );
+      for (const [index, outcome] of outcomes.entries())
+        if (outcome.status === 'fulfilled')
+          await releaseHold(actors[index]!, outcome.value.data.id, randomUUID(), randomUUID());
+    });
+    it('keeps quota after checkout, replays one booking and isolates inventory by session', async () => {
+      const actor = (await account()).actor,
+        foreign = (await account()).actor;
+      const seats = (
+        await pool.query<{ id: string; seat_id: string }>(
+          'SELECT id::text,seat_id::text FROM session_seats WHERE session_id=$1 ORDER BY id',
+          [sessionId],
+        )
+      ).rows;
+      const hold = await createHold(
+        actor,
+        publicId,
+        sessionId,
+        [seats[0]!.id],
+        randomUUID(),
+        randomUUID(),
+        async () => {},
+      );
+      const input = {
+          holdId: hold.data.id,
+          attendees: [{ sessionSeatId: seats[0]!.id, attendeeName: 'Concurrency fixture' }],
+        },
+        key = randomUUID();
+      const converted = await Promise.all([
+        createBooking(actor, input, key, randomUUID()),
+        createBooking(actor, input, key, randomUUID()),
+        createBooking(actor, input, randomUUID(), randomUUID()),
+      ]);
+      expect(new Set(converted.map((r) => r.data.id)).size).toBe(1);
+      await expect(createBooking(foreign, input, randomUUID(), randomUUID())).rejects.toMatchObject(
+        { code: 'NOT_FOUND' },
+      );
+      await expect(
+        createHold(
+          actor,
+          publicId,
+          sessionId,
+          [seats[1]!.id],
+          randomUUID(),
+          randomUUID(),
+          async () => {},
+        ),
+      ).rejects.toMatchObject({ code: 'ACTIVE_ALLOCATION_EXISTS' });
+      const otherSeat = (
+        await pool.query<{ id: string }>(
+          'SELECT id::text FROM session_seats WHERE session_id=$1 AND seat_id=$2',
+          [otherSessionId, seats[0]!.seat_id],
+        )
+      ).rows[0]!;
+      const independent = await createHold(
+        actor,
+        publicId,
+        otherSessionId,
+        [otherSeat.id],
+        randomUUID(),
+        randomUUID(),
+        async () => {},
+      );
+      expect(independent.data.id).not.toBe(hold.data.id);
+      await cancelBooking(
+        actor,
+        converted[0]!.data.id,
+        'Fixture cleanup',
+        randomUUID(),
+        randomUUID(),
+      );
+      await releaseHold(actor, independent.data.id, randomUUID(), randomUUID());
+    });
+    it('expires at the DB deadline without a worker, keeps snapshot reads pure and reclaims safely', async () => {
+      const actor = (await account()).actor,
+        next = (await account()).actor;
+      const seat = (
+        await pool.query<{ id: string }>(
+          'SELECT id::text FROM session_seats WHERE session_id=$1 ORDER BY id LIMIT 1',
+          [sessionId],
+        )
+      ).rows[0]!;
+      const key = randomUUID(),
+        held = await createHold(
+          actor,
+          publicId,
+          sessionId,
+          [seat.id],
+          key,
+          randomUUID(),
+          async () => {},
+        );
+      await pool.query('UPDATE seat_holds SET expires_at=clock_timestamp() WHERE id=$1', [
+        held.data.id,
+      ]);
+      await pool.query(
+        'UPDATE session_seats SET hold_expires_at=(SELECT expires_at FROM seat_holds WHERE id=$1) WHERE hold_id=$1',
+        [held.data.id],
+      );
+      const snapshot = await publicSeats(publicId, sessionId);
+      expect(snapshot.items.find((s) => s.id === seat.id)?.availability).toBe('AVAILABLE');
+      expect(
+        (await pool.query('SELECT status FROM session_seats WHERE id=$1', [seat.id])).rows[0]
+          .status,
+      ).toBe('HELD');
+      await expect(
+        createBooking(
+          actor,
+          {
+            holdId: held.data.id,
+            attendees: [{ sessionSeatId: seat.id, attendeeName: 'Expired fixture' }],
+          },
+          randomUUID(),
+          randomUUID(),
+        ),
+      ).rejects.toMatchObject({ code: 'HOLD_EXPIRED' });
+      const reclaimed = await createHold(
+        next,
+        publicId,
+        sessionId,
+        [seat.id],
+        randomUUID(),
+        randomUUID(),
+        async () => {},
+      );
+      expect(
+        (await pool.query('SELECT status FROM seat_holds WHERE id=$1', [held.data.id])).rows[0]
+          .status,
+      ).toBe('EXPIRED');
+      const replay = await createHold(
+        actor,
+        publicId,
+        sessionId,
+        [seat.id],
+        key,
+        randomUUID(),
+        async () => {
+          throw new Error('Replay must not request admission');
+        },
+      );
+      expect(replay.data.id).toBe(held.data.id);
+      expect(replay.data.status).toBe('EXPIRED');
+      await releaseHold(actor, held.data.id, randomUUID(), randomUUID());
+      expect(
+        (await pool.query('SELECT hold_id::text FROM session_seats WHERE id=$1', [seat.id])).rows[0]
+          .hold_id,
+      ).toBe(reclaimed.data.id);
+      await releaseHold(next, reclaimed.data.id, randomUUID(), randomUUID());
+    });
     it('lists only owned live sessions, revokes one device and serializes logout-all with refresh', async () => {
       const user = await account(),
         other = await account(),
@@ -512,6 +928,97 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)(
       ).toBe(true);
       expect(await catalog.findEvent(publicId, buyer.id)).not.toBeNull();
     });
+    it('rolls back Prisma preference writes and runs auth SQL on the same connection and transaction', async () => {
+      const { actor } = await account();
+      const repository = new OrganizerBlockRepository();
+      await expect(
+        withPrismaTransaction(async (db, sql) => {
+          await usersRepository.profile(sql, actor, true);
+          const raw = (
+            await sql.query<{ pid: number; transaction: string }>(
+              'SELECT pg_backend_pid() AS pid,txid_current()::text AS transaction',
+            )
+          ).rows[0]!;
+          const orm = (
+            await db.$queryRaw<
+              { pid: number; transaction: string }[]
+            >`SELECT pg_backend_pid() AS pid,txid_current()::text AS transaction`
+          )[0]!;
+          expect(raw).toEqual(orm);
+          await repository.change(db, actor.id, organizationId, true);
+          expect((await repository.list(db, actor.id, 1, 20)).total).toBe(1);
+          throw new Error('Fixture rollback');
+        }),
+      ).rejects.toThrow('Fixture rollback');
+      expect(
+        (await pool.query('SELECT user_id FROM organization_blocks WHERE user_id=$1', [actor.id]))
+          .rowCount,
+      ).toBe(0);
+      await expect(
+        withPrismaTransaction((db) =>
+          repository.change(db, '9223372036854775807', organizationId, true),
+        ),
+      ).rejects.toMatchObject({ code: 'P2003' });
+    });
+
+    it('uses live Customer RBAC rather than onboarding role for Prisma preferences', async () => {
+      const { actor } = await account();
+      await pool.query("UPDATE users SET registration_role='ORGANIZER' WHERE id=$1", [actor.id]);
+      await blocks.change(actor, organizerPublicId, true);
+      expect((await blocks.list(actor, 1, 1)).items).toMatchObject([
+        { id: organizerPublicId, name: 'Completion organization' },
+      ]);
+      expect((await blocks.list(actor, 2, 1)).items).toEqual([]);
+      expect((await blocks.list(outsider, 1, 20)).total).toBe(0);
+      await blocks.change(actor, organizerPublicId, false);
+      await blocks.change(actor, organizerPublicId, false);
+      await pool.query('DELETE FROM user_roles WHERE user_id=$1', [actor.id]);
+      await expect(blocks.change(actor, organizerPublicId, true)).rejects.toMatchObject({
+        code: 'CUSTOMER_REQUIRED',
+      });
+      expect(
+        (await pool.query('SELECT user_id FROM organization_blocks WHERE user_id=$1', [actor.id]))
+          .rowCount,
+      ).toBe(0);
+    });
+
+    it('rejects Prisma preference writes when the session expires behind a user lock', async () => {
+      const { actor } = await account();
+      const blocker = await pool.connect();
+      let entered!: () => void;
+      const started = new Promise<void>((done) => {
+        entered = done;
+      });
+      const original = usersRepository.profile;
+      const profile = vi.spyOn(usersRepository, 'profile').mockImplementation(async (...args) => {
+        entered();
+        return original(...args);
+      });
+      await blocker.query('BEGIN');
+      await blocker.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [actor.id]);
+      const outcome = blocks.change(actor, organizerPublicId, true).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      try {
+        await started;
+        await blocker.query('UPDATE auth_sessions SET expires_at=clock_timestamp() WHERE id=$1', [
+          actor.sessionId,
+        ]);
+        await blocker.query('COMMIT');
+        expect(await outcome).toMatchObject({ code: 'UNAUTHENTICATED' });
+        expect(
+          (await pool.query('SELECT user_id FROM organization_blocks WHERE user_id=$1', [actor.id]))
+            .rowCount,
+        ).toBe(0);
+      } finally {
+        await blocker.query('ROLLBACK');
+        blocker.release();
+        profile.mockRestore();
+        await outcome;
+      }
+    });
+
     it('deletes only empty owned DRAFT and preserves dependencies, history and stale versions', async () => {
       const graph = await draft('Empty draft'),
         id = graph.event!.id;

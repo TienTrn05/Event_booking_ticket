@@ -10,7 +10,7 @@ README ở gốc giới thiệu sản phẩm và cách chạy. Thư mục này c
 | Backend và dữ liệu      | [08 — Database](08-database-design.md), [09 — API](09-api-design.md), [10 — Backend](10-backend-architecture.md), [11 — Concurrency](11-booking-concurrency.md), [20 — SQL vật lý](20-physical-sql-design.md), [21 — Transaction](21-sql-transactions.md) |
 | Frontend và UI           | [22 — Kiến trúc FE](22-frontend-architecture.md), [25 — Brief và prompt thiết kế UI](25-ui-design-brief.md) |
 | Chất lượng và vận hành  | [12 — Bảo mật](12-security.md), [13 — Kiểm thử](13-testing-strategy.md), [14 — Triển khai](14-environment-deployment.md), [15 — Quy tắc phát triển](15-development-rules.md), [24 — Local setup và rà soát](24-local-development.md)                      |
-| Sơ đồ                   | [19 — Hướng dẫn](19-system-diagrams.md), [Gallery offline](diagrams/index.html)                                                                                                                                                                           |
+| Sơ đồ                   | [19 — Kiến trúc và chỉ mục sơ đồ Mermaid](19-system-diagrams.md) |
 
 Nguồn quy tắc làm việc: [PROJECT_RULES.md](../PROJECT_RULES.md), [AGENTS.md](../AGENTS.md). Tiến độ auth: [26 — Auth](26-auth-progress.md). DDL và dữ liệu mẫu: [database](../database/README.md).
 
@@ -31,3 +31,13 @@ Cập nhật nghiệp vụ: [23 — Tổ chức, thay đổi sự kiện, feedba
 
 - [36 — Rà soát số lượng bảng và khả năng gộp](36-schema-audit.md).
 - [37 — Phạm vi hoàn tiền, đánh giá tổ chức và góp ý app](37-refunds-reviews-app-feedback.md).
+- [38 — Bán vé, doanh thu và sửa/hủy sự kiện cho Organizer](38-organizer-sales-operations.md).
+- [39 — Readiness, worker, restore và HTTPS local](39-backend-operational-readiness.md).
+- [40 — Chức năng BE và phạm vi can thiệp Admin](40-backend-functional-completion.md).
+- [41 — Search/autocomplete sự kiện Home](41-home-event-search.md).
+- [42 — Vé outdoor theo khu/số lượng](42-outdoor-zone-ticketing.md).
+- [43 — Phạm vi và nghiệm thu BE v1](43-backend-v1.md).
+
+- [44 — Merchandise, mở bán lại, membership, uy tín và hợp đồng FE](44-backend-v1-extensions.md).
+- [45 — Prisma thử nghiệm, transaction và RBAC hiện hành](45-prisma-pilot-rbac.md).
+- [46 — API/UI quản trị RBAC động và chính sách cấp quyền](46-dynamic-rbac.md).

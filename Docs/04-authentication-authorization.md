@@ -1,5 +1,7 @@
 # 04. Xác thực và phân quyền
 
+Sửa regression 2026-10-15: refresh/profile lấy đủ User→Session/Identity→Token locks tương ứng rồi kiểm tra expiry bằng giờ DB hiện hành, không dùng mốc bắt đầu transaction sau thời gian chờ khóa. Không thay TTL/rotation/provider/linking/cookie/CSRF. [Phạm vi và kiểm chứng](45-prisma-pilot-rbac.md).
+
 > Quyết định hiện hành 2026-10-11: ADR-028 dùng một FE với ba khu vực; ADR-029 cho chọn Customer hoặc Organizer khi onboarding bằng Google/email cá nhân. Không còn yêu cầu domain/phiên công ty để vận hành Organizer. Vai trò, tên, giới tính và ngày sinh bắt buộc; sở thích/thành phố/theo dõi có thể bỏ qua. Organizer không tự nhận Customer; tạo nháp ngay, Admin vẫn duyệt tổ chức và sự kiện trước mở bán. Các đoạn mô tả cơ chế cũ dưới đây được thay thế trong phạm vi này. Xem [33](33-registration-onboarding.md) và [34](34-organizer-event-api.md).
 
 Nguồn hiện hành: Q-006 cập nhật 2026-10-09 xác nhận Google OAuth + OTP email Customer, Organizer dùng email công ty; ADR-003 phần phiên tiếp tục áp dụng, ADR-013 thay phần đăng nhập mật khẩu. Không triển khai OAuth/SSO khác ngoài nhu cầu này.
@@ -37,6 +39,8 @@ Logout thu hồi session hiện tại/xóa cookie, lặp 204; logout-all tăng a
 Không có mật khẩu nội bộ nên bỏ register/login/reset/change-password bằng mật khẩu khỏi MVP. Người dùng đăng nhập lại qua Google hoặc email OTP đã liên kết. Mất cả phương thức đăng nhập không được khôi phục chỉ bằng tên/mã vé; quy trình hỗ trợ phải xác minh danh tính trước thay identity, chưa tự cung cấp một đường bypass.
 
 Admin bootstrap bằng liên kết identity đã xác minh qua thao tác vận hành được kiểm soát, không cho đăng ký công khai chọn Admin. Xác thực lại trước cấp role/can thiệp hỗ trợ nhạy cảm; chính sách MFA riêng khi vận hành thật còn Q-006. Không coi SMS OTP mặc nhiên là đa yếu tố.
+
+ADR-040 (chủ dự án2026-10-15): ADMIN có rbac.manage được quản trị role bổ sung và cấp/thu hồi ADMIN **người khác** qua API/UI, xác thực trong5 phút/lý do/audit, cấm tự sửa quyền và bảo vệ Admin cuối. Bootstrap Admin đầu tiên không đổi; Customer/Organizer gốc giữ onboarding hiện hành. [Chính sách và API](46-dynamic-rbac.md).
 
 ## Phân quyền theo tầng và log
 

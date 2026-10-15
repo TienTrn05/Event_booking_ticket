@@ -321,3 +321,28 @@ Elasticsearch9.5.5 một shard/không replica, English/edge-ngram/ngram/fuzzy + 
 ## ADR-037 — Outdoor theo khu và readiness thống nhất — ACCEPTED 2026-10-14
 
 Chủ dự án yêu cầu sửa health Admin/tài liệu trước, rồi hoàn thiện BE outdoor có khu thay vì ghế indoor. NUMBERED/QUANTITY cố định trên draft; khu geometry/capacity, mỗi khu một giá/type/suất. Dùng layout_sections hiện có; session_seats mở rộng thành inventory units có physical seat indoor hoặc section/ordinal outdoor, không tạo seats/rows giả, không bảng1:1/counter song song. Unique/ordinal≤capacity/XOR/FK/row locks giữ chống oversell và lifecycle mỗi vé. Migration016 additive47 bảng, giữ dữ liệu lịch sử; không sửa capacity/schedule sau public, không mixed-mode/resale. API monolith một instance, worker hiện có; auth/provider không đổi. Readiness ES chuyển vào hàm chung Admin/API. [Hợp đồng, kiểm chứng và giới hạn](42-outdoor-zone-ticketing.md).
+
+## ADR-038 — Chốt bốn phần mở rộng BE v1
+
+- **Ngày/quyền:** 2026-10-15, chủ dự án chấp thuận “Đồng ý toàn bộ, triển khai và chốt bốn phần cho v1” cho bộ chính sách đã trình bày, Q-036. CMS để sau v1.
+- **Merchandise:** đơn riêng một event, SKU/tồn kho, tối đa20 đơn vị/5 phút, payOS VND hiện có. Admin duyệt sản phẩm; Organizer tự giao VN/phí cố định; sản phẩm yêu cầu vé kiểm tra VALID/USED của chính người mua lúc đặt và xác nhận tiền. Full manual refund trước giao, ngoại lệ hàng đã giao/event hủy qua report đúng đơn và chứng từ/reference duy nhất. Không giả booking/vé hoặc tự chuyển tiền.
+- **Mở bán lại:** NEW_SALE_WAVE/CAPACITY có version/snapshot/Admin approval; chỉ thêm inventory trong giới hạn venue, giữ lịch/địa điểm/giá/chỗ/hold/vé cũ. Không resale ghế SOLD/đã hoàn hoặc chuyển nhượng.
+- **Membership:** chủ hồ sơ mời User đã onboarding ORGANIZER, nhận lời mới ACTIVE; chỉ chủ hồ sơ mời/thu hồi. Không chuyển chủ/cấp role mới/ADMIN.
+- **Uy tín:** riêng tư Admin/Organizer, prior3 sao/5 mẫu, quy đổi0–100; dưới5 review chưa đủ dữ liệu. ±20/report RESOLVED duy nhất, lý do và bút toán đảo append-only; không SYSTEM feedback, tự duyệt/khóa hoặc cấp quyền theo điểm.
+- **Dữ liệu:** đối chiếu metadata DB thật trước thêm bốn bảng SKU/order/items/ledger nhiều–một; reuse membership/products/event_change_requests/payments/refunds/reports/feedback. Migration017 additive,51 bảng, XOR payment target/confirmed-payment FK/report-order/event FK, snapshot khi duyệt. Fresh/populated upgrade khớp; test/backup/restore trước apply, giữ dữ liệu cũ.
+- **Kiến trúc/auth:** Modular Monolith một API/hai worker hiện có; không thêm broker/instance/worker, không đổi token/provider/cookie/CSRF/linking. [Hợp đồng, ERD, FE](44-backend-v1-extensions.md), [nghiệm thu](43-backend-v1.md), [log](26-auth-progress.md).
+
+## ADR-039 — Prisma thử nghiệm trên preference Organizer và sửa regression BE
+
+- **Quyền/ngày:** chủ dự án yêu cầu trong hội thoại 2026-10-15 sửa lỗi rà soát và thử Prisma ở module CRUD ít rủi ro; chưa yêu cầu chuyển toàn BE hoặc thay RBAC.
+- **Quyết định:** pin Prisma7.10.0 cho organization_blocks hiện có. Guard SQL và ORM cùng Prisma transaction/pg pool; projection client hai model không dùng Migrate/db push. SQL DDL/migrations/trigger/constraint giữ nguyên; hold/payment/refund/ticket tiếp tục pg.
+- **Đánh đổi:** thử kiểu sinh tự động và bảo trì preference cá nhân. Repository29→36 dòng, thêm helper/projection; không mặc định nhanh/gọn hơn SQL. Có regression rollback/cùng connection/FK/RBAC/expiry.
+- **Sửa lỗi:** expiry refresh/profile đọc sau khóa bằng giờ DB; lời mời chưa chấp nhận không chặn review, giữ hạn chế thành viên thực sự/cựu thành viên; payment polling báo lỗi sau batch; fixture dùng giờ/lịch DB. Giữ lifetime/provider/linking/cookie/CSRF.
+- **RBAC:** user_roles/roles/role_permissions/permissions đã có; registration_role là metadata onboarding. Không grant/Admin/cơ chế cấp quyền mới. [Phạm vi và kiểm chứng](45-prisma-pilot-rbac.md).
+
+## ADR-040 — Bộ quản trị RBAC động trong monolith
+
+- **Chốt:** chủ dự án2026-10-15 chọn ADMIN+rbac.manage, cấp permission cho role ADMIN đã có; role bổ sung theo nhóm và bảo vệ ba role gốc; cho cấp/thu hồi ADMIN người khác, không tự sửa quyền, xác thực lại5 phút/lý do/audit và bảo vệ Admin cuối.
+- **Triển khai:** API/UI role tùy chỉnh và gán/thu hồi, permission catalog chỉ đọc; immutable code/nhóm, lưu trữ role chưa được gán. Customer/Organizer gốc giữ luồng onboarding hiện hành. Mọi mutation/version/audit/idempotency cùng pg transaction; ADMIN row gate trước User locks tăng dần, kiểm tra quyền/clock sau khóa, không mở distributed system.
+- **Đánh đổi:** role bổ sung hợp quyền, không giảm quyền gốc. Do yêu cầu giữ role gốc và chỉ cấp tập con cùng nhóm, ma trận hiện tại có thể không tăng quyền hiệu lực; mô hình nhân viên có quyền hạn chế/thay role gốc cần quyết định riêng. Không đổi membership/ownership/report hoặc auth lifetime/provider/linking/cookie/CSRF.
+- **Dữ liệu:**018 bổ sung roles metadata/users.roles_version, reuse51 bảng/audit/idempotency. Không cấp UserRole hoặc tạo Admin thật. SQL migration/trigger/constraint và Prisma pilot giữ nguyên phạm vi. [Hợp đồng/rollback](46-dynamic-rbac.md), [kiểm chứng thực tế](26-auth-progress.md).

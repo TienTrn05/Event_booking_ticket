@@ -1,6 +1,8 @@
 # 18. Quyết định nghiệp vụ và phần còn mở
 
-**Cập nhật 2026-09-13:** tăng sức chứa chỉ là ví dụ của Vé bán lại, không phải định nghĩa duy nhất. Chủ dự án bổ sung Organizer hủy sự kiện, feedback có sao về hệ thống/sự kiện và thuật toán điểm uy tín tổ chức hỗ trợ Admin duyệt. Nội dung thống nhất ở [23, phần 9](23-organization-review-seatmap.md); công thức, trọng số và chính sách xử lý cụ thể là đề xuất chờ chốt, chưa được triển khai.
+**Q-037 — RESOLVED 2026-10-15:** chủ dự án chọn giữ chặn người từng là thành viên đánh giá tổ chức cũ. INVITED/decline chưa từng chấp nhận không là thành viên; reinvite không xóa ảnh hưởng của membership đã từng có hiệu lực. Triển khai/kiểm chứng tại [Docs45](45-prisma-pilot-rbac.md). Không đổi quyền vận hành hoặc cấp role.
+
+**Cập nhật 2026-09-13:** tăng sức chứa chỉ là ví dụ của Vé bán lại, không phải định nghĩa duy nhất. Chủ dự án bổ sung Organizer hủy sự kiện, feedback có sao về hệ thống/sự kiện và thuật toán điểm uy tín tổ chức hỗ trợ Admin duyệt. Nội dung thống nhất ở [23, phần 9](23-organization-review-seatmap.md); công thức và chính sách v1 đã được chốt tiếp theo tại ADR-038/Docs44.
 
 Chủ quyết định: chủ dự án. Ngày ghi nhận: **2026-09-12**. Nguồn: chấp thuận khuyến nghị trước đó, điều chỉnh Organizer/Admin/venue và ba câu trả lời tiếp theo về Google/OTP, check-in và thời hạn duyệt. Điều chỉnh trực tiếp có ưu tiên cao hơn đề xuất cũ. Chi tiết ở [23](23-organization-review-seatmap.md).
 
@@ -26,9 +28,9 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 | Q-016 | PARTIALLY RESOLVED | Bộ công cụ nhỏ, PostgreSQL transaction/lock tường minh, pin khi code | Node 24, hai package npm độc lập, pg/Zod/Vitest và lint/format đã chọn tại ADR-015/018/019; migration runner và hạ tầng production còn mở |
 | Q-017 | PARTIALLY RESOLVED | Remote private ban đầu rồi chủ động công khai | Chưa có đích/tài khoản/license; không tự tạo/push |
 | Q-018 | RESOLVED | Mốc nghiệm thu, không tự đặt deadline khi chưa có nguồn lực | Cung cấp giờ/tuần khi cần lập lịch |
-| Q-019 | PARTIALLY RESOLVED | Vé bán lại có nhiều nguyên nhân; tăng sức chứa chỉ là ví dụ; Organizer có chức năng hủy sự kiện | Ma trận lý do/duyệt lại, hạn xử lý, hiệu lực hủy và phương án tiền cho người mua theo 23 phần 9 |
-| Q-020 | PARTIALLY RESOLVED | Người dùng feedback có sao về hệ thống và sự kiện/cách bán vé | Thang sao, điều kiện gửi/sửa, xác thực, công khai, kiểm duyệt và khiếu nại; không trừ uy tín tổ chức vì feedback lỗi hệ thống |
-| Q-021 | PARTIALLY RESOLVED | Thuật toán điểm uy tín tổ chức tăng/giảm, Admin xem để hỗ trợ quyết định | Hệ số/nguồn/điểm thưởng-phạt, ngưỡng, cửa sổ thời gian, công khai và quyền điều chỉnh; công thức tại 23 là đề xuất |
+| Q-019 | RESOLVED cho v1 | CONTENT/hủy theo ADR-034; NEW_SALE_WAVE/CAPACITY có Admin/version, giữ lịch/giá/vé/hold cũ theo ADR-038/Docs44 | Thay lịch/venue/transfer ngoài v1 cần quyết định mới |
+| Q-020 | RESOLVED cho v1 | Review tổ chức xác thực1–5 sao và góp ý SYSTEM riêng tư theo ADR-032/Docs37; uy tín chỉ lấy ORGANIZATION VISIBLE | Không public review hoặc tính góp ý hệ thống vào uy tín |
+| Q-021 | RESOLVED cho v1 | Uy tín nội bộ theo ADR-038/Docs44: prior3 sao/5 mẫu, ±20/report duy nhất/đảo ledger, không tự approve/lock | Ngoài phạm vi v1 cần quyết định mới |
 
 ## Hồ sơ/theo dõi/tuổi — quyết định 2026-10-11
 
@@ -38,7 +40,7 @@ RESOLVED là đã chốt phần nêu trong hàng; PARTIALLY RESOLVED là còn ch
 
 ### Bổ sung merchandise và nhận diện hiển thị
 
-- **Q-022 — PARTIALLY RESOLVED:** sự kiện được bán merchandise do Organization sở hữu sự kiện quản lý. Đã chốt thanh toán trên web và giao đến địa chỉ người nhận; Organizer chọn mua độc lập hoặc yêu cầu vé. Còn mở phí/phạm vi/đơn vị giao hàng, kiểm tra vé chi tiết, giữ kho, checkout chung/tách, đổi trả/hoàn khi hủy và duyệt hàng hóa/ảnh. Xem [23, phần 10](23-organization-review-seatmap.md).
+- **Q-022 — RESOLVED cho v1:** SKU/đơn riêng event/20 đơn vị/5 phút/payOS VND/giao VN/phí cố định/Admin review/vé VALID-USED/full manual refund và report ngoại lệ đã được chủ dự án duyệt, ADR-038/[44](44-backend-v1-extensions.md).
 - **Q-023 — RESOLVED:** công ty vẫn là Organizer; tag khách thấy có thể là tên nghệ sĩ/chương trình như PMC trong sự kiện Fanmeeting PMC. Không thay đổi ownership, uy tín, danh mục hoặc email công ty; không tự suy ra nghệ sĩ đã được xác minh.
 
 ### Bổ sung về UI/catalog ngày 2026-09-13
@@ -109,3 +111,13 @@ Chủ dự án chọn Elasticsearch một instance cho ô search/autocomplete Ho
 ### Q-035 — Outdoor theo khu — RESOLVED cho BE 2026-10-14
 
 Chủ dự án yêu cầu hoàn thiện outdoor theo khu/số lượng, giữ indoor ghế đánh số. ADR-037/Docs42 đã triển khai BE; thay phần Q-014/FR-027 nói quantity chưa triển khai trong phạm vi này. Không suy ra chấp thuận resale/mixed-mode/đổi capacity/lịch sau public hoặc merchandise. FE editor/picker khu chưa nối.
+
+### Q-036 — Phạm vi BE v1 mở rộng — RESOLVED cho bốn phần 2026-10-15
+
+Chủ dự án yêu cầu hoàn thiện BE v1 và xác nhận đưa cả merchandise mua/giao hàng, điểm uy tín, mở bán lại, quản lý thành viên tổ chức và CMS vào v1. Đây là xác nhận phạm vi, chưa là chấp thuận các chính sách còn mở của Q-019/Q-021/Q-022 hoặc tự cấp permission mới. Đây là trạng thái trước câu trả lời chấp thuận được ghi tiếp bên dưới. Tiếp tục phần độc lập: thống kê Admin và regression auth/transaction. [43](43-backend-v1.md) ghi phần đã triển khai, tiêu chí kiểm tra và điều kiện còn thiếu; chưa đánh dấu toàn v1 hoàn thành.
+
+Cập nhật tiếp theo cùng ngày: chủ dự án chọn **Đồng ý toàn bộ, triển khai và chốt bốn phần cho v1** đối với bộ quy tắc merchandise/mở bán lại/membership/uy tín; CMS để sau v1. Chính sách chi tiết và giới hạn được chốt tại [44](44-backend-v1-extensions.md)/ADR-038, thay phần chờ ở trên cho đúng bốn phần này. Không thay auth/provider/lifetime hoặc mở rộng distributed system. Chấp thuận không đồng nghĩa code/migration/kiểm thử đã hoàn thành.
+
+### Q-038 — Bộ quản trị RBAC động — RESOLVED 2026-10-15
+
+Chủ dự án chọn ADMIN có rbac.manage; migration cấp permission cho role ADMIN hiện có. Role tùy chỉnh bổ sung trong nhóm CUSTOMER/ORGANIZER/ADMIN, bảo vệ ba role gốc/permission catalog, không thay membership/ownership/report. Cho Admin đủ quyền cấp/thu hồi ADMIN cho người khác, cần xác thực lại5 phút/lý do/audit, cấm tự sửa quyền và bảo vệ Admin hoạt động cuối cùng. Bootstrap Admin đầu tiên vẫn vận hành kiểm soát. Role bổ sung cộng quyền, không làm tài khoản hạn chế quyền hơn role gốc. [ADR-040](17-architecture-decisions.md), [Docs46](46-dynamic-rbac.md); trạng thái code/test/migration ghi tại Docs26.

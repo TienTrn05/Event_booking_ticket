@@ -15,6 +15,8 @@ Chủ dự án chốt2026-10-12 / ADR-032. BE đã triển khai và kiểm thử
 
 ## Đánh giá tổ chức
 
+Chốt bổ sung 2026-10-15: lời mời chưa chấp nhận/đã từ chối chưa từng có hiệu lực không chặn người mua đánh giá; người từng chấp nhận membership vẫn bị chặn sau khi rời tổ chức, kể cả tái mời. Kiểm tra status/approved_at và lịch sử membership.accept hiện có, không xóa lịch sử để bỏ chặn. [Docs45](45-prisma-pilot-rbac.md).
+
 Customer có đơn CONFIRMED/REFUNDED đã phát vé cho suất kết thúc hoặc sự kiện/suất bị hủy được gửi1–5 sao và nội dung. Một đánh giá/người/sự kiện, không nhân trọng số vì mua nhiều vé. Không cho thành viên đánh giá tổ chức mình. Không bắt người mua sự kiện bị hủy phải check-in.
 
 Người gửi được sửa sao/nội dung trong7 ngày kể từ lúc gửi, thời gian DB; không gia hạn bằng sửa. Giữ history trên cùng feedback row, version chống ghi đè. Organizer được trả lời, không xóa/ẩn; Admin ẩn/hiện có lý do, giữ lịch sử. Sửa đánh giá đang HIDDEN không tự hiện lại.

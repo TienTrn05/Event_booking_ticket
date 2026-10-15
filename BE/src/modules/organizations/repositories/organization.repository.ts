@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { randomUUID } from 'node:crypto';
+import { ReputationRepository } from '../../reputation/reputation.repository.js';
 export type OrganizationRow = {
   id: string;
   name: string;
@@ -12,6 +13,30 @@ export type OrganizationRow = {
   review_reason: string | null;
 };
 export class OrganizationRepository {
+  async memberships(db: PoolClient, userId: string, page: number, size: number) {
+    return (
+      await db.query<{
+        items: {
+          id: string;
+          publicId: string | null;
+          name: string;
+          membershipId: string;
+          isOwner: boolean;
+        }[];
+        total: number;
+      }>(
+        `WITH memberships AS (
+          SELECT o.id::text,o.public_id AS "publicId",o.name,m.id::text AS "membershipId",
+            o.applicant_user_id=$1 AS "isOwner"
+          FROM organizations o JOIN organization_memberships m ON m.organization_id=o.id
+          WHERE m.user_id=$1 AND m.status='ACTIVE' AND o.status='APPROVED'
+        ), page_rows AS (SELECT * FROM memberships ORDER BY id::bigint DESC LIMIT $2 OFFSET $3)
+        SELECT (SELECT count(*)::int FROM memberships) AS total,
+          COALESCE((SELECT jsonb_agg(r ORDER BY r.id::bigint DESC) FROM page_rows r),'[]'::jsonb) AS items`,
+        [userId, size, (page - 1) * size],
+      )
+    ).rows[0]!;
+  }
   async own(db: PoolClient, userId: string) {
     return (
       await db.query(
@@ -113,9 +138,13 @@ export class OrganizationRepository {
     ).rowCount;
   }
   async audit(db: PoolClient, actorId: string, id: string, action: string, requestId: string) {
+    const snapshot =
+      action.includes('approve') || action.includes('reject')
+        ? await new ReputationRepository().summary(db, id)
+        : null;
     await db.query(
-      `INSERT INTO audit_logs(actor_type,actor_id,action,resource_type,resource_id,request_id) VALUES('USER',$1,$2,'ORGANIZATION',$3,$4)`,
-      [actorId, action, id, requestId],
+      `INSERT INTO audit_logs(actor_type,actor_id,action,resource_type,resource_id,request_id,after_redacted) VALUES('USER',$1,$2,'ORGANIZATION',$3,$4,$5)`,
+      [actorId, action, id, requestId, snapshot ? JSON.stringify({ reputation: snapshot }) : null],
     );
   }
 }

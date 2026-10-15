@@ -1,12 +1,10 @@
 import { Router } from 'express';
-import { noStore, sendData } from '../../shared/http/response.js';
-import { authenticatedUser } from '../auth/auth.service.js';
-import { OperationsService } from './operations.service.js';
+import { noStore } from '../../shared/http/response.js';
+import { createOperationsController } from './operations.controller.js';
 export function createOperationsRouter() {
   const router = Router(),
-    service = new OperationsService();
-  router.get('/admin/operations/health', noStore, async (req, res) =>
-    sendData(res, await service.health(await authenticatedUser(req.get('authorization')))),
-  );
+    controller = createOperationsController();
+  router.get('/admin/statistics', noStore, controller.statistics);
+  router.get('/admin/operations/health', noStore, controller.health);
   return router;
 }

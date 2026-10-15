@@ -425,6 +425,11 @@ function ProfileForm({
       {state.completed && (
         <>
           {state.roles.includes('ADMIN') && (
+            <Link to="/admin/rbac" onClick={props.onClose}>
+              Quản trị phân quyền
+            </Link>
+          )}
+          {state.roles.includes('ADMIN') && (
             <Link to="/admin/onboarding" onClick={props.onClose}>
               Quản lý câu hỏi đăng ký
             </Link>

@@ -70,6 +70,8 @@ database/
 
 Repository hiện có hai package độc lập `BE/` và `Fe/` theo ADR-008/018; `AdminFe/` sẽ là package/frontend độc lập thứ ba khi triển khai ADR-016. Cả hai frontend vẫn gọi một `BE/`; không tạo backend Admin riêng. Repo dùng pg SQL trực tiếp, Zod và Vitest; chưa chọn migration runner. Không tạo package shared trừ khi có hợp đồng thật cần dùng chung; không chia sẻ DB entity chứa password hash sang frontend.
 
+ADR-039 thêm Prisma7.10.0 chỉ cho preference organization_blocks, cùng pool/transaction với guard SQL. SQL migration tiếp tục quản lý DDL, không Prisma Migrate/db push hoặc chuyển hold/payment/refund. [Phạm vi và đánh giá](45-prisma-pilot-rbac.md).
+
 ## Validation ba lớp
 
 1. **Schema ở biên:** email có cấu trúc hợp lệ, mảng ghế không rỗng/không trùng, ID đúng kiểu, query range hợp lệ. Webhook, job payload, biến môi trường cũng phải validate.

@@ -100,7 +100,7 @@ export class EventOperationsRepository {
   async pending(db: PoolClient, eventId: string) {
     return !!(
       await db.query(
-        "SELECT 1 FROM event_change_requests WHERE event_id=$1 AND request_type='CONTENT' AND status='PENDING'",
+        "SELECT 1 FROM event_change_requests WHERE event_id=$1 AND request_type IN ('CONTENT','CAPACITY','NEW_SALE_WAVE') AND status='PENDING'",
         [eventId],
       )
     ).rowCount;
