@@ -91,3 +91,7 @@ Organization service xử lý application/membership/company identity; EventRevi
 Các module vẫn ở cùng monolith/transaction context. Google/OTP proof được xác minh ở auth adapter/service, không trong controller hoặc repository. Không gọi SMS/email trong transaction. Frontend editor chỉ tạo DTO, backend phải validate hình học và scope; repository dùng schema hiện hành theo 20 và tuân thủ các bất biến service chưa được DDL tự thực thi.
 
 ADR-027: payment application phụ thuộc port booking/gateway/ticket issuer với constructor injection; booking/ticket adapters giữ transaction cùng PG connection. SDK/network ngoài transaction, recovery worker cùng codebase. Không Kafka/LB hoặc mở rộng distributed system. Xem [32](32-payos-booking-ticket-flow.md).
+
+## Search sự kiện — ADR-036
+
+Elasticsearch một instance được chủ dự án chấp thuận cho Home; API monolith một instance giữ nguyên. Module search tách HTTP/schema/service/repository/client/mapping/OpenAPI; client native fetch không SQL, service không SQL, repository cùng PoolClient hiện hành. ES chỉ public projection, Redis candidates15s, PG kiểm tra trạng thái/ghế/giá/block/hash mỗi response. Notifications worker hiện có xử lý search outbox ngoài transaction mạng, không worker service/broker mới. [Docs41](41-home-event-search.md).

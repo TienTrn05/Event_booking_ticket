@@ -5,6 +5,8 @@ import { getPreviewItem } from '../data/previewCatalog';
 import { useQuickPreview } from '../hooks/useQuickPreview';
 import type { PreviewKind } from '../types';
 import { useCatalog } from '../../catalog/hooks/useCatalog';
+import { usePublicEvent } from '../../events/hooks/usePublicEvent';
+import { useAuthDialog } from '../../auth/context/AuthDialogContext';
 
 const previewKinds = new Set<PreviewKind>(['event', 'product', 'article', 'organizer', 'resale']);
 
@@ -18,13 +20,20 @@ export function QuickPreviewDialog() {
   const kind = previewKinds.has(requestedKind as PreviewKind)
     ? (requestedKind as PreviewKind)
     : null;
+  const { accessToken } = useAuthDialog();
+  const remote = usePublicEvent(kind === 'event' ? requestedId : null, accessToken);
   const item = useMemo(
-    () => getPreviewItem(catalog, kind, requestedId),
-    [catalog, kind, requestedId],
+    () =>
+      getPreviewItem(
+        kind === 'event' ? { ...catalog, events: remote.event ? [remote.event] : [] } : catalog,
+        kind,
+        requestedId,
+      ),
+    [catalog, kind, requestedId, remote.event],
   );
 
   useEffect(() => {
-    if (!item) return;
+    if (!item && kind !== 'event') return;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeButton.current?.focus();
@@ -36,9 +45,32 @@ export function QuickPreviewDialog() {
       document.body.style.overflow = overflow;
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [closePreview, item]);
+  }, [closePreview, item, kind]);
 
-  if (!item) return null;
+  if (!item)
+    return kind === 'event' ? (
+      <div className="quick-preview-overlay">
+        <section
+          className="quick-preview-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Event preview"
+        >
+          <button
+            ref={closeButton}
+            type="button"
+            className="quick-preview-close"
+            aria-label="Close preview"
+            onClick={closePreview}
+          >
+            <X size={20} />
+          </button>
+          <p className="p-8" role="status">
+            {remote.loading ? 'Loading event…' : 'This event is no longer available.'}
+          </p>
+        </section>
+      </div>
+    ) : null;
 
   return (
     <div
@@ -57,7 +89,7 @@ export function QuickPreviewDialog() {
           ref={closeButton}
           type="button"
           className="quick-preview-close"
-          aria-label="Đóng xem nhanh"
+          aria-label="Close preview"
           onClick={closePreview}
         >
           <X size={20} />
@@ -88,7 +120,7 @@ export function QuickPreviewDialog() {
             ))}
           </dl>
           <Link className="quick-preview-action" to={item.detailPath}>
-            Xem toàn bộ <ArrowRight size={17} />
+            {kind === 'event' ? 'View event' : 'Xem toàn bộ'} <ArrowRight size={17} />
           </Link>
         </div>
       </section>

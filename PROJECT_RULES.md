@@ -57,3 +57,7 @@
 Google/email OTP dùng được cho Customer và Organizer, không yêu cầu mail công ty. Vai trò chọn lúc onboarding (CUSTOMER hoặc ORGANIZER), displayName/gender/DOB bắt buộc. Organizer riêng Customer; chỉ bật Customer khi người dùng yêu cầu rõ qua API. Không tự cấp ADMIN. Tạo tổ chức/sự kiện nháp ngay, Admin duyệt tổ chức và sự kiện trước mở bán. Yêu cầu company session/domain cũ bị thay thế trong phạm vi này. JWT/refresh/cookie/CSRF/linking giữ nguyên. Xem Docs/33 và Docs/34.
 
 ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+## Search Home — ngoại lệ đã chấp thuận ADR-036 / 2026-10-14
+
+Chủ dự án đã chọn Elasticsearch một instance để tìm/autocomplete sự kiện trang chính; PostgreSQL là dữ liệu gốc, Redis cache candidates, English/N-gram/prefix. API vẫn Modular Monolith một instance; không suy ra chấp thuận mở rộng distributed system khác. Quy tắc không tự thêm Elasticsearch ở trên được thay thế chỉ trong phạm vi này. Cấu hình, migration015, đồng bộ, kiểm chứng và giới hạn tại [Docs41](Docs/41-home-event-search.md).

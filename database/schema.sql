@@ -1508,4 +1508,123 @@ INSERT INTO permissions(code,description) VALUES
 INSERT INTO role_permissions(role_id,permission_id) SELECT r.id,p.id FROM roles r CROSS JOIN permissions p
  WHERE (r.code='ADMIN' AND p.code='feedback.manage') OR (r.code='ORGANIZER' AND p.code='feedback.reply_own') ON CONFLICT DO NOTHING;
 
+
+
+ALTER TABLE event_change_requests ADD COLUMN event_version INTEGER,
+ ADD COLUMN version INTEGER NOT NULL DEFAULT 0, ADD COLUMN snapshot_json JSONB,
+ ADD COLUMN decision_reason VARCHAR(2000), DROP CONSTRAINT ck_event_change_type;
+ALTER TABLE event_change_requests ADD CONSTRAINT ck_event_change_type
+ CHECK(request_type IN ('CAPACITY','NEW_SALE_WAVE','SALES_CONFIG','RESUME_SALES','CONTENT')),
+ ADD CONSTRAINT ck_event_content_snapshot CHECK(request_type<>'CONTENT' OR
+  (event_version IS NOT NULL AND event_version>=0 AND snapshot_json IS NOT NULL AND jsonb_typeof(snapshot_json)='object'
+   AND snapshot_json ?& ARRAY['title','description'] AND jsonb_typeof(snapshot_json->'title')='string'
+   AND jsonb_typeof(snapshot_json->'description')='string' AND char_length(trim(snapshot_json->>'title')) BETWEEN 1 AND 180
+   AND char_length(trim(snapshot_json->>'description')) BETWEEN 1 AND 10000)),
+ ADD CONSTRAINT ck_event_change_version CHECK(version>=0);
+CREATE UNIQUE INDEX uq_event_content_pending ON event_change_requests(event_id) WHERE request_type='CONTENT' AND status='PENDING';
+ALTER TABLE events ADD COLUMN cancelled_by BIGINT REFERENCES users(id),
+ ADD COLUMN cancelled_at TIMESTAMPTZ(6), ADD COLUMN cancellation_reason VARCHAR(2000),
+ ADD CONSTRAINT ck_event_cancellation_metadata CHECK
+ (num_nonnulls(cancelled_by,cancelled_at,cancellation_reason) IN (0,3)),
+ ADD CONSTRAINT ck_event_cancellation_state CHECK(cancelled_at IS NULL OR status='CANCELLED');
+ALTER TABLE notifications ADD COLUMN event_version INTEGER,
+ DROP CONSTRAINT ck_notification_type, DROP CONSTRAINT ck_notification_target;
+ALTER TABLE notifications ADD CONSTRAINT ck_notification_type CHECK(type IN
+ ('REVIEW_APPROVED','REVIEW_REJECTED','REVIEW_EXPIRED','REASON_NOTICE','FOLLOWED_ORGANIZER_EVENT','EVENT_CANCELLED','EVENT_UPDATED')),
+ ADD CONSTRAINT ck_notification_target CHECK (
+  (type='FOLLOWED_ORGANIZER_EVENT' AND event_id IS NOT NULL AND review_id IS NULL AND reason_notice_id IS NULL AND event_version IS NULL) OR
+  (type IN ('EVENT_CANCELLED','EVENT_UPDATED') AND event_id IS NOT NULL AND review_id IS NULL AND reason_notice_id IS NULL AND event_version IS NOT NULL) OR
+  (type NOT IN ('FOLLOWED_ORGANIZER_EVENT','EVENT_CANCELLED','EVENT_UPDATED') AND review_id IS NOT NULL AND event_id IS NULL AND event_version IS NULL));
+DROP INDEX uq_notification_event;
+CREATE UNIQUE INDEX uq_notification_event ON notifications(recipient_user_id,type,event_id) WHERE event_id IS NOT NULL AND event_version IS NULL;
+CREATE UNIQUE INDEX uq_notification_event_version ON notifications(recipient_user_id,type,event_id,event_version) WHERE event_version IS NOT NULL;
+-- Personal Organizer visibility (ADR-035); a separate lifecycle from follows.
+CREATE TABLE organization_blocks (
+  user_id BIGINT NOT NULL REFERENCES users(id),
+  organization_id BIGINT NOT NULL REFERENCES organizations(id),
+  created_at TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  PRIMARY KEY(user_id,organization_id)
+);
+CREATE INDEX ix_organization_blocks_organization ON organization_blocks(organization_id,user_id);
+-- ADR-036: public event search projection; durable jobs reuse the existing outbox.
+
+CREATE FUNCTION enqueue_search_event(target_id BIGINT) RETURNS VOID LANGUAGE plpgsql AS $$
+DECLARE revision INTEGER;
+BEGIN
+ SELECT version INTO revision FROM events WHERE id=target_id;
+ INSERT INTO outbox_messages(type,aggregate_type,aggregate_id,aggregate_version,dedupe_key,payload_minimal,available_at)
+ VALUES('SEARCH_EVENT_SYNC','EVENT',target_id,COALESCE(revision,0),
+   'search-event:'||target_id||':'||pg_current_xact_id()::text,'{}'::jsonb,clock_timestamp())
+ ON CONFLICT(dedupe_key) DO NOTHING;
+END; $$;
+CREATE FUNCTION search_event_changed() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ IF TG_OP='DELETE' THEN PERFORM enqueue_search_event(OLD.id); RETURN OLD; END IF;
+ PERFORM enqueue_search_event(NEW.id); RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_search_event AFTER INSERT OR DELETE OR UPDATE OF title,display_name,description,status,published_at,organization_id,category_id ON events
+ FOR EACH ROW EXECUTE FUNCTION search_event_changed();
+CREATE FUNCTION search_session_changed() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ IF TG_OP='DELETE' THEN PERFORM enqueue_search_event(OLD.event_id); RETURN OLD; END IF;
+ PERFORM enqueue_search_event(NEW.event_id);
+ IF TG_OP='UPDATE' AND OLD.event_id<>NEW.event_id THEN PERFORM enqueue_search_event(OLD.event_id); END IF;
+ RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_search_session AFTER INSERT OR DELETE OR UPDATE OF event_id,venue_id,starts_at,ends_at,status ON event_sessions
+ FOR EACH ROW EXECUTE FUNCTION search_session_changed();
+CREATE FUNCTION search_organization_changed() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE target BIGINT;
+BEGIN
+ FOR target IN SELECT id FROM events WHERE organization_id=NEW.id ORDER BY id LOOP PERFORM enqueue_search_event(target); END LOOP;
+ RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_search_organization AFTER UPDATE OF name,status,public_id ON organizations
+ FOR EACH ROW EXECUTE FUNCTION search_organization_changed();
+CREATE FUNCTION search_venue_changed() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE target BIGINT;
+BEGIN
+ FOR target IN SELECT DISTINCT event_id FROM event_sessions WHERE venue_id=NEW.id ORDER BY event_id LOOP PERFORM enqueue_search_event(target); END LOOP;
+ RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_search_venue AFTER UPDATE OF name,city ON venues
+ FOR EACH ROW EXECUTE FUNCTION search_venue_changed();
+CREATE FUNCTION search_category_changed() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE target BIGINT;
+BEGIN
+ FOR target IN SELECT id FROM events WHERE category_id=NEW.id ORDER BY id LOOP PERFORM enqueue_search_event(target); END LOOP;
+ RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_search_category AFTER UPDATE OF slug ON event_categories
+ FOR EACH ROW EXECUTE FUNCTION search_category_changed();
+SELECT enqueue_search_event(id) FROM events ORDER BY id;
+
+
+-- ADR-037: outdoor zones share the existing allocation/payment/ticket lifecycle.
+
+ALTER TABLE events ADD COLUMN ticketing_mode VARCHAR(16) NOT NULL DEFAULT 'NUMBERED' CHECK(ticketing_mode IN ('NUMBERED','QUANTITY'));
+ALTER TABLE events DISABLE TRIGGER trg_events_updated_at;
+UPDATE events SET ticketing_mode='QUANTITY' WHERE admission_type='QUANTITY';
+ALTER TABLE events ENABLE TRIGGER trg_events_updated_at;
+ALTER TABLE seat_layouts ADD COLUMN ticketing_mode VARCHAR(16) NOT NULL DEFAULT 'NUMBERED' CHECK(ticketing_mode IN ('NUMBERED','QUANTITY'));
+ALTER TABLE layout_sections ADD COLUMN capacity INTEGER CHECK(capacity BETWEEN 1 AND 100000), ADD COLUMN geometry_json JSONB;
+ALTER TABLE layout_sections ADD CONSTRAINT ck_zone_definition CHECK((capacity IS NULL AND geometry_json IS NULL) OR (capacity IS NOT NULL AND geometry_json IS NOT NULL AND jsonb_typeof(geometry_json)='object'));
+ALTER TABLE session_seats ALTER COLUMN seat_id DROP NOT NULL;
+ALTER TABLE session_seats ADD COLUMN section_id BIGINT, ADD COLUMN inventory_number INTEGER;
+ALTER TABLE session_seats ADD CONSTRAINT fk_inventory_section FOREIGN KEY(section_id,layout_id) REFERENCES layout_sections(id,layout_id),
+ ADD CONSTRAINT ck_inventory_kind CHECK((seat_id IS NOT NULL AND section_id IS NULL AND inventory_number IS NULL) OR (seat_id IS NULL AND section_id IS NOT NULL AND inventory_number IS NOT NULL AND inventory_number>0)),
+ ADD CONSTRAINT uq_zone_inventory UNIQUE(session_id,section_id,inventory_number);
+CREATE INDEX ix_inventory_zone_availability ON session_seats(session_id,section_id,status,id);
+CREATE FUNCTION validate_zone_inventory() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE limit_count INTEGER; layout_mode VARCHAR(16);
+BEGIN
+ SELECT ticketing_mode INTO layout_mode FROM seat_layouts WHERE id=NEW.layout_id;
+ IF NEW.section_id IS NOT NULL THEN
+  SELECT capacity INTO limit_count FROM layout_sections WHERE id=NEW.section_id AND layout_id=NEW.layout_id;
+  IF layout_mode<>'QUANTITY' OR limit_count IS NULL OR NEW.inventory_number>limit_count THEN RAISE EXCEPTION 'Invalid zone inventory' USING ERRCODE='23514'; END IF;
+ ELSIF layout_mode<>'NUMBERED' THEN RAISE EXCEPTION 'Invalid numbered inventory' USING ERRCODE='23514'; END IF;
+ RETURN NEW;
+END; $$;
+CREATE TRIGGER trg_inventory_kind BEFORE INSERT OR UPDATE OF seat_id,section_id,inventory_number,layout_id ON session_seats FOR EACH ROW EXECUTE FUNCTION validate_zone_inventory();
+
 COMMIT;

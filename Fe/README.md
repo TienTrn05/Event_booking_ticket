@@ -64,3 +64,7 @@ Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). 
 Checkout → payOS → vé/QR và kiểm tra tại cửa đã nối; chi tiết API, quyền staff, kiểm thử và giới hạn ở [Docs/32](../Docs/32-payos-booking-ticket-flow.md). Không lưu JWT/CCCD/QR trong storage; idempotency key không chứa credential.
 
 Đăng ký mới: xác minh Google/email rồi hoàn tất role/displayName/gender/DOB; sở thích/city/Organizer follow có thể bỏ qua. Sửa trong Tài khoản; Organizer bật Customer riêng khi cần mua vé. Home có gợi ý RULES_V1 từ BE, chưa dùng AI. Cần BE migration008/009 trước dùng, xem Docs/33/34.
+
+## Home event search
+
+ExploreEvents đã gọi /search/events và /search/events/suggestions thay vì includes trên catalog Home; English loading/error/retry/no-results, debounce/abort, autocomplete bàn phím, Best Match và Load more. Preview/detail lấy event hiện hành từ public API với access token chỉ trong memory; kết quả ngoài catalog Home vẫn mở được. FE không kết nối hoặc giữ credential Elasticsearch. [API/cấu hình/kiểm chứng](../Docs/41-home-event-search.md).

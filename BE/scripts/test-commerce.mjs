@@ -4,6 +4,14 @@ import { resolve, join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:net';
 import pg from 'pg';
+const external = process.env.PG_COMMERCE_EXTERNAL === '1';
+if (
+  external &&
+  process.env.CI !== 'true' &&
+  process.env.PG_COMMERCE_ACK !== 'isolated-fixture-service'
+)
+  throw new Error('External PostgreSQL is restricted to an isolated fixture service');
+const createdDatabases = [];
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporaryRoot = resolve(root, 'tmp');
 const directory = resolve(temporaryRoot, `commerce-${Date.now()}`);
@@ -12,7 +20,8 @@ const bin = process.env.PG_TEST_BIN ?? 'C:/Program Files/PostgreSQL/18/bin';
 const executable = (name) => join(bin, process.platform === 'win32' ? name + '.exe' : name);
 const server = createServer();
 await new Promise((done) => server.listen(0, '127.0.0.1', done));
-const port = server.address().port;
+const port = external ? Number(process.env.COMMERCE_TEST_DB_PORT ?? '5432') : server.address().port;
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid fixture port');
 await new Promise((done) => server.close(done));
 let started = false;
 async function load(name, sql) {
@@ -20,6 +29,7 @@ async function load(name, sql) {
     host: '127.0.0.1',
     port,
     user: 'validation_fixture',
+    password: external ? 'validation_fixture_only' : undefined,
     database: name,
   });
   try {
@@ -30,38 +40,58 @@ async function load(name, sql) {
   }
 }
 try {
-  await mkdir(directory, { recursive: true });
-  execFileSync(
-    executable('initdb'),
-    [
-      '-D',
-      directory,
-      '-U',
-      'validation_fixture',
-      '--auth=trust',
-      '--encoding=UTF8',
-      '--locale=C',
-      '--no-sync',
-    ],
-    { stdio: 'ignore', windowsHide: true },
-  );
-  execFileSync(
-    executable('pg_ctl'),
-    [
-      '-D',
-      directory,
-      '-l',
-      join(directory, 'server.log'),
-      '-o',
-      `-h 127.0.0.1 -p ${port}`,
-      '-w',
-      'start',
-    ],
-    { stdio: 'ignore', windowsHide: true },
-  );
-  started = true;
+  if (!external) {
+    await mkdir(directory, { recursive: true });
+    execFileSync(
+      executable('initdb'),
+      [
+        '-D',
+        directory,
+        '-U',
+        'validation_fixture',
+        '--auth=trust',
+        '--encoding=UTF8',
+        '--locale=C',
+        '--no-sync',
+      ],
+      { stdio: 'ignore', windowsHide: true },
+    );
+    execFileSync(
+      executable('pg_ctl'),
+      [
+        '-D',
+        directory,
+        '-l',
+        join(directory, 'server.log'),
+        '-o',
+        `-h 127.0.0.1 -p ${port}`,
+        '-w',
+        'start',
+      ],
+      { stdio: 'ignore', windowsHide: true },
+    );
+    started = true;
+  }
+  if (external) {
+    const guard = new pg.Client({
+      host: '127.0.0.1',
+      port,
+      user: 'validation_fixture',
+      password: 'validation_fixture_only',
+      database: 'postgres',
+    });
+    try {
+      await guard.connect();
+      const identity = (await guard.query('SELECT current_user AS name')).rows[0];
+      if (identity.name !== 'validation_fixture') throw new Error('Unexpected fixture identity');
+    } finally {
+      await guard.end();
+    }
+  }
   await load('postgres', 'CREATE DATABASE validation_fixture');
+  createdDatabases.push('validation_fixture');
   await load('postgres', 'CREATE DATABASE validation_upgrade');
+  createdDatabases.push('validation_upgrade');
   const schema = await readFile(resolve(root, '../database/schema.sql'), 'utf8');
   await load('validation_fixture', schema);
   const before007 = schema.slice(0, schema.indexOf('-- One payOS channel;')) + '\nCOMMIT;';
@@ -109,6 +139,7 @@ try {
     host: '127.0.0.1',
     port,
     user: 'validation_fixture',
+    password: external ? 'validation_fixture_only' : undefined,
     database: 'validation_upgrade',
   });
   try {
@@ -150,13 +181,30 @@ try {
     'validation_upgrade',
     await readFile(resolve(root, '../database/migrations/012-refunds-feedback.sql'), 'utf8'),
   );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/013-organizer-operations.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/014-organizer-blocks.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/015-event-search-outbox.sql'), 'utf8'),
+  );
+  await load(
+    'validation_upgrade',
+    await readFile(resolve(root, '../database/migrations/016-outdoor-zone-inventory.sql'), 'utf8'),
+  );
   const columns =
-    "SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('payments','users','organizations','organization_memberships','event_sessions','onboarding_questionnaires','events','refunds','feedback') ORDER BY table_name,ordinal_position";
+    "SELECT table_name,column_name,data_type,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('payments','users','organizations','organization_memberships','event_sessions','onboarding_questionnaires','events','refunds','feedback','event_change_requests','notifications','organization_blocks','seat_layouts','layout_sections','session_seats') ORDER BY table_name,ordinal_position";
   async function metadata(name) {
     const client = new pg.Client({
       host: '127.0.0.1',
       port,
       user: 'validation_fixture',
+      password: external ? 'validation_fixture_only' : undefined,
       database: name,
     });
     try {
@@ -176,9 +224,37 @@ try {
       'validation_fixture',
       await readFile(resolve(root, '../database/seeds', file), 'utf8'),
     );
-  console.log(
-    'Fresh schema and populated upgrades 007/008/009/010/011/012 agree; isolated PostgreSQL ready.',
-  );
+  console.log('Fresh schema and populated upgrades 007–016 agree; isolated PostgreSQL ready.');
+  for (let n = 0; n < 2; n++)
+    await load(
+      'validation_fixture',
+      await readFile(resolve(root, '../database/seeds/003-local-ticket-sales.sql'), 'utf8'),
+    );
+  const demo = new pg.Client({
+    host: '127.0.0.1',
+    port,
+    user: 'validation_fixture',
+    password: external ? 'validation_fixture_only' : undefined,
+    database: 'validation_fixture',
+  });
+  try {
+    await demo.connect();
+    const row = (
+      await demo.query(
+        'SELECT (SELECT count(*) FROM session_seats WHERE session_id=970003)::int AS seats,(SELECT count(*) FROM payments)::int AS payments,(SELECT status FROM events WHERE id=970001) AS status',
+      )
+    ).rows[0];
+    if (row.seats !== 12 || row.payments !== 0 || row.status !== 'PUBLISHED')
+      throw new Error('Local sales demo or idempotency failed');
+  } finally {
+    await demo.end();
+  }
+  const certificateSetup = spawnSync(process.execPath, [resolve(root, 'scripts/setup-https.mjs')], {
+    cwd: root,
+    stdio: 'inherit',
+    windowsHide: true,
+  });
+  if (certificateSetup.status !== 0) throw new Error('Local HTTPS setup failed');
   const child = spawnSync(
     process.execPath,
     [
@@ -189,6 +265,11 @@ try {
       '--no-file-parallelism',
       'tests/commerce.integration.test.ts',
       'tests/onboarding.integration.test.ts',
+      'tests/https.integration.test.ts',
+      'tests/operations.integration.test.ts',
+      'tests/backend-completion.integration.test.ts',
+      'tests/search.integration.test.ts',
+      'tests/outdoor.integration.test.ts',
     ],
     {
       cwd: root,
@@ -202,12 +283,17 @@ try {
   console.error(error instanceof Error ? error.message : 'Commerce verification failed');
   process.exitCode = 1;
 } finally {
+  if (external) {
+    for (const name of createdDatabases) {
+      await load('postgres', `DROP DATABASE ${name} WITH (FORCE)`);
+    }
+  }
   if (started)
     execFileSync(executable('pg_ctl'), ['-D', directory, '-m', 'fast', '-w', 'stop'], {
       stdio: 'ignore',
       windowsHide: true,
     });
-  if (directory.startsWith(temporaryRoot + sep))
+  if (!external && directory.startsWith(temporaryRoot + sep))
     await rm(directory, { recursive: true, force: true });
-  else process.exitCode = 1;
+  else if (!external) process.exitCode = 1;
 }

@@ -16,14 +16,16 @@ export class RecommendationRepository {
     );
     return { ...row, organizers: following.rows.map((r) => r.id) };
   }
-  async candidates(db: PoolClient) {
+  async candidates(db: PoolClient, userId?: string) {
     const query = eventSelect.replace(
       "s2.status = 'SCHEDULED'",
       "s2.status = 'SCHEDULED' AND s2.starts_at>clock_timestamp()",
     );
     const rows = await db.query<CatalogEvent>(
       query +
-        ` WHERE e.status='PUBLISHED' AND o.status='APPROVED' AND o.public_id IS NOT NULL AND e.published_at<=clock_timestamp() ORDER BY s.starts_at,e.id LIMIT 200`,
+        ` WHERE e.status='PUBLISHED' AND o.status='APPROVED' AND o.public_id IS NOT NULL AND e.published_at<=clock_timestamp()
+        AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.organization_id=e.organization_id AND ob.user_id=$1::bigint) ORDER BY s.starts_at,e.id LIMIT 200`,
+      [userId ?? null],
     );
     const popularity = await db.query<{ id: string; popularity: number }>(
       `SELECT e.public_id AS id,count(t.id)::int AS popularity FROM tickets t JOIN booking_items bi ON bi.id=t.booking_item_id JOIN bookings b ON b.id=bi.booking_id JOIN events e ON e.id=b.event_id WHERE e.public_id=ANY($1::text[]) AND b.status='CONFIRMED' AND t.status IN ('VALID','USED') GROUP BY e.public_id`,

@@ -10,7 +10,7 @@ export class RecommendationService {
       await usersRepository.profile(db, actor);
       await usersRepository.requireOnboarding(db, actor.id);
       const preferences = await this.repository.preferences(db, actor.id),
-        candidates = await this.repository.candidates(db),
+        candidates = await this.repository.candidates(db, actor.id),
         now = await this.repository.now(db);
       return {
         algorithm: 'RULES_V1',

@@ -1,4 +1,8 @@
 import { authPaths } from './modules/auth/openapi/auth.openapi.js';
+import { searchPaths } from './modules/search/search.openapi.js';
+import { supportReportPaths } from './modules/support-reports/support-report.openapi.js';
+import { auditPaths } from './modules/audit/audit.openapi.js';
+import { organizerBlockPaths } from './modules/users/blocks/organizer-block.openapi.js';
 import { bookingPaths, bookingSchemas } from './modules/bookings/openapi/booking.openapi.js';
 import { catalogPaths } from './modules/catalog/openapi/catalog.openapi.js';
 import { catalogSchemas } from './modules/catalog/openapi/catalog.openapi.schemas.js';
@@ -16,6 +20,8 @@ import { systemSchemas } from './shared/openapi/system.openapi.schemas.js';
 import { paymentPaths, ticketPaths } from './modules/payments/payment.openapi.js';
 import { refundPaths } from './modules/refunds/refund.openapi.js';
 import { feedbackPaths } from './modules/feedback/feedback.openapi.js';
+import { salesPaths } from './modules/sales/sales.openapi.js';
+import { eventOperationsPaths } from './modules/events/operations/event-operations.openapi.js';
 
 export const openApiDocument = {
   openapi: '3.0.3',
@@ -27,6 +33,13 @@ export const openApiDocument = {
   },
   servers: [{ url: '/api/v1', description: 'Cùng origin với Public Web' }],
   tags: [
+    { name: 'Search', description: 'English public event search/autocomplete for Home.' },
+    { name: 'Support', description: 'Report và Admin hỗ trợ theo phạm vi tài nguyên.' },
+    { name: 'Audit', description: 'Tra cứu metadata audit theo phạm vi duyệt/report.' },
+    {
+      name: 'Organizer sales',
+      description: 'Đơn, vé, doanh thu và khoản cần đối soát đúng tổ chức.',
+    },
     { name: 'Refund', description: 'Hoàn toàn bộ thủ công, thu hồi vé và report scope.' },
     { name: 'Feedback', description: 'Đánh giá tổ chức và góp ý app riêng tư.' },
     { name: 'Organizer', description: 'Tổ chức và sự kiện nháp theo onboarding.' },
@@ -57,6 +70,12 @@ export const openApiDocument = {
     },
   ],
   paths: {
+    ...searchPaths,
+    ...supportReportPaths,
+    ...auditPaths,
+    ...organizerBlockPaths,
+    ...salesPaths,
+    ...eventOperationsPaths,
     ...refundPaths,
     ...feedbackPaths,
     ...onboardingPaths,

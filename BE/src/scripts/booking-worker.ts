@@ -2,10 +2,16 @@ import { expireBatch } from '../modules/bookings/allocation/allocation.service.j
 import { runWorker } from '../shared/workers/run-worker.js';
 import { createCommerceServices } from '../startup/payment.dependencies.js';
 import { EventManagementService } from '../modules/events/management/event-management.service.js';
+import { EventOperationsService } from '../modules/events/operations/event-operations.service.js';
 const commerce = createCommerceServices();
 
 await runWorker(
   [
+    {
+      run: () => new EventOperationsService().recover(),
+      failureCode: 'EVENT_OPERATIONS_FAILED',
+      failureMessage: 'Event operation cleanup will retry.',
+    },
     {
       run: () => new EventManagementService().expire(),
       failureCode: 'REVIEW_EXPIRY_FAILED',
@@ -23,4 +29,5 @@ await runWorker(
     },
   ],
   1000,
+  'bookings',
 );

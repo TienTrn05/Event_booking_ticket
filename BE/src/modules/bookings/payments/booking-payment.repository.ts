@@ -13,12 +13,13 @@ export class BookingPaymentRepository {
     return (
       await db.query<{
         status: string;
+        confirmed_payment_id: string | null;
         expires_at: Date;
         total_minor: string;
         currency: string;
         customer_active: boolean;
       }>(
-        `SELECT b.status,b.expires_at,b.total_minor::text,b.currency,u.status='ACTIVE' AS customer_active
+        `SELECT b.status,b.confirmed_payment_id::text,b.expires_at,b.total_minor::text,b.currency,u.status='ACTIVE' AS customer_active
         FROM bookings b JOIN users u ON u.id=b.customer_id WHERE b.id=$1`,
         [id],
       )

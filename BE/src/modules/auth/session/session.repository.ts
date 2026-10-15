@@ -1,6 +1,50 @@
 import type { PoolClient } from 'pg';
 import type { RefreshRow } from '../shared/auth.repository.types.js';
 export const sessionRepository = {
+  async lockUser(db: PoolClient, userId: string) {
+    await db.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [userId]);
+  },
+  async listSessions(
+    db: PoolClient,
+    userId: string,
+    currentId: string,
+    limit: number,
+    offset: number,
+  ) {
+    const result = await db.query<{ items: unknown[]; total: string }>(
+      `WITH eligible AS (
+        SELECT s.id,s.device_label,s.authenticated_at,s.created_at,s.expires_at,i.provider
+        FROM auth_sessions s JOIN external_identities i ON i.id=s.identity_id
+        WHERE s.user_id=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
+          AND i.revoked_at IS NULL
+      ), page AS (SELECT * FROM eligible ORDER BY created_at DESC,id DESC LIMIT $3 OFFSET $4)
+      SELECT (SELECT count(*)::text FROM eligible) AS total,
+        COALESCE((SELECT jsonb_agg(jsonb_build_object('id',id::text,'deviceLabel',device_label,
+          'provider',provider,'authenticatedAt',authenticated_at,'createdAt',created_at,
+          'expiresAt',expires_at,'current',id=$2::bigint) ORDER BY created_at DESC,id DESC)
+          FROM page),'[]'::jsonb) AS items`,
+      [userId, currentId, limit, offset],
+    );
+    return result.rows[0]!;
+  },
+  async revokeOwnedSession(db: PoolClient, userId: string, sessionId: string) {
+    const row = (
+      await db.query<{ revoked_at: Date | null }>(
+        'SELECT revoked_at FROM auth_sessions WHERE id=$1 AND user_id=$2 FOR UPDATE',
+        [sessionId, userId],
+      )
+    ).rows[0];
+    if (!row) return null;
+    if (!row.revoked_at) await this.revokeSession(db, sessionId);
+    return { changed: !row.revoked_at };
+  },
+  async revokeAll(db: PoolClient, userId: string) {
+    await db.query('UPDATE users SET auth_version=auth_version+1 WHERE id=$1', [userId]);
+    await db.query(
+      'UPDATE auth_sessions SET revoked_at=clock_timestamp() WHERE user_id=$1 AND revoked_at IS NULL',
+      [userId],
+    );
+  },
   async createSession(db: PoolClient, userId: string, identityId: string, family: Buffer) {
     const { rows } = await db.query<{ id: string; expires_at: Date }>(
       `INSERT INTO auth_sessions (user_id, identity_id, authenticated_at, family_id, expires_at)

@@ -165,7 +165,7 @@ SET status = 'PUBLISHED', approved_review_id = d.review_id,
 FROM demo_event_seed d
 WHERE d.event_id = e.id;
 
-UPDATE events e SET public_id=d.public_id,display_name=d.title,publication_cover_image_url=d.image_url,card_badge=d.card_badge,admission_type=d.admission_type,catalog_status=d.catalog_status,starting_price_minor=d.price_minor,currency='VND',featured_rank=d.featured_rank,spotlight_rank=d.spotlight_rank,reopening_note=NULL,published_at='2026-08-05',publication_created_at=CURRENT_TIMESTAMP,publication_updated_at=CURRENT_TIMESTAMP FROM demo_event_seed d WHERE e.id=d.event_id AND e.public_id IS NULL;
+UPDATE events e SET public_id=d.public_id,display_name=d.title,publication_cover_image_url=d.image_url,card_badge=d.card_badge,admission_type=d.admission_type,ticketing_mode=d.admission_type,catalog_status=d.catalog_status,starting_price_minor=d.price_minor,currency='VND',featured_rank=d.featured_rank,spotlight_rank=d.spotlight_rank,reopening_note=NULL,published_at='2026-08-05',publication_created_at=CURRENT_TIMESTAMP,publication_updated_at=CURRENT_TIMESTAMP FROM demo_event_seed d WHERE e.id=d.event_id AND e.public_id IS NULL;
 
 INSERT INTO merchandise_products
   (id,public_id,event_id,organization_id,name,description,image_url,price_minor,currency,badge,requires_ticket,status,sort_order)

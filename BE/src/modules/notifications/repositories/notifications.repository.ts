@@ -3,7 +3,8 @@ import { AppError } from '../../../shared/errors/app-error.js';
 import type { PageInput } from '../../../shared/validation/common.schema.js';
 const visible = `AND (n.type<>'FOLLOWED_ORGANIZER_EVENT' OR EXISTS (
   SELECT 1 FROM events e  JOIN organizations o ON o.id=e.organization_id
-  WHERE e.id=n.event_id AND e.status='PUBLISHED' AND e.published_at<=CURRENT_TIMESTAMP AND o.status='APPROVED' AND o.public_id IS NOT NULL))`;
+  WHERE e.id=n.event_id AND e.status='PUBLISHED' AND e.published_at<=CURRENT_TIMESTAMP AND o.status='APPROVED' AND o.public_id IS NOT NULL
+  AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.user_id=n.recipient_user_id AND ob.organization_id=e.organization_id)))`;
 export const notificationsRepository = {
   async inbox(db: PoolClient, userId: string, page: PageInput) {
     const { rows } = await db.query(
@@ -48,6 +49,7 @@ export const notificationsRepository = {
       WHERE e.id=$1 AND e.status='PUBLISHED' AND e.published_at<=clock_timestamp()
         AND f.user_id>$3::bigint AND f.notifications_enabled AND f.created_at<=$2::timestamptz AND f.notifications_enabled_at<=$2::timestamptz
         AND EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=f.user_id AND r.code='CUSTOMER')
+        AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.user_id=f.user_id AND ob.organization_id=o.id)
       ORDER BY f.user_id LIMIT 500), inserted AS (
         INSERT INTO notifications(recipient_user_id,type,event_id,payload_redacted)
         SELECT user_id,'FOLLOWED_ORGANIZER_EVENT',event_id,payload FROM eligible

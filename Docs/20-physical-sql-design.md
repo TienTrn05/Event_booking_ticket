@@ -102,3 +102,20 @@ Migration010: questionnaire table dùng UNIQUE partial status ACTIVE; User FK gi
 ## Hoàn tiền/feedback — ADR-032/012
 
 Refunds dùng lại, thêm version/decision/evidence/recording fields. Một bảng feedback chung ORGANIZATION/SYSTEM, CHECK target/status/stars/reply/history, FK event/org, unique author/event, index theo author/org/admin. History là dữ liệu phiên bản trên cùng entity, không đưa vào DTO/audit text. SupportReports giữ scope event/booking và chỉ report đang được giao mới cho Admin can thiệp refund. Schema/local46 bảng; ERD phần bổ sung và API [37](37-refunds-reviews-app-feedback.md).
+
+## Organizer operations — ADR-034/013
+
+CONTENT CHECK snapshot title/description/version; unique partial event_id khi CONTENT PENDING. Cancellation metadata nguyên bộ và chỉ đi cùng CANCELLED khi có cancelled_at; dữ liệu legacy CANCELLED có thể chưa metadata. Notification unique recipient/type/event/version, notification follow cũ giữ index unversioned. Không thêm bảng; dùng refunds full_refund_guard hiện có để không tạo trùng khoản hoàn do hủy. Worker cursor và xử lý một allocation cùng transaction, rollback/retry15 giây; lockUsers KEY SHARE trước quota để FK notifications/refunds không đảo User/aggregate lock. [38](38-organizer-sales-operations.md), migration013 đã apply local sau backup.
+
+
+## Migration014 / ADR-035 — 2026-10-14
+
+organization_blocks: PK(user_id,organization_id), FK Users/Organizations không cascade, index(organization_id,user_id). Không dùng follows để lưu block vì ẩn không được ngầm follow/mute. Metadata DB local đã đối chiếu trước thiết kế. Fresh47 bảng; readiness cần014. Gỡ dùng events.status ARCHIVED và audit/report hiện có; notice/sessions dùng lại bảng hiện tại. ERD, migration/rollback/khóa/test tại Docs40.
+
+## Migration015 — public event search outbox
+
+Local đã áp dụng sau backup verified, không chạy lại. Schema fresh/upgrade007–015 khớp, vẫn47 bảng; không cột/bảng/index PG mới. enqueue_search_event(bigint),5 trigger functions và5 triggers trên events/event_sessions/organizations/venues/event_categories; dedupe event/pg_current_xact_id, type SEARCH_EVENT_SYNC dùng outbox hiện có. Payload không PII. Đồng bộ index ngoài transaction mạng; backup/khôi phục/contract tại [Docs41](41-home-event-search.md).
+
+## Migration016 — khu outdoor
+
+Sau015: additive mode/zone fields/inventory XOR/FK/unique/index/trigger,47 bảng. Backfill admission QUANTITY và giữ timestamps; không tạo inventory cho catalog demo cũ. Fresh/upgrade kiểm tra cùng metadata; readiness đòi validate_zone_inventory(). Không nới các CHECK allocation/payment/ticket cũ. [DDL/ERD/khóa/vận hành/kiểm chứng](42-outdoor-zone-ticketing.md).

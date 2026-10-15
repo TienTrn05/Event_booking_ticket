@@ -1,5 +1,5 @@
 # layouts
 
-Module dự kiến, chưa có endpoint nghiệp vụ. Khi triển khai tách `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts`.
+Numbered indoor layouts and outdoor zone layouts are implemented through events/management. Organizer draft scope, venue bounds/capacity, stage/blocked geometry and overlap validation. Layout snapshot freezes on submit. Outdoor uses zones and capacities without physical seats. There is no standalone layout module router; FE editor is not implemented.
 
-Controller chỉ HTTP; service kiểm tra quyền/scope, policy và transaction; repository dùng SQL có tham số với cùng connection được truyền vào. Xem Docs/10 và Docs/23 tại gốc repo. Không tạo API giả trả thành công khi nghiệp vụ chưa tồn tại.
+See [outdoor implementation and limits](../../../../Docs/42-outdoor-zone-ticketing.md).

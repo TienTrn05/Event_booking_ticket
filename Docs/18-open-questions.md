@@ -88,3 +88,24 @@ Chủ dự án yêu cầu gộp hai bảng1:1 được đề xuất ở Docs36 v
 ### Q-030 — Hoàn tiền, đánh giá tổ chức và góp ý web — RESOLVED cho phạm vi MVP 2026-10-12
 
 Chủ dự án chọn hạn yêu cầu refund24 giờ trước suất; hoàn toàn bộ chưa USED, Organizer duyệt/Admin theo report, chuyển tiền thủ công và ghi nhận chứng từ, không resale. Review tổ chức1–5 sao chỉ người đã mua sau suất/khi hủy, sửa7 ngày, một người/sự kiện; người gửi/Organizer đúng tổ chức/Admin xem, không public. Góp ý app mọi tài khoản đăng nhập được gửi, người gửi/Admin xem, sao optional; không ảnh hưởng tổ chức. ADR-032/Docs37. Q-004 vẫn mở compensation/vé USED/hủy; Q-020 còn cơ chế khiếu nại kiểm duyệt chi tiết, không chặn phạm vi đã chốt này.
+
+### Q-031 — Kết quả thanh toán và thử lại — RESOLVED 2026-10-12
+
+Chủ dự án yêu cầu thành công/thất bại; thất bại còn hạn được thử lại, giữ thời hạn gốc. Thay đề xuất workflow Organizer xử lý tiền thiếu/dư bằng kết quả mua vé đơn giản; lịch sử nhận tiền bất thường vẫn giữ nội bộ. Không gọi timeout là thất bại đã được xác minh, không thu lại khi đã nhận tiền chưa xác nhận. ADR-033/Docs32.
+
+### Q-032 — Sửa/hủy sự kiện và demo bán vé — RESOLVED cho MVP 2026-10-12
+
+Chủ dự án đồng ý sửa tên/mô tả cần Admin duyệt, giữ lịch/ghế/giá; hủy khi mọi suất chưa bắt đầu và không USED, đóng bán/vào cửa, dọn đơn chờ và lập hoàn toàn bộ đơn đã trả thủ công. Demo local/Admin fixture, không giao dịch tiền thật. ADR-034/Docs38/013 đã triển khai. Phần Q-004 về hủy trước suất không USED đã chốt trong phạm vi này; hủy khi đã bắt đầu/USED còn ngoài MVP. Thiếu/dư không mở workflow riêng theo quyết định Q-031.
+
+
+### Q-033 — Gỡ sự kiện và chặn cá nhân — RESOLVED 2026-10-14
+
+Chủ dự án chốt Admin gỡ sự kiện đã duyệt: ngừng public/bán/check-in/vào cửa, giữ lịch sử, không xử lý đền bù do gỡ. Không xây Admin khóa/mở khóa User hoặc chặn event. Customer ẩn Organizer chỉ lọc feed riêng, không đổi quyền/follow/đơn/vé/catalog người khác. Gỡ vẫn theo report scope đã chốt; Organizer cancellation/refund giữ phạm vi riêng. ADR-035/Docs40/migration014. Q-019/Q-021/Q-022 ngoài phần này vẫn cần chính sách.
+
+### Q-034 — Engine và phạm vi tìm sự kiện — RESOLVED 2026-10-14
+
+Chủ dự án chọn Elasticsearch một instance cho ô search/autocomplete Home, PostgreSQL nguồn gốc, Redis cache; English/N-gram/prefix. API vẫn monolith một instance, không OpenSearch/cluster/broker hoặc Trie service riêng. ADR-036/Docs41/migration015 ghi triển khai và giới hạn; không hỏi lại chấp thuận cho phạm vi này.
+
+### Q-035 — Outdoor theo khu — RESOLVED cho BE 2026-10-14
+
+Chủ dự án yêu cầu hoàn thiện outdoor theo khu/số lượng, giữ indoor ghế đánh số. ADR-037/Docs42 đã triển khai BE; thay phần Q-014/FR-027 nói quantity chưa triển khai trong phạm vi này. Không suy ra chấp thuận resale/mixed-mode/đổi capacity/lịch sau public hoặc merchandise. FE editor/picker khu chưa nối.

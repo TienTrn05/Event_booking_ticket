@@ -1,5 +1,5 @@
 # sessions
 
-Module dự kiến, chưa có endpoint nghiệp vụ. Khi triển khai tách `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts`.
+Session creation/update, sale/counter/admission windows and pricing are implemented through events/management; public session/inventory through bookings/inventory. Indoor seats and outdoor zones share hold/payment/ticket lifecycle. No standalone sessions router.
 
-Controller chỉ HTTP; service kiểm tra quyền/scope, policy và transaction; repository dùng SQL có tham số với cùng connection được truyền vào. Xem Docs/10 và Docs/23 tại gốc repo. Không tạo API giả trả thành công khi nghiệp vụ chưa tồn tại.
+See [outdoor implementation and limits](../../../../Docs/42-outdoor-zone-ticketing.md).

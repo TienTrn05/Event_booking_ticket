@@ -83,7 +83,8 @@ export async function finishKey(
     | 'REFUND'
     | 'FEEDBACK'
     | 'SUPPORT_REPORT'
-    | 'QUESTIONNAIRE',
+    | 'QUESTIONNAIRE'
+    | 'EVENT_CHANGE',
   resourceId: string,
   status: number,
 ) {

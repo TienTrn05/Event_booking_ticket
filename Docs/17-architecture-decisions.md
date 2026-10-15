@@ -289,3 +289,35 @@ ADR lưu lịch sử thiết kế. Chủ dự án đã chấp thuận khuyến n
 - **Dữ liệu:** dùng lại refunds/support_reports; một feedback chung SYSTEM/ORGANIZATION với CHECK/FK/unique và history/version. Không tái dùng event_reviews (hồ sơ duyệt) hoặc biến góp ý app thành report cấp quyền giao dịch. Private DTO/audit metadata, không public review hoặc tự tính uy tín để duyệt tổ chức.
 - **Kiến trúc:** RefundService phụ thuộc booking/payment ports và adapter trong module sở hữu; PostgreSQL transaction theo giao thức khóa, idempotency hiện có. Monolith, không broker/hạ tầng/auth provider mới.
 - **Triển khai:** migration012 đã áp dụng DB local sau backup và kiểm thử fresh/populated upgrade;46 bảng. Không cấp Admin thật hoặc chuyển/hoàn tiền thật. FE mới chưa nối. [Hợp đồng và bằng chứng](37-refunds-reviews-app-feedback.md).
+
+### ADR-033 — Kết quả thanh toán và thử lại trong hạn giữ ghế — ACCEPTED 2026-10-12
+
+- Chủ dự án giới hạn nghiệp vụ thanh toán thành thành công/thất bại; thất bại còn thời gian chờ được thử lại. Không xây thêm luồng xử lý thiếu/dư cho Organizer.
+- SUCCESS phải là đúng payment xác nhận booking; FAILED được thử lại khi provider đã xác nhận thất bại, chưa ghi nhận tiền và booking vẫn payable. Chưa có kết luận thì outcome null, không coi network timeout là thất bại. Giữ hạn hold/booking/link gốc.
+- Một request mạng retry dùng cùng Idempotency-Key; lần thanh toán mới sau FAILED dùng key mới. Callback trùng không cộng tiền/phát vé lại; attempt đóng không xác nhận một đơn khác. Receipt bất thường vẫn lưu nội bộ, không mở lần thu tiền mới khi đã nhận tiền chưa xác nhận.
+- Giữ Modular Monolith và các ports/adapters hiện có; không mở hạ tầng, không thay provider/auth hoặc triển khai payout. Chi tiết và giới hạn kiểm chứng ở Docs/32.
+
+### ADR-034 — Organizer sales và thao tác sự kiện đã công bố — ACCEPTED 2026-10-12
+
+- Chủ dự án chốt nội dung tên/mô tả cần Admin duyệt lại; lịch/giá/ghế/vé đã bán giữ nguyên. Hủy ngay chỉ khi mọi suất chưa bắt đầu và không USED; dừng bán/vào cửa, dọn hold/đơn chờ, thông báo và chuẩn bị hoàn toàn bộ đơn đã trả. Tiền dư/thiếu không triển khai workflow riêng theo ADR-033. Demo local, Admin fixture, không chuyển tiền thật.
+- Sales reader kiểm tra permission/membership/onboarding/identity đúng Organization; không QR/CCCD/checkout URL. Thống kê BOOKING_CREATED_COHORT và tiền từng currency, aggregate riêng booking/payment/refund để không nhân doanh thu. Reconciliation chỉ đọc nội bộ.
+- CONTENT snapshot trên event_change_requests hiện có, optimistic event version, Admin event.review và unique một PENDING. Approved content cập nhật title/display_name/description; không rebuild inventory. Sửa/hủy có idempotency/audit.
+- Cancel Event UPDATE commit cờ CANCELLED trước; xử lý từng allocation qua outbox/worker bookings cùng codebase, User FK trước quota rồi aggregate lock order. Refund COMPENSATION chỉ dùng hoàn toàn bộ giá đơn do hủy, manual evidence; không resale, broker, distributed lock hoặc API instance mới.
+- Migration013 không thêm bảng, local vẫn46; backup250227 bytes trước013 được pg_restore --list xác minh. Áp dụng013 và seed003 trong transaction; hash auth/role/giao dịch giữ nguyên,12 ghế demo/0 payments mới. Không cấp role Admin mới hoặc tạo phiên đăng nhập fixture. Khôi phục bằng backup trên DB riêng cùng release trước013, không drop lịch sử mới. Docs38 ghi API/seed/giới hạn kiểm chứng.
+
+
+## ADR-035: Admin gỡ sự kiện và Customer ẩn Organizer — ACCEPTED 2026-10-14
+
+Chủ dự án xác nhận trong hội thoại: Admin gỡ event đã duyệt, ngừng hiển thị/bán/check-in/vào cửa và giữ lịch sử; đền bù do gỡ nằm ngoài hệ thống. Chặn là lựa chọn cá nhân Customer ẩn Organizer như mạng xã hội, không khóa tài khoản. Thay các API Admin block/unblock User/event đề xuất trước đây; không xóa primitive User.status hoặc đổi seed/role grants. Gỡ tiếp tục dùng scope report đã chốt, ADMIN/event.review/report.handle và report IN_REVIEW được giao đúng tài nguyên.
+
+Dùng events.status ARCHIVED đã có, không xóa event/đơn/vé hoặc tự refund/compensation. Organizer hủy/refund ADR-032/034 giữ phạm vi riêng. organization_blocks là quan hệ nhiều–nhiều với vòng đời độc lập follows/mute, PK(user_id,organization_id), timestamp/index; không1:1/copy profile/follow ngầm. Catalog cá nhân từ actor JWT server, no-store/Vary Authorization; Guest vẫn public. Migration014 additive/fresh47 bảng, rollback app giữ preference/lịch sử. Tiếp tục Modular Monolith một API, không distributed changes. Hợp đồng/ERD/khóa/migration/test tại Docs40.
+
+## ADR-036 — Elasticsearch một instance cho search sự kiện Home — ACCEPTED 2026-10-14
+
+Chủ dự án xác nhận Elasticsearch một instance, PostgreSQL dữ liệu gốc, Redis cache, N-gram và gợi ý tiền tố; tiếp tục tiếng Anh và ưu tiên ô search FE trang chính. Ngoại lệ được chấp thuận của ADR-025, API vẫn Modular Monolith một instance, không broker/cluster/replica hoặc service API/worker mới. Nhu cầu cụ thể: FE cũ chỉ includes trên tối đa100 mục Home, chưa tìm Organizer/autocomplete/fuzzy/phân trang toàn bộ public events.
+
+Elasticsearch9.5.5 một shard/không replica, English/edge-ngram/ngram/fuzzy + completion FST (không Trie riêng). Redis chỉ candidates15s; PG hydrate publication/lịch/giá/ghế/blocks/fingerprint hiện hành. Durable SEARCH_EVENT_SYNC dùng outbox cũ và notifications worker, native fetch mạng ngoài transaction. Chi phí local heap512MB/container2GB và volume index; auth bật/loopback HTTP, ngoài local bắt buộc HTTPS. Migration015 chỉ functions/triggers,47 bảng. Search/FE/Swagger/fallback đã nối; không semantic/AI, benchmark hoặc production rollout. [Hợp đồng và kiểm chứng](41-home-event-search.md).
+
+## ADR-037 — Outdoor theo khu và readiness thống nhất — ACCEPTED 2026-10-14
+
+Chủ dự án yêu cầu sửa health Admin/tài liệu trước, rồi hoàn thiện BE outdoor có khu thay vì ghế indoor. NUMBERED/QUANTITY cố định trên draft; khu geometry/capacity, mỗi khu một giá/type/suất. Dùng layout_sections hiện có; session_seats mở rộng thành inventory units có physical seat indoor hoặc section/ordinal outdoor, không tạo seats/rows giả, không bảng1:1/counter song song. Unique/ordinal≤capacity/XOR/FK/row locks giữ chống oversell và lifecycle mỗi vé. Migration016 additive47 bảng, giữ dữ liệu lịch sử; không sửa capacity/schedule sau public, không mixed-mode/resale. API monolith một instance, worker hiện có; auth/provider không đổi. Readiness ES chuyển vào hàm chung Admin/API. [Hợp đồng, kiểm chứng và giới hạn](42-outdoor-zone-ticketing.md).

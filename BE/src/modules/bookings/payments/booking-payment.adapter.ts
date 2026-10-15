@@ -41,6 +41,7 @@ export class BookingPaymentAdapter implements BookingPaymentPort {
       sessionId: locked.hold.session_id,
       holdId: meta.hold_id,
       status: details.status,
+      confirmedPaymentId: details.confirmed_payment_id,
       expiresAt: details.expires_at,
       expired: details.expires_at <= time,
       amount: details.total_minor,

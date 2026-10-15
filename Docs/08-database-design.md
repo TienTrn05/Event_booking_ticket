@@ -194,3 +194,20 @@ erDiagram
 ## Hoàn tiền/feedback — ADR-032/012
 
 Refunds dùng lại, thêm version/decision/evidence/recording fields. Một bảng feedback chung ORGANIZATION/SYSTEM, CHECK target/status/stars/reply/history, FK event/org, unique author/event, index theo author/org/admin. History là dữ liệu phiên bản trên cùng entity, không đưa vào DTO/audit text. SupportReports giữ scope event/booking và chỉ report đang được giao mới cho Admin can thiệp refund. Schema/local46 bảng; ERD phần bổ sung và API [37](37-refunds-reviews-app-feedback.md).
+
+## Organizer operations — ADR-034/013
+
+Đã áp dụng DB local, vẫn46 bảng. Dùng event_change_requests CONTENT snapshot với event_version/version/decision_reason và pending unique; events có cancelled_by/cancelled_at/cancellation_reason; notifications có event_version/type EVENT_CANCELLED/EVENT_UPDATED và dedupe người/event/version. Refund COMPENSATION dùng lại cho hủy toàn bộ đơn, không thêm ledger/table dư/thiếu. FK/ERD bổ sung hiện hành tại [38](38-organizer-sales-operations.md); schema.sql và migration013 khớp metadata fresh/upgrade. Demo003 là dữ liệu fixture có12 session_seats, không role/session/payment mới.
+
+
+## Organization blocks — ADR-035 / 2026-10-14
+
+Migration014 thêm organization_blocks(user_id,organization_id,created_at), PK composite/FK Users/Organizations/index reverse. Vòng đời ẩn cá nhân độc lập follow/mute, không1:1/copy profile/credential/đơn/vé. Fresh47 bảng sau014. Gỡ event dùng ARCHIVED và audit/report đã có, không thêm bảng compensation. ERD hiện hành tại Docs40.
+
+## Search projection — ADR-036 / migration015
+
+Không thêm bảng/cột hoặc quan hệ ERD mới: dùng OutboxMessages type SEARCH_EVENT_SYNC aggregate EVENT/payload rỗng; functions/triggers event/session/org/venue/category và enqueue backfill cùng PG transaction. Local/fresh vẫn47 bảng. ES document public theo session là projection dựng lại được, không bản sao auth/booking/payment/attendee. [Docs41](41-home-event-search.md).
+
+## Outdoor inventory — ADR-037/migration016
+
+Vẫn47 bảng: events/seat_layouts thêm ticketing_mode; layout_sections thêm capacity/geometry_json; session_seats XOR seat_id indoor hoặc section_id/inventory_number outdoor, FK section/layout và unique ordinal + trigger giới hạn capacity. Không physical seats/rows giả và không kho/counter thứ hai. ERD bổ sung/hợp đồng/khóa/backup tại [Docs42](42-outdoor-zone-ticketing.md).

@@ -1,9 +1,17 @@
 export interface EventFilters {
+  /** Set from a verified session only; excluded from public query schemas. */
+  excludedForUserId?: string | undefined;
   q?: string | undefined;
   category?: string | undefined;
   city?: string | undefined;
   featured?: boolean | undefined;
   spotlight?: boolean | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  minPrice?: string | undefined;
+  maxPrice?: string | undefined;
+  available?: boolean | undefined;
+  sort?: 'recommended' | 'date_asc' | 'date_desc' | 'price_asc' | 'price_desc' | undefined;
   page: number;
   pageSize: number;
 }

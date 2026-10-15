@@ -120,3 +120,7 @@ Refund: REQUESTED → REJECTED hoặc PROCESSING (duyệt và thu hồi quyền 
 Vé USED không bị job expiry đổi trạng thái, để giữ lịch sử. Hoàn vé USED/EXPIRED là `DECISION REQUIRED (Q-004)` ngoài đề xuất MVP. Ticket EXPIRED khác booking EXPIRED: vé có thể đã được trả tiền nhưng không dùng đúng thời gian. Không phát hành lại vé bị hủy khi refund lỗi; cần quy trình có duyệt riêng.
 
 SeatHold: ACTIVE → CONVERTED/RELEASED/EXPIRED. CONVERTED không dùng lại; booking nhận trách nhiệm expiry. SessionSeat: AVAILABLE → HELD → SOLD; HELD → AVAILABLE khi nhả/hết hạn. SOLD → AVAILABLE chỉ khi có chính sách bán lại Q-004 và transaction thu hồi toàn bộ quyền vé cũ.
+
+## Outdoor — ADR-037
+
+Trong QUANTITY, BR-001–015 áp dụng inventory unit của khu thay cho ghế có vị trí: tổng capacity do Organizer khai/Admin duyệt, mỗi vé một người/QR, nhóm≤6 vé và hold5 phút không gia hạn. Số available/sold từ PG, hết hạn/đơn hủy nhả units, SOLD refund/cancel không tự bán lại. Indoor hiện hành giữ nguyên. [Docs42](42-outdoor-zone-ticketing.md).

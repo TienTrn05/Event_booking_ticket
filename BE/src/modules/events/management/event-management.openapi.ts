@@ -1,14 +1,18 @@
 import { body, common, result, pathId } from '../../../shared/openapi/feature-helpers.js';
+import { privateOperation as readOperation } from '../../../shared/openapi/private-operation.js';
 import { inputSchema, idempotencyHeader } from '../../../shared/openapi/input-schema.js';
 import {
   draftInput,
   editInput,
   layoutInput,
+  zoneLayoutInput,
+  zonePricingInput,
   sessionInput,
   typeInput,
   pricingInput,
   versionInput,
   reviewDecision,
+  reasonDraft,
 } from './event-management.schema.js';
 const response = {
   ...common.responses,
@@ -30,6 +34,43 @@ const mutation = (
     'Origin đúng PUBLIC_APP_URL; permission và tổ chức/membership được kiểm tra trong DB. version là event.version. Chỉ sửa DRAFT, mọi thay đổi cấu hình tăng event.version. Retry cùng key/body.',
 });
 export const eventManagementPaths = {
+  '/organizer/events/{id}/zone-layouts': {
+    post: mutation(zoneLayoutInput, 'Tạo sơ đồ outdoor theo khu/sức chứa, không ghế'),
+  },
+  '/organizer/events/{id}/sessions/{sessionId}/zone-prices': {
+    put: mutation(zonePricingInput, 'Giá theo khu outdoor, mỗi khu đúng một loại vé', [
+      pathId(),
+      pathId('sessionId'),
+    ]),
+  },
+  '/admin/event-review-history': {
+    get: readOperation(
+      '/admin/event-review-history',
+      'get',
+      'Admin',
+      'Lịch sử hồ sơ duyệt, phân trang/lọc eventId/organizationId/status; snapshot đọc ở chi tiết hồ sơ.',
+      undefined,
+      ['eventId', 'organizationId', 'status', 'page', 'pageSize'],
+    ),
+  },
+  '/organizer/events/{id}/reviews': {
+    get: readOperation(
+      '/organizer/events/{id}/reviews',
+      'get',
+      'Organizer',
+      'Lịch sử duyệt của đúng sự kiện thuộc tổ chức; status và phân trang.',
+      undefined,
+      ['status', 'page', 'pageSize'],
+    ),
+  },
+  '/organizer/event-reviews/{reviewId}': {
+    get: readOperation(
+      '/organizer/event-reviews/{reviewId}',
+      'get',
+      'Organizer',
+      'Snapshot và phiếu lý do của hồ sơ thuộc tổ chức, kể cả đã duyệt/từ chối/hết hạn.',
+    ),
+  },
   '/organizer/event-options': {
     get: {
       ...organizer,
@@ -41,6 +82,11 @@ export const eventManagementPaths = {
     post: mutation(draftInput, 'Tạo sự kiện nháp', []),
   },
   '/organizer/events/{id}': {
+    delete: {
+      ...mutation(versionInput, 'Xóa DRAFT chưa có dữ liệu phụ thuộc'),
+      parameters: [pathId()],
+      responses: { ...common.responses, '204': { description: 'Đã xóa nháp.' } },
+    },
     get: {
       ...organizer,
       summary: 'Toàn bộ cấu hình sự kiện, ID ghế/loại vé và version',
@@ -98,11 +144,34 @@ export const eventManagementPaths = {
     post: { ...mutation(reviewDecision, 'Admin từ chối và gửi lý do/hướng dẫn'), tags: ['Admin'] },
   },
   '/admin/event-reviews/{id}/reason': {
+    get: readOperation(
+      '/admin/event-reviews/{id}/reason',
+      'get',
+      'Admin',
+      'Đọc metadata/phiếu đã lưu và xem trước plain text.',
+    ),
+    put: {
+      ...mutation(
+        reasonDraft,
+        'Lưu nháp phiếu cho review PENDING hoặc EXPIRED; version của phiếu, chưa gửi thông báo',
+      ),
+      tags: ['Admin'],
+    },
     post: {
       ...mutation(reviewDecision, 'Admin hoàn thiện thông báo lý do sau expiry'),
       tags: ['Admin'],
       description:
         'version là reason_notice.version, chỉ notice DRAFT của review EXPIRED. Retry cùng key/body; đã gửi không được sửa.',
     },
+  },
+  '/admin/reason-notices': {
+    get: readOperation(
+      '/admin/reason-notices',
+      'get',
+      'Admin',
+      'Hàng đợi phiếu nháp cần hoàn tất.',
+      undefined,
+      ['page', 'pageSize'],
+    ),
   },
 };

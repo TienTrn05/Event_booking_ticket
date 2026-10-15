@@ -1,3 +1,7 @@
+import { RefundService } from '../src/modules/refunds/refund.service.js';
+import { EventOperationsService } from '../src/modules/events/operations/event-operations.service.js';
+import { publicZones } from '../src/modules/bookings/inventory/inventory.service.js';
+import { expireAllocation } from '../src/modules/bookings/allocation/allocation.service.js';
 import { QuestionnaireService } from '../src/modules/users/onboarding/questions/questionnaire.service.js';
 import { questionsSchema } from '../src/modules/users/onboarding/questions/questionnaire.schema.js';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -20,11 +24,13 @@ import { EventManagementService } from '../src/modules/events/management/event-m
 import {
   draftInput,
   layoutInput,
+  zoneLayoutInput,
+  zonePricingInput,
   sessionInput,
   pricingInput,
 } from '../src/modules/events/management/event-management.schema.js';
 import { mediaRepository } from '../src/modules/media/repositories/media.repository.js';
-import { createHold } from '../src/modules/bookings/holds/hold.service.js';
+import { createHold, releaseHold } from '../src/modules/bookings/holds/hold.service.js';
 import { createBooking } from '../src/modules/bookings/orders/booking-command.service.js';
 import { saveAttendees } from '../src/modules/tickets/attendees/attendee.service.js';
 import { attendeesInput } from '../src/modules/tickets/attendees/attendee.schema.js';
@@ -171,7 +177,12 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
     expect(reopened.event!.status).toBe('DRAFT');
     expect(reopened.event!.version).toBe(1);
   });
-  it('creates a draft before organization approval, freezes review, publishes inventory then pays and admits', async () => {
+  it.each([
+    { mode: 'NUMBERED', outcome: 'ADMIT' },
+    { mode: 'QUANTITY', outcome: 'ADMIT' },
+    { mode: 'QUANTITY', outcome: 'REFUND' },
+    { mode: 'QUANTITY', outcome: 'CANCEL' },
+  ] as const)('runs $mode lifecycle through $outcome', async ({ mode, outcome }) => {
     const organizer = await newUser(),
       buyer = await newUser(),
       admin = await newUser();
@@ -193,6 +204,7 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
       draftInput.parse({
         organizationId: organization.id,
         title: 'End-to-end event',
+        ticketingMode: mode,
         categoryId: '1',
         description: 'Fixture event',
         minimumAge: 18,
@@ -202,24 +214,42 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
     );
     const eventId = graph.event!.id;
     await expect(service.get(buyer, eventId)).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    const layout = layoutInput.parse({
-      version: graph.event!.version,
-      venueId: '904001',
-      stage: { x: 0, y: 0, width: 5, height: 2 },
-      seats: [1, 2, 3].map((n) => ({
-        section: 'Main',
-        row: 'A',
-        number: String(n),
-        x: n * 3,
-        y: 3,
-        width: 1,
-        height: 1,
-      })),
-    });
+    const layout =
+      mode === 'QUANTITY'
+        ? zoneLayoutInput.parse({
+            version: graph.event!.version,
+            venueId: '904001',
+            stage: { x: 0, y: 0, width: 5, height: 2 },
+            zones: [
+              {
+                code: 'GA',
+                name: 'General Admission',
+                capacity: 3,
+                x: 0,
+                y: 3,
+                width: 12,
+                height: 4,
+              },
+            ],
+          })
+        : layoutInput.parse({
+            version: graph.event!.version,
+            venueId: '904001',
+            stage: { x: 0, y: 0, width: 5, height: 2 },
+            seats: [1, 2, 3].map((n) => ({
+              section: 'Main',
+              row: 'A',
+              number: String(n),
+              x: n * 3,
+              y: 3,
+              width: 1,
+              height: 1,
+            })),
+          });
     graph = await service.configure(
       organizer,
       eventId,
-      'layout',
+      mode === 'QUANTITY' ? 'zone-layout' : 'layout',
       layout,
       layout.version,
       randomUUID(),
@@ -259,19 +289,30 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
       randomUUID(),
       sessionId,
     );
-    const prices = pricingInput.parse({
-      version: graph.event!.version,
-      prices: graph.seats.map((s) => ({
-        seatId: s.id,
-        ticketTypeId: graph.ticketTypes[0]!.id,
-        priceMinor: '2000',
-        currency: 'VND',
-      })),
-    });
+    const prices =
+      mode === 'QUANTITY'
+        ? zonePricingInput.parse({
+            version: graph.event!.version,
+            prices: graph.zones.map((z) => ({
+              sectionId: z.id,
+              ticketTypeId: graph.ticketTypes[0]!.id,
+              priceMinor: '2000',
+              currency: 'VND',
+            })),
+          })
+        : pricingInput.parse({
+            version: graph.event!.version,
+            prices: graph.seats.map((s) => ({
+              seatId: s.id,
+              ticketTypeId: graph.ticketTypes[0]!.id,
+              priceMinor: '2000',
+              currency: 'VND',
+            })),
+          });
     graph = await service.configure(
       organizer,
       eventId,
-      'prices',
+      mode === 'QUANTITY' ? 'zone-prices' : 'prices',
       prices,
       prices.version,
       randomUUID(),
@@ -363,6 +404,18 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
     );
     const publicId = (await pool.query('SELECT public_id FROM events WHERE id=$1', [eventId]))
       .rows[0].public_id as string;
+    if (mode === 'QUANTITY') {
+      const app = createApp({ checkDatabase: async () => {} });
+      const response = await request(app)
+        .get('/api/v1/events/' + publicId + '/sessions/' + sessionId + '/zones')
+        .expect(200);
+      expect(response.body.data.items[0]).toMatchObject({ capacity: 3, available: 3 });
+      await request(app)
+        .post('/api/v1/events/' + publicId + '/sessions/' + sessionId + '/zones/hold')
+        .set('Origin', env.PUBLIC_APP_URL!)
+        .send({ zones: [{ sectionId: graph.zones[0]!.id, quantity: 1 }] })
+        .expect(401);
+    }
     const seats = (
       await pool.query<{ id: string }>(
         'SELECT id::text FROM session_seats WHERE session_id=$1 ORDER BY id',
@@ -370,15 +423,75 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
       )
     ).rows.map((s) => s.id);
     expect(seats).toHaveLength(3);
+    if (mode === 'QUANTITY') {
+      expect(graph.seats).toHaveLength(0);
+      const rival = await newUser();
+      await onboarding.complete(rival, input('CUSTOMER'), randomUUID(), randomUUID());
+      const contenders = await Promise.allSettled(
+        [buyer, rival].map((actor) =>
+          createHold(actor, publicId, sessionId, [], randomUUID(), randomUUID(), async () => {}, [
+            { sectionId: graph.zones[0]!.id, quantity: 2 },
+          ]),
+        ),
+      );
+      expect(contenders.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+      for (let i = 0; i < contenders.length; i++) {
+        const result = contenders[i]!;
+        if (result.status === 'fulfilled')
+          await releaseHold([buyer, rival][i]!, result.value.data.id, randomUUID(), randomUUID());
+      }
+      await expect(
+        createHold(buyer, publicId, sessionId, [], randomUUID(), randomUUID(), async () => {}, [
+          { sectionId: graph.zones[0]!.id, quantity: 1 },
+          { sectionId: '9223372036854775807', quantity: 1 },
+        ]),
+      ).rejects.toMatchObject({ code: 'ZONE_UNAVAILABLE' });
+      expect((await publicZones(publicId, sessionId)).items[0].available).toBe(3);
+      const expired = await createHold(
+        buyer,
+        publicId,
+        sessionId,
+        [],
+        randomUUID(),
+        randomUUID(),
+        async () => {},
+        [{ sectionId: graph.zones[0]!.id, quantity: 2 }],
+      );
+      await withTransaction(async (db) => {
+        await db.query(
+          "UPDATE seat_holds SET created_at=now()-interval '10 minutes',expires_at=now()-interval '1 second' WHERE id=$1",
+          [expired.data.id],
+        );
+        await db.query(
+          "UPDATE session_seats SET hold_expires_at=now()-interval '1 second' WHERE hold_id=$1",
+          [expired.data.id],
+        );
+      });
+      expect(await expireAllocation(expired.data.id)).toBe(true);
+      expect((await publicZones(publicId, sessionId)).items[0].available).toBe(3);
+      await expect(
+        createHold(buyer, publicId, sessionId, seats, randomUUID(), randomUUID(), async () => {}),
+      ).rejects.toMatchObject({ code: 'TICKETING_MODE_CONFLICT' });
+    }
+    const holdKey = randomUUID();
     const hold = await createHold(
       buyer,
       publicId,
       sessionId,
-      seats,
-      randomUUID(),
+      mode === 'QUANTITY' ? [] : seats,
+      holdKey,
       randomUUID(),
       async () => {},
+      mode === 'QUANTITY' ? [{ sectionId: graph.zones[0]!.id, quantity: 3 }] : undefined,
     );
+    if (mode === 'QUANTITY')
+      expect(
+        (
+          await createHold(buyer, publicId, sessionId, [], holdKey, randomUUID(), async () => {}, [
+            { sectionId: graph.zones[0]!.id, quantity: 3 },
+          ])
+        ).data.id,
+      ).toBe(hold.data.id);
     const booking = await createBooking(
       buyer,
       {
@@ -436,6 +549,79 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
     expect((await payments.get(buyer, payment.id)).status).toBe('SUCCESS');
     const issued = await tickets.list(buyer, booking.data.id);
     expect(issued).toHaveLength(3);
+    if (outcome === 'REFUND') {
+      const refunds = new RefundService();
+      const requested = (await refunds.request(
+        buyer,
+        booking.data.id,
+        'Outdoor fixture refund',
+        randomUUID(),
+        randomUUID(),
+      ))!;
+      const approved = (await refunds.change(
+        organizer,
+        requested.id,
+        'approve',
+        { version: requested.version, reason: 'Fixture' },
+        'organization',
+        randomUUID(),
+        randomUUID(),
+      ))!;
+      await refunds.change(
+        organizer,
+        requested.id,
+        'result',
+        {
+          version: approved.version,
+          status: 'SUCCESS',
+          reference: randomUUID(),
+          evidenceNote: 'Fixture only; no transfer',
+          transferredAt: (
+            await pool.query('SELECT clock_timestamp() AS at')
+          ).rows[0].at.toISOString(),
+        },
+        'organization',
+        randomUUID(),
+        randomUUID(),
+      );
+      expect(
+        (await tickets.list(buyer, booking.data.id)).every((t) => t.status === 'REFUNDED'),
+      ).toBe(true);
+      expect((await publicZones(publicId, sessionId)).items[0].available).toBe(0);
+      return;
+    }
+    if (outcome === 'CANCEL') {
+      const operations = new EventOperationsService();
+      const current = await service.get(organizer, eventId);
+      await operations.cancel(
+        organizer,
+        eventId,
+        { version: current.event!.version, reason: 'Outdoor fixture cancellation' },
+        randomUUID(),
+        randomUUID(),
+      );
+      await expect(
+        createHold(buyer, publicId, sessionId, [], randomUUID(), randomUUID(), async () => {}, [
+          { sectionId: graph.zones[0]!.id, quantity: 1 },
+        ]),
+      ).rejects.toThrow();
+      let count = 0;
+      while (await operations.recover())
+        if (++count > 100) throw new Error('Fixture cancellation did not settle');
+      expect(
+        (
+          await pool.query(
+            'SELECT status FROM tickets WHERE booking_item_id IN(SELECT id FROM booking_items WHERE booking_id=$1)',
+            [booking.data.id],
+          )
+        ).rows.every((t) => t.status === 'CANCELLED'),
+      ).toBe(true);
+      expect(
+        (await pool.query('SELECT status FROM refunds WHERE payment_id=$1', [payment.id])).rows[0]
+          .status,
+      ).toBe('PROCESSING');
+      return;
+    }
     const ticket = issued[0]!,
       person = people[0]!;
     await tickets.checkIn(
@@ -458,6 +644,28 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('onboarding on isolated Post
     expect((await tickets.admit(organizer, sessionId, proof, entryKey, randomUUID())).status).toBe(
       'USED',
     );
+    if (mode === 'QUANTITY') {
+      expect((await publicZones(publicId, sessionId)).items[0]).toMatchObject({
+        capacity: 3,
+        sold: 3,
+        available: 0,
+      });
+      expect(
+        (
+          await pool.query(
+            'SELECT count(*)::int n FROM seats s JOIN seat_layouts l ON l.id=s.layout_id WHERE l.event_id=$1',
+            [eventId],
+          )
+        ).rows[0].n,
+      ).toBe(0);
+      expect(issued.every((t) => t.seatLabel === 'General Admission')).toBe(true);
+      await expect(
+        pool.query('UPDATE session_seats SET inventory_number=4 WHERE id=$1', [seats[0]]),
+      ).rejects.toMatchObject({ code: '23514' });
+      await expect(
+        pool.query('UPDATE session_seats SET inventory_number=NULL WHERE id=$1', [seats[0]]),
+      ).rejects.toMatchObject({ code: '23514' });
+    }
   });
   it('creates an unprivileged verified user and assigns exactly the selected role once', async () => {
     const actor = await newUser();

@@ -232,3 +232,20 @@ ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để c�
 ## Hoàn tiền/feedback đã triển khai — ADR-032
 
 API refund/report/feedback đã mount và có Swagger. Request refund trước suất ít nhất24 giờ; approve thu hồi vé trước chuyển tiền thủ công; ghi SUCCESS bằng chứng từ, không giả xác nhận payOS. Feedback tổ chức sau suất/khi hủy, sửa7 ngày; feedback app riêng tư. Mutation có key/Origin/version, scope do DB; GET booking thêm eventId số để người mua gửi review, không phải ID catalog. [Danh sách API/body/quyền](37-refunds-reviews-app-feedback.md). FE ba chức năng mới chưa nối.
+
+## API đọc hồ sơ vận hành — 2026-10-12
+
+Thêm năm GET lịch sử duyệt/snapshot/CONTENT comparison cho Organizer/Admin; scope dựa quyền/membership hiện có, no-store và strict pagination/filter. Paths/response/giới hạn ở [38](38-organizer-sales-operations.md). Không đổi response list pending hiện có, token/CSRF hoặc provider; không thêm bảng/cột.
+
+
+## Hoàn thiện BE 2026-10-14 — hợp đồng hiện hành
+
+Docs40 ghi API đã mount: sessions/logout-all, event date/price/availability/sort, DELETE nháp rỗng, reports/Admin support-booking/audit, reason draft/preview/queue và personal blocked-organizers. ADR-035 thay API Admin user block/unblock/event block đề xuất bằng POST /admin/events/{id}/unpublish theo report scope: ARCHIVED dừng public/bán/check-in/vào cửa, giữ lịch sử, không xử lý đền bù. Catalog nhận Bearer tùy chọn cho feed cá nhân, không nhận excludedForUserId từ client. Swagger chỉ API thực. Role assignment/venue maintenance/CMS/merchandise purchase chưa chốt không được suy triển khai từ bảng endpoint đích cũ.
+
+## Home event search — ADR-036
+
+GET /search/events và /search/events/suggestions đã mount/Swagger, optional Bearer luôn xác minh khi gửi, no-store/Vary Authorization. Keyword title/Organizer/venue/public description; English fuzzy/prefix/N-gram/completion, strict filter/sort/pagination, PG hydrate current visibility/price/availability/personal blocks. Response thêm total/degraded/engine/pagination; suggestions≤6, q≥2. FE Home đã nối server search và preview ngoài danh sách Home. [Query/body/consistency/fallback/limits](41-home-event-search.md).
+
+## Outdoor BE — ADR-037
+
+POST draft thêm ticketingMode NUMBERED/QUANTITY. POST Organizer zone-layouts, PUT session zone-prices, GET public session zones và POST zones/hold đã mount/Swagger. Zone/sức chứa/type/price, server chọn units, tối đa6 vé/hold5 phút, không gia hạn hoặc physical seats giả; checkout/payment/attendees/QR/check-in/refund/cancel dùng hợp đồng hiện có. [Payload và phạm vi](42-outdoor-zone-ticketing.md).

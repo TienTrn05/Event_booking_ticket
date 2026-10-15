@@ -5,6 +5,7 @@ import { AppError } from '../../../shared/errors/app-error.js';
 import { usersRepository } from '../../users/repositories/users.repository.js';
 
 export type SaleContext = {
+  ticketing_mode?: string;
   id: string;
   event_id: string;
   organization_id: string;
@@ -73,7 +74,7 @@ export async function sessionContext(
   const { rows } = await db.query<SaleContext>(
     `SELECT s.id::text,s.event_id::text,e.organization_id::text,
     s.starts_at,s.ends_at,s.sale_opens_at,s.sale_closes_at,e.status AS event_status,s.status AS session_status,
-    o.status AS organization_status,e.published_at FROM event_sessions s JOIN events e ON e.id=s.event_id
+    o.status AS organization_status,e.published_at,e.ticketing_mode FROM event_sessions s JOIN events e ON e.id=s.event_id
     JOIN organizations o ON o.id=e.organization_id
     WHERE s.id=$1 AND e.public_id IS NOT NULL AND ($2::text IS NULL OR e.public_id=$2)`,
     [sessionId, eventPublicId ?? null],
@@ -115,9 +116,9 @@ export async function seatRows(db: PoolClient, ids: string[], sessionId: string,
     const result = await db.query<SeatRow>(
       `SELECT ss.id::text,ss.session_id::text,ss.status,ss.hold_id::text,
       ss.current_booking_id::text,ss.hold_expires_at,ss.price_minor::text,ss.currency,
-      ls.code||'-'||lr.code||'-'||s.number AS seat_label,tt.code AS ticket_type_code,tt.name AS ticket_type_name,s.is_active AS active
-      FROM session_seats ss JOIN seats s ON s.id=ss.seat_id JOIN layout_rows lr ON lr.id=s.row_id
-      JOIN layout_sections ls ON ls.id=lr.section_id JOIN ticket_types tt ON tt.id=ss.ticket_type_id
+      COALESCE(z.name,ls.code||'-'||lr.code||'-'||s.number) AS seat_label,tt.code AS ticket_type_code,tt.name AS ticket_type_name,(ss.section_id IS NOT NULL OR s.is_active) AS active
+      FROM session_seats ss LEFT JOIN seats s ON s.id=ss.seat_id LEFT JOIN layout_rows lr ON lr.id=s.row_id
+      LEFT JOIN layout_sections ls ON ls.id=lr.section_id LEFT JOIN layout_sections z ON z.id=ss.section_id JOIN ticket_types tt ON tt.id=ss.ticket_type_id
       WHERE ss.id=$1 AND ss.session_id=$2 ${lock ? 'FOR UPDATE OF ss' : ''}`,
       [id, sessionId],
     );
@@ -128,8 +129,14 @@ export async function seatRows(db: PoolClient, ids: string[], sessionId: string,
 }
 export async function holdItems(db: PoolClient, id: string) {
   return (
-    await db.query<{ session_seat_id: string; price_minor: string; currency: string }>(
-      'SELECT session_seat_id::text,price_minor::text,currency FROM seat_hold_items WHERE hold_id=$1 ORDER BY seat_hold_items.session_seat_id',
+    await db.query<{
+      session_seat_id: string;
+      price_minor: string;
+      currency: string;
+      section_id: string | null;
+      zone_name: string | null;
+    }>(
+      'SELECT hi.session_seat_id::text,hi.price_minor::text,hi.currency,ss.section_id::text,z.name AS zone_name FROM seat_hold_items hi JOIN session_seats ss ON ss.id=hi.session_seat_id LEFT JOIN layout_sections z ON z.id=ss.section_id WHERE hi.hold_id=$1 ORDER BY hi.session_seat_id',
       [id],
     )
   ).rows;
@@ -144,6 +151,7 @@ export async function holdDto(db: PoolClient, id: string, userId: string) {
     expired: hold.expires_at <= (await now(db)),
     items: (await holdItems(db, id)).map((i) => ({
       sessionSeatId: i.session_seat_id,
+      ...(i.section_id ? { sectionId: i.section_id, zoneName: i.zone_name } : {}),
       priceMinor: i.price_minor,
       currency: i.currency,
     })),
@@ -180,4 +188,25 @@ export async function audit(
     VALUES($1,$2,$3,$4,$5,$6)`,
     [actorId ? 'USER' : 'SYSTEM', actorId, action, type, id, requestId],
   );
+}
+
+export async function zoneUnits(
+  db: PoolClient,
+  sessionId: string,
+  zones: { sectionId: string; quantity: number }[],
+  time: Date,
+) {
+  const ids: string[] = [];
+  for (const zone of zones) {
+    const rows = (
+      await db.query<{ id: string }>(
+        `SELECT ss.id::text FROM session_seats ss WHERE ss.session_id=$1 AND ss.section_id=$2 AND (ss.status='AVAILABLE' OR (ss.status='HELD' AND ss.hold_expires_at<=$3)) ORDER BY ss.id LIMIT $4 FOR UPDATE OF ss`,
+        [sessionId, zone.sectionId, time, zone.quantity],
+      )
+    ).rows;
+    if (rows.length !== zone.quantity)
+      throw new AppError(409, 'ZONE_UNAVAILABLE', 'Khu không còn đủ vé hoặc không thuộc suất này.');
+    ids.push(...rows.map((r) => r.id));
+  }
+  return ids.sort(compareIds);
 }

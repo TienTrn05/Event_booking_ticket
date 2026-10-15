@@ -92,3 +92,7 @@ Giao thức bổ sung theo [23](23-organization-review-seatmap.md): idempotency 
 Editor và submit kiểm tra scope/config dưới khóa trước freeze/approve. Venue catalog updates dùng phiên bản; không sửa snapshot layout frozen. Khi lấy nhiều Organization/Venue/Event/session giữ thứ tự ID thống nhất; mutation catalog không quay ngược khóa event của mọi tổ chức. Session không đổi layout sau phân bổ.
 
 Online và quầy cùng ticket: khóa event/session/hold/booking/ghế/payment/ticket theo giao thức rồi UQ CheckIn.ticket_id; chỉ một record xác nhận. Refund approval khóa cùng ticket trước vô hiệu; tự check-in không làm mất quyền refund của vé còn VALID. Admission kiểm tra CheckIn tồn tại và trạng thái ticket dưới khóa; refund thắng thì không USED, admission thắng thì refund chưa dùng bị từ chối. Không dùng timestamp check-in online để thay deadline booking hoặc payment.
+
+## Outdoor allocation — ADR-037
+
+SessionSeat tên legacy nay là inventory unit: physical seat indoor hoặc zone/ordinal outdoor. PostgreSQL vẫn authoritative; unique(session,section,ordinal) và trigger ordinal≤capacity giới hạn tối đa số quyền vào cửa/khu. Request quantity sort section ID; approval tạo units theo section ID; mutation chọn/khóa units theo ID, giữ quota→event/session→hold/booking→units→payment/refund/ticket. Thiếu một khu rollback cả nhóm, stale hold cleanup/retry cũ; không counter/cache/mutex phân tán mới. [Docs42](42-outdoor-zone-ticketing.md).

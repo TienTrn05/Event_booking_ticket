@@ -1,5 +1,20 @@
 import type { PoolClient } from 'pg';
 export class PaymentRefundRepository {
+  async closeUnpaid(db: PoolClient, bookingId: string) {
+    const rows = (
+      await db.query<{ id: string }>(
+        'SELECT id::text FROM payments WHERE booking_id=$1 ORDER BY id',
+        [bookingId],
+      )
+    ).rows;
+    for (const row of rows) {
+      await db.query('SELECT id FROM payments WHERE id=$1 FOR UPDATE', [row.id]);
+      await db.query(
+        "UPDATE payments SET status='FAILED' WHERE id=$1 AND status='PENDING' AND received_minor=0",
+        [row.id],
+      );
+    }
+  }
   async lock(db: PoolClient, id: string) {
     return (
       await db.query<{

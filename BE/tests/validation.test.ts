@@ -3,6 +3,30 @@ import { holdInput } from '../src/modules/bookings/holds/hold.schema.js';
 import { bookingInput } from '../src/modules/bookings/orders/booking.schema.js';
 import { marketCacheSchema } from '../src/modules/bookings/waiting-room/waiting-room.schema.js';
 import { eventQuery, organizerQuery } from '../src/modules/catalog/schemas/catalog.schema.js';
+it('validates event ranges, scalar prices and sort without accepting a client visibility identity', () => {
+  expect(
+    eventQuery.parse({
+      from: '2026-10-14T00:00:00+07:00',
+      to: '2026-10-15T00:00:00+07:00',
+      minPrice: '0',
+      maxPrice: '9223372036854775807',
+      available: 'true',
+      sort: 'price_asc',
+    }),
+  ).toMatchObject({ available: true, minPrice: '0', sort: 'price_asc' });
+  for (const input of [
+    { from: '2026-10-15T00:00:00Z', to: '2026-10-14T00:00:00Z' },
+    { from: '2026-10-14' },
+    { minPrice: '10', maxPrice: '9' },
+    { minPrice: '-1' },
+    { maxPrice: '9223372036854775808' },
+    { maxPrice: ['1', '2'] },
+    { available: 'yes' },
+    { sort: 'price; DROP TABLE events' },
+    { excludedForUserId: '1' },
+  ])
+    expect(eventQuery.safeParse(input).success).toBe(false);
+});
 import { ageRestrictionInput } from '../src/modules/events/age/age.schema.js';
 import { uploadSchema } from '../src/modules/media/schemas/media.schema.js';
 import { updateProfileSchema } from '../src/modules/users/schemas/users.schema.js';

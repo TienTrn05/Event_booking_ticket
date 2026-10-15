@@ -50,6 +50,13 @@ export class PaymentRepository {
       )
     ).rows[0]!;
   }
+  async hasReceivedFunds(db: PoolClient, bookingId: string) {
+    return !!(
+      await db.query('SELECT 1 FROM payments WHERE booking_id=$1 AND received_minor>0 LIMIT 1', [
+        bookingId,
+      ])
+    ).rowCount;
+  }
   async enqueue(db: PoolClient, payment: PaymentRow, payload: PaymentRequest) {
     await db.query(
       `INSERT INTO outbox_messages(type,aggregate_type,aggregate_id,aggregate_version,dedupe_key,payload_minimal,available_at)

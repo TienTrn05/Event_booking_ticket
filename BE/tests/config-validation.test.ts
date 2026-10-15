@@ -3,6 +3,19 @@ import { parseEnv } from '../src/config/env.schema.js';
 import { parseR2Config } from '../src/config/r2.js';
 
 describe('configuration validation', () => {
+  it('requires a local HTTPS key pair and refuses the development certificate profile in production', () => {
+    expect(() => parseEnv({ ...process.env, HTTPS_CERT_FILE: 'fixture.crt' })).toThrow(
+      'Incomplete local HTTPS configuration.',
+    );
+    expect(() =>
+      parseEnv({
+        ...process.env,
+        APP_ENV: 'production',
+        HTTPS_CERT_FILE: 'fixture.crt',
+        HTTPS_KEY_FILE: 'fixture.key',
+      }),
+    ).toThrow('Local HTTPS certificates are limited to development/testing.');
+  });
   it('rejects partial payOS credentials without exposing their values', () => {
     expect(() => parseEnv({ ...process.env, PAYOS_CLIENT_ID: 'fixture-client-only' })).toThrow(
       'Incomplete payOS or ticket configuration.',

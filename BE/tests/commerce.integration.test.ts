@@ -1,4 +1,13 @@
 import { RefundService } from '../src/modules/refunds/refund.service.js';
+import { EventOperationsService } from '../src/modules/events/operations/event-operations.service.js';
+import { EventManagementService } from '../src/modules/events/management/event-management.service.js';
+import {
+  reviewHistoryQuery,
+  ownReviewQuery,
+} from '../src/modules/events/management/event-management.schema.js';
+import { contentChange } from '../src/modules/events/operations/event-operations.schema.js';
+import { SalesService } from '../src/modules/sales/sales.service.js';
+import { ordersQuery, ticketsQuery, overviewQuery } from '../src/modules/sales/sales.schema.js';
 import { FeedbackService } from '../src/modules/feedback/feedback.service.js';
 import { refundResult } from '../src/modules/refunds/refund.schema.js';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -36,6 +45,8 @@ import { runCommerceBrowser } from './fixtures/commerce-browser.js';
 class FixtureGateway implements PaymentGateway {
   links = new Map<number, PaymentLink>();
   receipts = new Map<number, Receipt[]>();
+  cancelled = new Set<number>();
+  requests = new Map<number, PaymentRequest>();
   calls = 0;
   timeoutAfterCreate = false;
   unavailable = false;
@@ -49,6 +60,7 @@ class FixtureGateway implements PaymentGateway {
       checkoutUrl: 'https://pay.payos.vn/web/fixture',
     };
     this.links.set(input.orderCode, link);
+    this.requests.set(input.orderCode, input);
     if (this.timeoutAfterCreate) throw new Error('Timeout after provider committed');
     return link;
   }
@@ -62,7 +74,7 @@ class FixtureGateway implements PaymentGateway {
     const receipts = this.receipts.get(code) ?? [];
     return {
       link,
-      status: 'PENDING',
+      status: this.cancelled.has(code) ? 'CANCELLED' : 'PENDING',
       amountPaid: receipts.reduce((sum, r) => sum + Number(r.amount), 0),
       receipts,
     };
@@ -261,6 +273,54 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       saveAttendees(b.actor, b.order.id, b.attendeeRows, randomUUID()),
     ).rejects.toMatchObject({ code: 'ATTENDEES_LOCKED' });
   });
+  it('retries a provider-confirmed unpaid failure concurrently without extending the hold', async () => {
+    const b = await booking();
+    const first = await payments.start(b.actor, b.order.id, randomUUID(), randomUUID());
+    expect(first.outcome).toBeNull();
+    expect(first.canRetry).toBe(false);
+    const code = Number((await receipt(first.id)).orderCode);
+    gateway.cancelled.add(code);
+    await payments.recover();
+    const failed = await payments.get(b.actor, first.id);
+    expect(failed).toMatchObject({ status: 'FAILED', outcome: 'FAILED', canRetry: true });
+    const attempts = await Promise.all([
+      payments.start(b.actor, b.order.id, randomUUID(), randomUUID()),
+      payments.start(b.actor, b.order.id, randomUUID(), randomUUID()),
+    ]);
+    expect(attempts[0]!.id).not.toBe(first.id);
+    expect(attempts[1]!.id).toBe(attempts[0]!.id);
+    expect(attempts[0]!.expiresAt).toBe(first.expiresAt);
+    const newCode = Number((await receipt(attempts[0]!.id)).orderCode);
+    expect(gateway.requests.get(newCode)!.expiredAt).toBe(gateway.requests.get(code)!.expiredAt);
+    const paid = await receipt(attempts[0]!.id);
+    await Promise.all([payments.accept(paid), payments.accept(paid)]);
+    expect(await state(b.order.id)).toEqual({ status: 'CONFIRMED', tickets: 1 });
+    expect(await payments.get(b.actor, attempts[0]!.id)).toMatchObject({
+      outcome: 'SUCCESS',
+      canRetry: false,
+    });
+    await payments.accept(await receipt(first.id));
+    expect((await payments.get(b.actor, first.id)).outcome).toBe('FAILED');
+    expect(await state(b.order.id)).toEqual({ status: 'CONFIRMED', tickets: 1 });
+  });
+  it('refuses a failed payment retry after the original booking deadline', async () => {
+    const b = await booking();
+    const p = await payments.start(b.actor, b.order.id, randomUUID(), randomUUID());
+    await query("UPDATE payments SET status='FAILED' WHERE id=$1", [p.id]);
+    await query("UPDATE bookings SET expires_at=now()-interval '1 second' WHERE id=$1", [
+      b.order.id,
+    ]);
+    expect(await payments.get(b.actor, p.id)).toMatchObject({ outcome: 'FAILED', canRetry: false });
+    await expect(
+      payments.start(b.actor, b.order.id, randomUUID(), randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'BOOKING_NOT_PAYABLE',
+    });
+    expect(
+      (await query('SELECT count(*)::int AS n FROM payments WHERE booking_id=$1', [b.order.id]))
+        .rows[0].n,
+    ).toBe(1);
+  });
   it('recovers when provider creates a link but response times out', async () => {
     const b = await booking();
     gateway.timeoutAfterCreate = true;
@@ -343,6 +403,12 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
     await payments.accept(await receipt(p.id, '11000'));
     expect(await state(b.order.id)).toEqual({ status: 'AWAITING_PAYMENT', tickets: 0 });
     expect((await payments.get(b.actor, p.id)).reconciliationReason).toBe('OVERPAYMENT');
+    expect((await payments.get(b.actor, p.id)).outcome).toBe('FAILED');
+    await expect(
+      payments.start(b.actor, b.order.id, randomUUID(), randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'PAYMENT_CONFIRMATION_REQUIRED',
+    });
   });
   it('records money after cancellation without reviving seats or tickets', async () => {
     const b = await booking(),
@@ -1088,7 +1154,7 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       );
     }
     const reference = randomUUID(),
-      transferredAt = new Date().toISOString();
+      transferredAt = (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
     const results = await Promise.allSettled(
       requests.map((r) =>
         refunds.change(
@@ -1139,6 +1205,483 @@ describe.skipIf(!process.env.COMMERCE_TEST_DB_PORT)('commerce against isolated P
       ).toBe(2);
     } finally {
       await query("UPDATE events SET status='PUBLISHED' WHERE id=$1", [eventId]);
+    }
+  });
+  it('scopes Organizer sales and counts multi-ticket revenue once across payment attempts', async () => {
+    const from = (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString();
+    const b = await paidRefundFixture(),
+      sales = new SalesService();
+    const orgId = (await query('SELECT organization_id::text FROM events WHERE id=$1', [eventId]))
+      .rows[0].organization_id;
+    await query(
+      "INSERT INTO payments(booking_id,provider,provider_key,amount_minor,currency,status) VALUES($1,'PAYOS',$2,20000,'VND','FAILED')",
+      [b.order.id, String(Math.floor(Math.random() * 1000000000))],
+    );
+    const filters = { eventId, sessionId, from };
+    const listed = await sales.orders(
+      staff,
+      orgId,
+      ordersQuery.parse({ ...filters, status: 'CONFIRMED' }),
+    );
+    expect(listed.total).toBe(1);
+    expect(listed.items[0]).toMatchObject({ id: b.order.id, totalMinor: '20000', ticketCount: 2 });
+    const detail = await sales.order(staff, b.order.id);
+    expect(detail?.payments).toHaveLength(2);
+    expect(detail?.items).toHaveLength(2);
+    expect(JSON.stringify(detail)).not.toMatch(
+      /cccd|ciphertext|ticketCode|checkoutUrl|dateOfBirth|provider_key/,
+    );
+    expect((await sales.tickets(staff, orgId, ticketsQuery.parse(filters))).total).toBe(2);
+    const summary = await sales.overview(staff, orgId, overviewQuery.parse(filters));
+    expect(summary.money).toEqual([
+      {
+        currency: 'VND',
+        grossTicketSalesMinor: '20000',
+        receivedMinor: '20000',
+        refundedMinor: '0',
+        requestedRefundMinor: '0',
+        processingRefundMinor: '0',
+        failedRefundMinor: '0',
+        netReceivedMinor: '20000',
+        reconciliationReceivedMinor: '0',
+        reconciliationPaymentCount: 0,
+      },
+    ]);
+    await expect(sales.order(otherStaff, b.order.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(sales.orders(b.actor, orgId, ordersQuery.parse({}))).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(
+      (
+        await sales.orders(
+          staff,
+          orgId,
+          ordersQuery.parse({ ...filters, eventId: '9223372036854775807' }),
+        )
+      ).total,
+    ).toBe(0);
+    expect(overviewQuery.safeParse({ from, to: from }).success).toBe(false);
+  });
+  it('reviews published content without changing schedule, inventory or sold tickets', async () => {
+    const service = new EventOperationsService(),
+      admin = await adminFixture();
+    const original = (await query('SELECT version,title FROM events WHERE id=$1', [eventId]))
+      .rows[0];
+    const inventory = (
+      await query(
+        'SELECT jsonb_agg(to_jsonb(s) ORDER BY s.id) AS seats FROM session_seats s WHERE session_id=$1',
+        [sessionId],
+      )
+    ).rows[0].seats;
+    const input = contentChange.parse({
+      version: original.version,
+      title: 'Reviewed fixture content',
+      description: 'Reviewed description',
+      reason: 'Content correction',
+    });
+    expect(contentChange.safeParse({ ...input, minimumAge: 16 }).success).toBe(false);
+    await expect(
+      service.request(await customer(), eventId, input, randomUUID(), randomUUID()),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    const change = (await service.request(staff, eventId, input, randomUUID(), randomUUID()))!;
+    const comparison = await service.detail(admin, change.id, true);
+    expect(comparison.request.snapshot_json.title).toBe(input.title);
+    expect(comparison.currentEvent.title).toBe(original.title);
+    expect((await service.detail(staff, change.id, false)).request.id).toBe(change.id);
+    await expect(service.detail(otherStaff, change.id, false)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(service.detail(await customer(), change.id, true)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect((await query('SELECT title FROM events WHERE id=$1', [eventId])).rows[0].title).toBe(
+      original.title,
+    );
+    await expect(
+      service.request(staff, eventId, input, randomUUID(), randomUUID()),
+    ).rejects.toMatchObject({ code: 'CONTENT_REQUEST_EXISTS' });
+    const key = randomUUID(),
+      decision = { version: change.version, reason: 'Approved fixture' };
+    await service.decide(admin, change.id, 'approve', decision, key, randomUUID());
+    await service.decide(admin, change.id, 'approve', decision, key, randomUUID());
+    expect(
+      (await query('SELECT title,version FROM events WHERE id=$1', [eventId])).rows[0],
+    ).toEqual({ title: input.title, version: original.version + 1 });
+    expect(
+      (
+        await query(
+          'SELECT jsonb_agg(to_jsonb(s) ORDER BY s.id) AS seats FROM session_seats s WHERE session_id=$1',
+          [sessionId],
+        )
+      ).rows[0].seats,
+    ).toEqual(inventory);
+    for (let i = 0; i < 150 && (await service.recover()); i++) {
+      /* Drain this fixture's bounded jobs. */
+    }
+    expect(
+      (
+        await query(
+          "SELECT count(*)::int AS n FROM notifications WHERE type='EVENT_UPDATED' AND event_id=$1",
+          [eventId],
+        )
+      ).rows[0].n,
+    ).toBeGreaterThan(0);
+    const stale = (await service.request(
+      staff,
+      eventId,
+      { ...input, version: original.version + 1 },
+      randomUUID(),
+      randomUUID(),
+    ))!;
+    await query('UPDATE events SET version=version+1 WHERE id=$1', [eventId]);
+    await expect(
+      service.decide(
+        admin,
+        stale.id,
+        'approve',
+        { version: 0, reason: 'Stale fixture' },
+        randomUUID(),
+        randomUUID(),
+      ),
+    ).rejects.toMatchObject({ code: 'EVENT_VERSION_CONFLICT' });
+    await service.decide(
+      staff,
+      stale.id,
+      'withdraw',
+      { version: 0, reason: 'Withdraw stale' },
+      randomUUID(),
+      randomUUID(),
+    );
+  });
+  it('guards Organizer operations HTTP with authentication, Origin and strict content fields', async () => {
+    const app = createApp({ checkDatabase: async () => {}, paymentGateway: gateway });
+    for (const path of [
+      '/admin/event-review-history',
+      '/admin/event-changes/1',
+      '/organizer/event-changes/1',
+      `/organizer/events/${eventId}/reviews`,
+      '/organizer/event-reviews/1',
+      '/admin/event-changes',
+      `/organizer/events/${eventId}/operations`,
+      `/organizer/organizations/902001/orders`,
+    ]) {
+      const response = await request(app).get('/api/v1' + path);
+      expect(response.status).toBe(401);
+      expect(response.headers['cache-control']).toContain('no-store');
+    }
+    const actor = await customer(),
+      token = await accessToken({
+        userId: actor.id,
+        identityId: '0',
+        displayName: 'Fixture',
+        authVersion: 0,
+        sessionId: actor.sessionId,
+        refreshToken: '',
+        expiresAt: new Date(Date.now() + 60000),
+      });
+    expect(
+      (
+        await request(app)
+          .post(`/api/v1/organizer/events/${eventId}/cancel`)
+          .set('authorization', 'Bearer ' + token)
+          .set('origin', 'https://foreign.invalid')
+          .set('idempotency-key', randomUUID())
+          .send({ version: 0, reason: 'Fixture' })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(app)
+          .post(`/api/v1/organizer/events/${eventId}/content-changes`)
+          .set('authorization', 'Bearer ' + token)
+          .set('origin', env.PUBLIC_APP_URL!)
+          .set('idempotency-key', randomUUID())
+          .send({
+            version: 0,
+            title: 'Fixture',
+            description: 'Fixture',
+            reason: 'Fixture',
+            priceMinor: '1',
+          })
+      ).status,
+    ).toBe(400);
+  });
+  it('reads review history and snapshots with bounded pagination and organization ownership', async () => {
+    const service = new EventManagementService(),
+      admin = await adminFixture();
+    const organizationId = (
+      await query('SELECT organization_id::text FROM events WHERE id=$1', [eventId])
+    ).rows[0].organization_id;
+    const filters = reviewHistoryQuery.parse({
+      eventId,
+      organizationId,
+      status: 'APPROVED',
+      pageSize: '1',
+    });
+    const first = await service.history(admin, filters);
+    expect(first.items).toHaveLength(1);
+    expect(first.total).toBeGreaterThan(0);
+    expect(first.pagination).toMatchObject({ page: 1, pageSize: 1, total: first.total });
+    expect(first.items[0]).toMatchObject({ eventId, organizationId, status: 'APPROVED' });
+    const id = first.items[0]!.id as string;
+    const detail = await service.ownReview(staff, id);
+    expect(detail.event_id).toBe(eventId);
+    expect(detail.snapshot_json).toBeDefined();
+    expect((await service.history(staff, ownReviewQuery.parse({}), eventId)).items).toHaveLength(
+      first.total,
+    );
+    expect(
+      (
+        await service.history(
+          admin,
+          reviewHistoryQuery.parse({ ...filters, page: '100000', pageSize: '1' }),
+        )
+      ).items,
+    ).toEqual([]);
+    expect(
+      (
+        await service.history(
+          admin,
+          reviewHistoryQuery.parse({ eventId, organizationId: '9223372036854775807' }),
+        )
+      ).total,
+    ).toBe(0);
+    await expect(service.ownReview(otherStaff, id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(service.history(staff, reviewHistoryQuery.parse({}))).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    await expect(service.ownReview(await customer(), id)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(ownReviewQuery.safeParse({ organizationId }).success).toBe(false);
+    expect(reviewHistoryQuery.safeParse({ status: 'anything' }).success).toBe(false);
+    const app = createApp({ checkDatabase: async () => {}, paymentGateway: gateway });
+    const token = await accessToken({
+      userId: admin.id,
+      identityId: '0',
+      displayName: 'Fixture',
+      authVersion: 0,
+      sessionId: admin.sessionId,
+      refreshToken: '',
+      expiresAt: new Date(Date.now() + 60000),
+    });
+    const response = await request(app)
+      .get('/api/v1/admin/event-review-history')
+      .query({ eventId, status: 'APPROVED', pageSize: '1' })
+      .set('authorization', 'Bearer ' + token);
+    expect(response.status).toBe(200);
+    expect(response.body.data.items[0].eventId).toBe(eventId);
+    expect(response.headers['cache-control']).toContain('no-store');
+  });
+  it('cancels a pre-start event, fences sale and callbacks, closes allocations and creates manual refunds once', async () => {
+    const saved = { sessionId, eventId, publicId, staff };
+    const target = (
+      await query(
+        'SELECT s.id::text,s.event_id::text,e.public_id,s.layout_id::text,o.applicant_user_id::text,o.applicant_identity_id::text FROM event_sessions s JOIN events e ON e.id=s.event_id JOIN organizations o ON o.id=e.organization_id WHERE e.id<>$1 ORDER BY e.id LIMIT 1',
+        [eventId],
+      )
+    ).rows[0];
+    sessionId = target.id;
+    eventId = target.event_id;
+    publicId = target.public_id;
+    staff = await session(target.applicant_user_id, target.applicant_identity_id);
+    try {
+      await query(
+        "UPDATE users SET gender='UNDISCLOSED',date_of_birth='1990-01-02',registration_role='ORGANIZER',onboarding_completed_at=now() WHERE id=$1",
+        [staff.id],
+      );
+      await query(
+        "UPDATE event_sessions SET starts_at=now()+interval '3 days',ends_at=now()+interval '4 days',sale_opens_at=now()-interval '1 day',sale_closes_at=now()+interval '30 minutes',counter_opens_at=now()-interval '1 hour',counter_closes_at=now()+interval '2 hours',admission_opens_at=now()-interval '1 hour',admission_closes_at=now()+interval '3 hours' WHERE id=$1",
+        [sessionId],
+      );
+      const section = (
+        await query(
+          "INSERT INTO layout_sections(layout_id,code,name) VALUES($1,'OPS','Operations fixture') RETURNING id",
+          [target.layout_id],
+        )
+      ).rows[0].id;
+      const row = (
+        await query(
+          "INSERT INTO layout_rows(section_id,layout_id,code) VALUES($1,$2,'A') RETURNING id",
+          [section, target.layout_id],
+        )
+      ).rows[0].id;
+      const type = (
+        await query(
+          "INSERT INTO ticket_types(session_id,code,name) VALUES($1,'OPS','Operations') RETURNING id",
+          [sessionId],
+        )
+      ).rows[0].id;
+      for (let i = 1; i <= 4; i++) {
+        const seat = (
+          await query(
+            'INSERT INTO seats(row_id,layout_id,number,map_x,map_y,width,height) VALUES($1,$2,$3,1,1,1,1) RETURNING id',
+            [row, target.layout_id, String(i)],
+          )
+        ).rows[0].id;
+        await query(
+          "INSERT INTO session_seats(session_id,seat_id,layout_id,ticket_type_id,price_minor,currency) VALUES($1,$2,$3,$4,10000,'VND')",
+          [sessionId, seat, target.layout_id, type],
+        );
+      }
+      const paid = await booking(2),
+        pp = await payments.start(paid.actor, paid.order.id, randomUUID(), randomUUID());
+      await payments.accept(await receipt(pp.id));
+      const unpaid = await booking(),
+        up = await payments.start(unpaid.actor, unpaid.order.id, randomUUID(), randomUUID());
+      const actor = await customer(),
+        available = (
+          await query(
+            "SELECT id::text FROM session_seats WHERE session_id=$1 AND status='AVAILABLE'",
+            [sessionId],
+          )
+        ).rows[0].id;
+      const hold = await createHold(
+        actor,
+        publicId,
+        sessionId,
+        [available],
+        randomUUID(),
+        randomUUID(),
+        async () => {},
+      );
+      const service = new EventOperationsService(),
+        version = (await query('SELECT version FROM events WHERE id=$1', [eventId])).rows[0]
+          .version,
+        input = { version, reason: 'Cancelled fixture' };
+      await query("UPDATE event_sessions SET starts_at=now()-interval '1 minute' WHERE id=$1", [
+        sessionId,
+      ]);
+      await expect(
+        service.cancel(staff, eventId, input, randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'EVENT_CANNOT_CANCEL' });
+      await query("UPDATE event_sessions SET starts_at=now()+interval '3 days' WHERE id=$1", [
+        sessionId,
+      ]);
+      const ticket = (
+        await query(
+          'SELECT t.id::text FROM tickets t JOIN booking_items bi ON bi.id=t.booking_item_id WHERE bi.booking_id=$1 LIMIT 1',
+          [paid.order.id],
+        )
+      ).rows[0].id;
+      const issued = (await tickets.list(paid.actor, paid.order.id)).find((t) => t.id === ticket)!;
+      const credential = paid.attendeeRows.find((a) => a.fullName === issued.attendeeName)!;
+      await tickets.checkIn(
+        staff,
+        sessionId,
+        { ticketCode: issued.ticketCode!, attendeeName: issued.attendeeName },
+        randomUUID(),
+        randomUUID(),
+        'COUNTER',
+      );
+      await tickets.admit(
+        staff,
+        sessionId,
+        {
+          ticketCode: issued.ticketCode!,
+          cccd: credential.cccd,
+          fullName: credential.fullName,
+          dateOfBirth: credential.dateOfBirth,
+          physicalDocumentSeen: true,
+        },
+        randomUUID(),
+        randomUUID(),
+      );
+      await expect(
+        service.cancel(staff, eventId, input, randomUUID(), randomUUID()),
+      ).rejects.toMatchObject({ code: 'EVENT_CANNOT_CANCEL' });
+      await query(
+        "UPDATE tickets SET status='VALID',admitted_at=NULL,admitted_by=NULL,admission_check_in_id=NULL WHERE id=$1",
+        [ticket],
+      );
+      const key = randomUUID();
+      await service.cancel(staff, eventId, input, key, randomUUID());
+      await service.cancel(staff, eventId, input, key, randomUUID());
+      await payments.accept(await receipt(up.id));
+      expect(await state(unpaid.order.id)).toEqual({ status: 'CANCELLED', tickets: 0 });
+      const failing = new EventOperationsService(undefined, undefined, undefined, {
+        async prepareCancellation(db, purchase, actorId, reason) {
+          await new RefundService().prepareCancellation(db, purchase, actorId, reason);
+          throw new Error('Fixture recovery interrupted');
+        },
+      });
+      await expect(failing.recover()).rejects.toThrow('Fixture recovery interrupted');
+      expect(
+        (await query('SELECT count(*)::int AS n FROM refunds WHERE payment_id=$1', [pp.id])).rows[0]
+          .n,
+      ).toBe(0);
+      expect((await service.progress(staff, eventId)).jobs[0]).toMatchObject({
+        status: 'PENDING',
+        lastErrorCode: 'EVENT_OPERATIONS_FAILED',
+      });
+      await query(
+        "UPDATE outbox_messages SET available_at=now()-interval '1 second' WHERE type='EVENT_CANCELLED' AND aggregate_id=$1",
+        [eventId],
+      );
+      await Promise.all([service.recover(), new EventOperationsService().recover()]);
+      for (let i = 0; i < 30 && (await service.recover()); i++) {
+        /* Drain this fixture's bounded jobs. */
+      }
+      expect(
+        (await query('SELECT status FROM seat_holds WHERE id=$1', [hold.data.id])).rows[0].status,
+      ).toBe('RELEASED');
+      expect(
+        (
+          await query(
+            "SELECT count(*)::int AS n FROM tickets t JOIN booking_items bi ON bi.id=t.booking_item_id WHERE bi.booking_id=$1 AND t.status='CANCELLED'",
+            [paid.order.id],
+          )
+        ).rows[0].n,
+      ).toBe(2);
+      expect(
+        (
+          await query(
+            "SELECT count(*)::int AS n FROM session_seats WHERE current_booking_id=$1 AND status='SOLD'",
+            [paid.order.id],
+          )
+        ).rows[0].n,
+      ).toBe(2);
+      const refund = (
+        await query(
+          'SELECT id::text,status,version,type,amount_minor::text FROM refunds WHERE payment_id=$1',
+          [pp.id],
+        )
+      ).rows[0];
+      expect(refund).toMatchObject({
+        status: 'PROCESSING',
+        type: 'COMPENSATION',
+        amount_minor: '20000',
+      });
+      expect(
+        (
+          await query(
+            "SELECT count(*)::int AS n FROM notifications WHERE type='EVENT_CANCELLED' AND event_id=$1 AND recipient_user_id=$2",
+            [eventId, paid.actor.id],
+          )
+        ).rows[0].n,
+      ).toBe(1);
+      await new RefundService().change(
+        staff,
+        refund.id,
+        'result',
+        {
+          version: refund.version,
+          status: 'SUCCESS',
+          reference: randomUUID(),
+          evidenceNote: 'Cancellation transfer fixture',
+          transferredAt: (await query('SELECT clock_timestamp() AS at')).rows[0].at.toISOString(),
+        },
+        'organization',
+        randomUUID(),
+        randomUUID(),
+      );
+      expect((await state(paid.order.id)).status).toBe('REFUNDED');
+      expect(await service.recover()).toBe(false);
+    } finally {
+      sessionId = saved.sessionId;
+      eventId = saved.eventId;
+      publicId = saved.publicId;
+      staff = saved.staff;
     }
   });
   it('checkout accepts multiple BIGINT seat IDs across a digit boundary in either input order', async () => {

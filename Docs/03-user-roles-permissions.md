@@ -61,3 +61,8 @@ ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để c�
 ## Refund/feedback — ADR-032
 
 refund.request_self dùng Customer sở hữu đơn; refund.approve cần Organizer membership ACTIVE trong organization APPROVED, hoặc Admin/report.handle và report IN_REVIEW được giao đúng booking/event. Đóng report thu hồi scope can thiệp. Admin không có quyền vô điều kiện lên mọi refund. feedback.reply_own chỉ Organizer đúng tổ chức; feedback.manage chỉ Admin. Góp ý SYSTEM chỉ tác giả/Admin, không cấp report scope. Review ORGANIZATION không public, chỉ tác giả/Organizer/Admin. JWT/refresh/linking/Origin/CSRF giữ nguyên. [37](37-refunds-reviews-app-feedback.md).
+
+
+## Chức năng hiện hành 2026-10-14 — ADR-035
+
+Không triển khai Admin khóa/mở khóa User hoặc endpoint chặn event. ADMIN/event.review/report.handle gỡ event PUBLISHED theo report IN_REVIEW được giao đúng event: ARCHIVED dừng public/bán/check-in/vào cửa, giữ lịch sử/tiền/vé, không xử lý đền bù. Giữ permission cũ trong seed, không cấp thêm quyền. Customer ẩn Organizer là preference cá nhân. Organizer có report.handle không được dùng queue/can thiệp Admin. Audit chỉ metadata theo scope duyệt/report. Hợp đồng hiện hành tại Docs40.

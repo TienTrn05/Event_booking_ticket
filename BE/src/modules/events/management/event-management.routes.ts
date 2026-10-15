@@ -4,6 +4,8 @@ import { noStore } from '../../../shared/http/response.js';
 import {
   editInput,
   layoutInput,
+  zoneLayoutInput,
+  zonePricingInput,
   sessionInput,
   typeInput,
   pricingInput,
@@ -24,9 +26,21 @@ export function createEventManagementRouter() {
   );
   router.get('/organizer/events', controller.list);
   router.get('/organizer/events/:id', controller.get);
+  router.get('/organizer/events/:id/reviews', controller.history(true));
+  router.get('/organizer/event-reviews/:reviewId', controller.ownReview);
+  router.get('/admin/event-review-history', noStore, controller.history());
   router.post('/organizer/events', controller.create);
   router.patch('/organizer/events/:id', controller.configure('edit', editInput));
+  router.delete('/organizer/events/:id', controller.remove);
   router.post('/organizer/events/:id/layouts', controller.configure('layout', layoutInput));
+  router.post(
+    '/organizer/events/:id/zone-layouts',
+    controller.configure('zone-layout', zoneLayoutInput),
+  );
+  router.put(
+    '/organizer/events/:id/sessions/:sessionId/zone-prices',
+    controller.configure('zone-prices', zonePricingInput),
+  );
   router.post('/organizer/events/:id/sessions', controller.configure('session', sessionInput));
   router.patch(
     '/organizer/events/:id/sessions/:sessionId',
@@ -46,6 +60,9 @@ export function createEventManagementRouter() {
   router.get('/admin/event-reviews', controller.pending);
   router.get('/admin/event-reviews/:id', controller.review);
   router.post('/admin/event-reviews/:id/reason', controller.reason);
+  router.get('/admin/reason-notices', noStore, controller.reasonQueue);
+  router.get('/admin/event-reviews/:id/reason', controller.reasonPreview);
+  router.put('/admin/event-reviews/:id/reason', controller.saveReasonDraft);
   router.post('/admin/event-reviews/:id/approve', controller.decide(true));
   router.post('/admin/event-reviews/:id/reject', controller.decide(false));
   return router;

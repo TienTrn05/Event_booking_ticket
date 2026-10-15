@@ -5,14 +5,101 @@ import { withTransaction } from '../../../shared/database/transaction.js';
 import { claimKey, finishKey } from '../../../shared/idempotency/idempotency.repository.js';
 import { AppError } from '../../../shared/errors/app-error.js';
 import { EventManagementRepository } from './event-management.repository.js';
-import { validateLayout } from './layout.policy.js';
+import { validateLayout, validateZoneLayout } from './layout.policy.js';
 import type {
   DraftInput,
+  ZoneLayoutInput,
+  ZonePricingInput,
   LayoutInput,
   SessionInput,
   PricingInput,
+  ReviewHistoryQuery,
 } from './event-management.schema.js';
 export class EventManagementService {
+  async remove(actor: RequestActor, id: string, version: number, requestId: string) {
+    await withTransaction(async (db) => {
+      const event = await this.scoped(db, actor, id);
+      this.draft(event, version);
+      await this.repository.removeDraft(db, id);
+      await this.repository.audit(db, actor.id, id, 'event.delete_draft', requestId);
+    });
+  }
+  async reasonQueue(actor: RequestActor, page: number, pageSize: number) {
+    return withTransaction(async (db) => {
+      await this.access.permission(db, actor, 'event.review');
+      return this.repository.reasonQueue(db, pageSize, (page - 1) * pageSize);
+    });
+  }
+  async reasonPreview(actor: RequestActor, id: string) {
+    return withTransaction(async (db) => {
+      await this.access.permission(db, actor, 'event.review');
+      const row = await this.repository.reasonDetail(db, id);
+      if (!row) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy hồ sơ.');
+      return {
+        ...row,
+        preview: row.notice
+          ? `Hồ sơ ${row.reviewId} của ${row.organizationName} cho sự kiện ${row.eventTitle}. Lý do: ${row.notice.reason ?? ''}. Hướng dẫn: ${row.notice.guidance ?? ''}.`
+          : null,
+      };
+    });
+  }
+  async saveReasonDraft(
+    actor: RequestActor,
+    id: string,
+    input: { version: number; reasonCode: string; reason: string; guidance: string },
+    key: string,
+    requestId: string,
+  ) {
+    return withTransaction(async (db) => {
+      await this.access.permission(db, actor, 'event.review');
+      const record = await claimKey(db, actor.id, 'event.review.reason_draft', key, { id, input });
+      const locator = await this.repository.reviewLocator(db, id);
+      if (!locator) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy hồ sơ.');
+      await this.repository.event(db, locator.event_id, true);
+      const review = await this.repository.review(db, id);
+      if (record.resource_id) return this.repository.reasonDetail(db, id);
+      if (!review || !['PENDING', 'EXPIRED'].includes(review.status))
+        throw new AppError(409, 'NOTICE_STATE_CONFLICT', 'Hồ sơ không cho phép soạn phiếu.');
+      const notice = await this.repository.saveReasonDraft(db, id, actor.id, input);
+      await this.repository.audit(
+        db,
+        actor.id,
+        locator.event_id,
+        'event.review.reason_draft',
+        requestId,
+      );
+      await finishKey(db, record.id, 'REASON_NOTICE', notice.id, 200);
+      return this.repository.reasonDetail(db, id);
+    });
+  }
+  async history(actor: RequestActor, q: ReviewHistoryQuery, eventId?: string) {
+    return withTransaction(async (db) => {
+      let filters = q;
+      if (eventId) {
+        const event = await this.scoped(db, actor, eventId);
+        filters = { ...q, eventId, organizationId: event.organization_id };
+      } else await this.access.permission(db, actor, 'event.review');
+      const result = await this.repository.history(db, filters);
+      return {
+        ...result,
+        pagination: {
+          page: q.page,
+          pageSize: q.pageSize,
+          total: result.total,
+          totalPages: Math.ceil(result.total / q.pageSize),
+        },
+      };
+    });
+  }
+  async ownReview(actor: RequestActor, id: string) {
+    return withTransaction(async (db) => {
+      await this.access.permission(db, actor, 'event.update_own');
+      const review = await this.repository.reviewDetail(db, id);
+      if (!review) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy hồ sơ.');
+      await this.scoped(db, actor, review.event_id);
+      return review;
+    });
+  }
   async options(actor: RequestActor) {
     return withTransaction(async (db) => {
       await this.access.permission(db, actor, 'event.create');
@@ -30,7 +117,7 @@ export class EventManagementService {
   async sendReason(
     actor: RequestActor,
     id: string,
-    input: { version: number; reason: string; guidance: string },
+    input: { version: number; reason: string; guidance: string; reasonCode?: string | undefined },
     key: string,
     requestId: string,
   ) {
@@ -38,6 +125,9 @@ export class EventManagementService {
       await this.access.permission(db, actor, 'event.review');
       const record = await claimKey(db, actor.id, 'event.review.reason', key, { id, input });
       if (record.resource_id) return { id: record.resource_id, status: 'SENT' };
+      const locator = await this.repository.reviewLocator(db, id);
+      if (!locator) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy hồ sơ.');
+      await this.repository.event(db, locator.event_id, true);
       const review = await this.repository.review(db, id);
       if (!review || review.status !== 'EXPIRED')
         throw new AppError(409, 'REVIEW_NOT_EXPIRED', 'Hồ sơ chưa hết hạn.');
@@ -92,7 +182,16 @@ export class EventManagementService {
   async configure(
     actor: RequestActor,
     id: string,
-    kind: 'edit' | 'layout' | 'session' | 'session-edit' | 'type' | 'prices' | 'reopen',
+    kind:
+      | 'edit'
+      | 'layout'
+      | 'session'
+      | 'session-edit'
+      | 'type'
+      | 'prices'
+      | 'reopen'
+      | 'zone-layout'
+      | 'zone-prices',
     input: unknown,
     version: number,
     key: string,
@@ -101,9 +200,9 @@ export class EventManagementService {
   ) {
     return withTransaction(async (db) => {
       const permission =
-        kind === 'layout'
+        kind === 'layout' || kind === 'zone-layout'
           ? 'layout.manage_own'
-          : kind === 'type' || kind === 'prices'
+          : kind === 'type' || kind === 'prices' || kind === 'zone-prices'
             ? 'ticket_type.manage_own'
             : 'event.update_own';
       const event = await this.scoped(db, actor, id, permission);
@@ -124,8 +223,18 @@ export class EventManagementService {
       } else {
         this.draft(event, version);
         if (kind === 'edit')
-          await this.repository.update(db, id, input as Omit<DraftInput, 'organizationId'>);
-        if (kind === 'layout') {
+          await this.repository.update(
+            db,
+            id,
+            input as Omit<DraftInput, 'organizationId' | 'ticketingMode'>,
+          );
+        if (kind === 'layout' || kind === 'zone-layout') {
+          if (event.ticketing_mode !== (kind === 'zone-layout' ? 'QUANTITY' : 'NUMBERED'))
+            throw new AppError(
+              422,
+              'TICKETING_MODE_CONFLICT',
+              'Sơ đồ không đúng hình thức vé của sự kiện.',
+            );
           const data = input as LayoutInput,
             venue = await this.repository.venue(db, data.venueId);
           if (
@@ -140,13 +249,24 @@ export class EventManagementService {
               'UNSUPPORTED_VENUE_BOUNDS',
               'Địa điểm cần khung chữ nhật đã cấu hình.',
             );
-          validateLayout(
-            data,
-            Number(venue.canvas_width),
-            Number(venue.canvas_height),
-            venue.max_capacity,
-          );
-          await this.repository.layout(db, event, data, venue);
+          if (kind === 'zone-layout') {
+            const zoneData = input as ZoneLayoutInput;
+            validateZoneLayout(
+              zoneData,
+              Number(venue.canvas_width),
+              Number(venue.canvas_height),
+              venue.max_capacity,
+            );
+            await this.repository.zoneLayout(db, event, zoneData, venue);
+          } else {
+            validateLayout(
+              data,
+              Number(venue.canvas_width),
+              Number(venue.canvas_height),
+              venue.max_capacity,
+            );
+            await this.repository.layout(db, event, data, venue);
+          }
         }
         if (kind === 'session' || kind === 'session-edit') {
           const data = input as SessionInput;
@@ -167,10 +287,17 @@ export class EventManagementService {
             kind === 'session-edit' ? sessionId : undefined,
           );
         }
-        if (kind === 'type' || kind === 'prices') {
+        if (kind === 'type' || kind === 'prices' || kind === 'zone-prices') {
+          if (
+            kind !== 'type' &&
+            event.ticketing_mode !== (kind === 'zone-prices' ? 'QUANTITY' : 'NUMBERED')
+          )
+            throw new AppError(422, 'TICKETING_MODE_CONFLICT', 'Giá không đúng hình thức vé.');
           const session = await this.repository.session(db, sessionId!, id);
           if (kind === 'type')
             await this.repository.type(db, session.id, input as { code: string; name: string });
+          else if (kind === 'zone-prices')
+            await this.repository.zonePrices(db, session, (input as ZonePricingInput).prices);
           else await this.repository.prices(db, session, (input as PricingInput).prices);
         }
         await this.repository.bump(db, id);
@@ -193,7 +320,18 @@ export class EventManagementService {
       for (const session of sessions) {
         if (!session.pricing_config)
           throw new AppError(422, 'INCOMPLETE_PRICING', 'Cần cấu hình giá mọi suất.');
-        await this.repository.prices(db, session, session.pricing_config);
+        if (event.ticketing_mode === 'QUANTITY')
+          await this.repository.zonePrices(
+            db,
+            session,
+            session.pricing_config as ZonePricingInput['prices'],
+          );
+        else
+          await this.repository.prices(
+            db,
+            session,
+            session.pricing_config as PricingInput['prices'],
+          );
       }
       const graph = await this.repository.graph(db, id);
       await this.repository.submit(db, event, actor.id, graph);
@@ -212,7 +350,7 @@ export class EventManagementService {
     actor: RequestActor,
     reviewId: string,
     action: 'APPROVED' | 'REJECTED' | 'WITHDRAWN',
-    input: { version: number; reason?: string; guidance?: string },
+    input: { version: number; reason?: string; guidance?: string; reasonCode?: string | undefined },
     key: string,
     requestId: string,
   ) {
@@ -264,6 +402,7 @@ export class EventManagementService {
         action,
         input.reason ?? '',
         input.guidance ?? '',
+        input.reasonCode,
       );
       await this.repository.audit(
         db,

@@ -113,3 +113,24 @@ Fresh + upgrade có seed và PG/Edge25 ca đã qua. Fixture catalog-before-011.s
 ## Hoàn tiền/feedback — migration012
 
 Đã backup trước012 và áp dụng DB local; hiện46 bảng, không chạy lại012. DB rỗng dùng schema.sql + seed. [012](migrations/012-refunds-feedback.sql) dùng refunds/reports có sẵn, thêm evidence/version và một feedback chung hai target. Không bịa chứng từ cho SUCCESS refund cũ thiếu bằng chứng; kiểm tra dữ liệu lịch sử trước nâng DB khác. Backup local backups/before-012-1791805498317.dump được xác minh pg_restore --list. Khôi phục bằng backup trên DB riêng và release trước012 khi cần; không xóa giao dịch mới để rollback. [37](../Docs/37-refunds-reviews-app-feedback.md).
+
+## Organizer operations và demo bán vé — migration013
+
+Đã áp dụng [013](migrations/013-organizer-operations.sql) DB local sau backup backups/before-013-1791811206992.dump (250227 bytes, pg_restore --list qua); vẫn46 bảng. Không chạy lại013. DB rỗng dùng schema.sql, DB khác backup/review rồi nâng sau012. Thêm cột vào event_change_requests/events/notifications, không bảng mới hoặc role grant.
+
+[003-local-ticket-sales.sql](seeds/003-local-ticket-sales.sql) đã nạp local: event970001/public ID local-ticket-sales-demo, session970003,12 ghế2.000 VND/minimumAge18. Chỉ dùng local với seed002, hồ sơ APPROVED là fixture, không tài khoản Admin vận hành/phiên đăng nhập/payment mới. Chạy lặp giữ lịch/trạng thái ghế/tiền. Khôi phục bằng backup trên DB riêng và release trước013 khi cần, không xóa giao dịch mới. [API/Swagger và kiểm chứng](../Docs/38-organizer-sales-operations.md).
+
+
+## Customer ẩn Organizer — migration014 / ADR-035
+
+DB local đã áp dụng014 sau backup `backups/before-014-1791972755106.dump` (254724 bytes, pg_restore --list qua),47 bảng; fingerprint dữ liệu auth/role/đơn/vé/tiền/audit/follow giữ nguyên. **Không chạy014 lại trên DB local.** DB khác đã có013: backup/review rồi chạy migrations/014-organizer-blocks.sql một lần. DB rỗng dùng schema.sql có014,47 bảng; không chạy lại migration. Quan hệ nhiều–nhiều không đổi credential/role/đơn/vé/tiền/follow. Admin gỡ dùng ARCHIVED, không bảng compensation. Rollback app giữ preference/lịch sử, không drop dữ liệu hoặc ghi đè DB đang phục vụ. Chi tiết kiểm chứng/giới hạn runtime tại Docs26/40.
+
+## Search sự kiện — migration015 / ADR-036
+
+DB local đã apply015 sau backup backups/before-015-1791977547583.dump (257083 bytes, pg_restore --list qua),47 bảng; fingerprint toàn bộ bảng ngoài outbox giữ nguyên. **Không chạy015 lại trên DB local.** DB khác có014: backup/review rồi chạy015 một lần. DB rỗng dùng schema.sql có015, không chạy migration nữa. Chỉ functions/triggers/outbox jobs, không dữ liệu auth/role/đơn/vé/tiền hoặc bảng mới. Sau migration chạy BE npm run search:reindex với một tiến trình đồng bộ để tạo/backfill ES đã được duyệt. [Vận hành/khôi phục](../Docs/41-home-event-search.md).
+
+## Outdoor — migration016
+
+DB có015: backup/review rồi chạy016 một lần; DB rỗng dùng schema.sql đã gồm016. Dùng lại47 bảng, thêm mode/khu và inventory unit theo section/ordinal, không physical seats giả. Backfill mode giữ timestamps/historical rows, không tự cấu hình sức chứa cho catalog demo cũ. Sau khi016 đã áp dụng không chạy lại. [Schema/ERD/rollback và trạng thái thực tế](../Docs/42-outdoor-zone-ticketing.md).
+
+Kiểm chứng cuối2026-10-14: BE97 unit/HTTP/config/architecture + lint/typecheck/build/format/secret guard qua; PG/ES59 passed/2 browser skipped. DB local đã apply016 sau backup backups/before-016-1791983829678.dump263060 bytes (pg_restore --list qua), vẫn47 bảng; fingerprint mọi giá trị lịch sử và timestamps giữ nguyên khi loại đúng các cột mới. Không chạy016 lại. Smoke health/ready200, search200/Elasticsearch, Admin health401 khi chưa login, Swagger4 outdoor paths. Fixture PG/index/API key đã dọn, BE/tmp rỗng; không provider/tiền thật hoặc FE mới.

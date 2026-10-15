@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg';
+import { randomUUID } from 'node:crypto';
 import type { RequestActor } from '../../shared/auth/request-actor.js';
 import { ManagementAccessRepository } from '../../shared/auth/management-access.repository.js';
 import { withTransaction } from '../../shared/database/transaction.js';
@@ -11,9 +12,51 @@ import { usersRepository } from '../users/repositories/users.repository.js';
 import type { RefundBookingPort, RefundPaymentPort } from './refund.ports.js';
 import { RefundRepository, type RefundContext } from './refund.repository.js';
 import type { RefundDecision, RefundResult } from './refund.schema.js';
+import type { LockedPurchase } from '../payments/application/payment.ports.js';
 const missing = () =>
   new AppError(404, 'NOT_FOUND', 'Không tìm thấy yêu cầu trong phạm vi của bạn.');
 export class RefundService {
+  /** Called only with purchase locks and the event cancellation fence already held. */
+  async prepareCancellation(
+    db: PoolClient,
+    purchase: LockedPurchase,
+    actorId: string,
+    reason: string,
+  ) {
+    if (purchase.status === 'AWAITING_PAYMENT') {
+      await this.payments.closeUnpaid(db, purchase.id);
+      return;
+    }
+    if (purchase.status !== 'CONFIRMED' || !purchase.confirmedPaymentId) return;
+    const payment = await this.payments.lock(db, purchase.confirmedPaymentId);
+    if (!payment || payment.status !== 'SUCCESS' || payment.amount_minor !== purchase.amount)
+      throw new AppError(
+        409,
+        'CANCELLATION_PAYMENT_CONFLICT',
+        'Cần xác nhận giao dịch trước khi lập hoàn tiền.',
+      );
+    const refundId = await this.repository.cancellation(
+      db,
+      payment.id,
+      actorId,
+      purchase.amount,
+      reason,
+    );
+    const tickets = await this.bookings.tickets(db, purchase);
+    if (tickets.some((t) => t.status === 'USED'))
+      throw new AppError(409, 'REFUND_TICKET_NOT_VALID', 'Vé đã sử dụng không thuộc phạm vi hủy.');
+    await this.bookings.revoke(db, purchase.id);
+    const c = await this.repository.context(db, purchase.id);
+    await this.repository.audit(
+      db,
+      actorId,
+      refundId,
+      'refund.event_cancelled',
+      randomUUID(),
+      'REFUND',
+      { organizationId: c!.organization_id },
+    );
+  }
   constructor(
     private readonly repository = new RefundRepository(),
     private readonly bookings: RefundBookingPort = new BookingRefundAdapter(),

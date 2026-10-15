@@ -1,16 +1,18 @@
 # 02. Yêu cầu hệ thống
 
+**Hiện hành 2026-10-14:** ADR-029/030 thay auth/onboarding công ty/SMS cũ; ADR-035 thay Admin khóa/chặn User/event bằng Admin gỡ event và Customer ẩn Organizer. Docs40 ghi chức năng BE đã triển khai và giới hạn còn chờ chính sách. Không coi yêu cầu mở rộng hoặc phase cũ là đã có code.
+
 ## Yêu cầu chức năng
 
 “MVP*” có phần chi tiết còn mở tại [18](18-open-questions.md), không có nghĩa mọi Q đều chưa duyệt. Yêu cầu Organizer/review/editor/check-in mới tại [23](23-organization-review-seatmap.md) thuộc MVP do chủ dự án yêu cầu.
 
 | ID | Phạm vi | Yêu cầu và điều kiện nghiệm thu |
 | --- | --- | --- |
-| FR-001 | MVP | Đăng nhập/đăng ký Customer bằng Google hoặc OTP SĐT; identity unique, không tự gán Organizer/Admin |
+| FR-001 | MVP | Google PKCE/email OTP cho Customer/Organizer theo onboarding ADR-029; identity unique, không tự cấp ADMIN |
 | FR-002 | MVP | Đăng nhập, refresh luân chuyển token, logout một/toàn bộ thiết bị; token bị thu hồi không dùng lại được |
-| FR-003 | MVP | OTP một lần, giới hạn thử/gửi; xác minh email công ty; khôi phục qua identity đã liên kết, không reset mật khẩu nội bộ |
-| FR-004 | MVP | Sửa profile allowlist, liên kết identity cần xác thực lại; tài khoản bị khóa bị từ chối, không sửa email công ty để né duyệt |
-| FR-005 | MVP | Organizer là Organization, đại diện dùng email công ty đã xác minh, Admin duyệt role; can thiệp tài khoản cần report và audit |
+| FR-003 | MVP | OTP email một lần, giới hạn thử/gửi; SĐT chỉ alias chưa xác minh; khôi phục qua identity đã liên kết, không mật khẩu nội bộ/mail công ty bắt buộc |
+| FR-004 | MVP | Sửa profile allowlist, linking cần xác thực lại/proof; phiên thu hồi và tài khoản không ACTIVE bị từ chối, không cấp quyền qua profile/email |
+| FR-005 | MVP | Organizer chọn role lúc onboarding bằng Google/email cá nhân; Organization/membership cần Admin duyệt trước mở bán; không API Admin khóa User theo ADR-035 |
 | FR-006 | MVP | Organizer tạo/sửa bản nháp của mình; chỉ xóa cứng nháp không có dữ liệu phụ thuộc |
 | FR-007 | MVP | Organizer submit ít nhất một tháng trước session sớm nhất; Admin duyệt trong 15 ngày mới PUBLISHED; expiry hủy hồ sơ/thông báo/phiếu lý do, không tự đăng |
 | FR-008 | MVP | Guest xem danh sách/chi tiết sự kiện công khai; không đọc được bản nháp hoặc dữ liệu khách |
@@ -27,7 +29,7 @@
 | FR-019 | MVP | Hủy/hết hạn đơn chưa trả nhả ghế; checkout không gia hạn; đơn CONFIRMED chỉ xử lý tiền qua refund |
 | FR-020 | MVP* | Full refund mock vé chưa USED; Organizer duyệt thường xuyên, Admin qua report; vô hiệu vé trước hoàn, không resale/vượt tiền; deadline Q-004 |
 | FR-021 | MVP | Organizer chỉ xem số liệu các event của mình; doanh thu thành công và hoàn tiền tách biệt; không gọi mock là tiền thật |
-| FR-022 | MVP | Admin duyệt role/event, lập phiếu lý do và xử lý report có scope/audit; không quản lý vận hành thay Organizer |
+| FR-022 | MVP | Admin duyệt tổ chức/event, soạn phiếu lý do và xử lý report có scope/audit; gỡ PUBLISHED→ARCHIVED dừng public/bán/check-in/vào cửa, giữ lịch sử, không đền bù do gỡ |
 | FR-023 | MVP | Worker giải phóng hold/booking hết hạn, thử lại công việc bền vững và đối soát payment chưa rõ kết quả |
 | FR-024 | MVP một phần / sau MVP | MVP thông báo trong tài khoản về duyệt/từ chối/hết hạn hồ sơ và phiếu lý do, outbox bền vững; email giao dịch bán vé/nhắc lịch mở rộng sau MVP |
 | FR-025 | Sau MVP | Websocket/Socket.IO cập nhật ghế; mất kết nối phải tải lại snapshot từ API |

@@ -53,3 +53,8 @@ OTP 6 số, TTL 5 phút, HMAC gắn challenge ID, browser binding cookie độc 
 SMTP Gmail TLS 465/App Password, timeout hữu hạn; logger/debug tắt, không lộ lỗi SMTP thô. EMAIL Customer không là COMPANY_EMAIL và không cấp Organizer. Lifetime JWT/refresh giữ nguyên. Gửi Gmail thật/Google live cần kiểm tra riêng sau cấu hình; xem [27](27-email-otp-setup.md).
 
 ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+
+## Quản lý phiên đã triển khai 2026-10-14
+
+GET /auth/sessions phân trang phiên còn hoạt động của chính User; DELETE /auth/sessions/{sessionId} thu hồi đúng phiên sở hữu; POST /auth/logout-all body {} tăng authVersion và thu hồi mọi phiên. Mutation giữ Bearer/Origin/double-submit CSRF và xóa refresh cookie khi phiên hiện tại bị thu hồi. Revalidate dưới khóa User→Session, cùng thứ tự với refresh/logout; không đổi lifetime/rotation/provider/linking. Không token/hash/family/email/identity subject trong DTO. Docs40 thay đoạn cũ nói logout-all/devices chưa triển khai.

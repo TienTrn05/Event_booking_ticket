@@ -32,6 +32,7 @@ export type LockedPurchase = {
   sessionId: string;
   holdId: string;
   status: string;
+  confirmedPaymentId: string | null;
   expiresAt: Date;
   expired: boolean;
   amount: string;

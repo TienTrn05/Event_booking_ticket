@@ -1,5 +1,7 @@
 # 16. Lộ trình MVP và mở rộng
 
+**Trạng thái BE 2026-10-14:** luồng lõi và các chức năng thiếu sau audit đã triển khai theo Docs40/ADR-035. Bảng phase dưới đây là lộ trình lịch sử, không phải danh sách endpoint còn thiếu. Topology/auth hiện hành theo ADR-025/028/029; không Admin FE riêng/mail công ty/SMS bắt buộc. Các phần merchandise/uy tín/mở bán lại cần chính sách và FE quản lý mới chưa nối.
+
 Cập nhật theo quyết định chủ dự án 2026-09-12 tại [18](18-open-questions.md)/[23](23-organization-review-seatmap.md) và topology frontend ADR-016 ngày 2026-09-23. Đã có khung BE/Public FE và bộ kiểm tra nền tảng; Admin FE độc lập chưa scaffold. Các phase nghiệp vụ vẫn là lộ trình, chưa cam kết ngày. Không xin duyệt lại quy tắc đã RESOLVED.
 
 | Phase | Bàn giao | Phụ thuộc / nghiệm thu |

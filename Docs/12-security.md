@@ -78,3 +78,8 @@ ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để c�
 ## Hoàn tiền và nội dung feedback — ADR-032
 
 Khóa đơn/ghế/payment/refund/ticket theo giao thức để approval không tranh chấp với admission; đủ mọi vé chưa USED, full amount, payment đúng và không cần đối soát. Admin phải report IN_REVIEW được giao đúng tài nguyên; reference hoàn tiền unique, evidence/time/actor bắt buộc, callback sau refund không hồi sinh. Nội dung feedback JSON/plain text, DTO không có history/contact/identity credential; audit không lưu text/refund evidence, nhưng giữ organization/report scope và version/status. Review riêng tư tác giả/Organizer/Admin, SYSTEM chỉ tác giả/Admin. Không suy quyền từ trường kind, role, eventId hoặc reportId do client gửi.
+
+
+## Bổ sung 2026-10-14
+
+Quản lý phiên giữ Bearer/Origin/CSRF, User→Session locks và revalidation; logout-all tăng authVersion/revoke toàn bộ. Audit chỉ metadata theo scope, không raw JSON/evidence/credential/PII. report.handle của Organizer không là Admin; queue/claim/support-booking/gỡ cần ADMIN/permission/report được giao đúng tài nguyên. Đóng report thu hồi scope kể cả replay. Catalog cá nhân từ JWT, no-store/Vary Authorization, token sai không fallback Guest. Chặn cá nhân không là quyền, đơn/vé/tiền giữ nguyên. Readiness cần014; cache ghế revalidate event hiện hành trước trả snapshot. Docs40/ADR-035.

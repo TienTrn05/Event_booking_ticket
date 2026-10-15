@@ -28,6 +28,7 @@ export function createApp(deps: AppDependencies) {
 
   app.use('/api/v1', requireJsonRequest);
   app.use('/api/v1/admin/onboarding/questions', express.json({ limit: '256kb' }));
+  app.use('/api/v1/organizer/events/:id/content-changes', express.json({ limit: '64kb' }));
   app.use('/api/v1/organizer/events/:id/layouts', express.json({ limit: '1mb' }));
   app.use(
     '/api/v1/organizer/events/:id/sessions/:sessionId/prices',

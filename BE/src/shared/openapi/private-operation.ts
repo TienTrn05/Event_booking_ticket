@@ -2,7 +2,7 @@ import type { z } from 'zod';
 import { inputSchema, idempotencyHeader } from './input-schema.js';
 export function privateOperation(
   path: string,
-  method: 'get' | 'post' | 'patch',
+  method: 'get' | 'post' | 'patch' | 'put' | 'delete',
   tag: string,
   summary: string,
   body?: z.ZodType,

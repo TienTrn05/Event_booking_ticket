@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 import { pool } from '../shared/database/pool.js';
 import { logger } from '../shared/logging/logger.js';
 import { closeRedis } from '../shared/redis/client.js';
+import { env } from '../config/env.js';
 
 export function registerShutdown(server: Server) {
   let stopping = false;
@@ -32,6 +33,7 @@ export function registerShutdown(server: Server) {
           logger.info('API stopped');
 
           process.exitCode = exitCode;
+          if (env.SUPERVISED_PROCESS === 'true' && process.connected) process.disconnect();
         })
         .catch((error: unknown) => {
           logger.error({ error }, 'Database shutdown failed');
@@ -55,6 +57,9 @@ export function registerShutdown(server: Server) {
 
   process.on('SIGTERM', () => {
     shutdown();
+  });
+  process.on('message', (message: unknown) => {
+    if (message === 'shutdown') shutdown();
   });
 
   process.on('uncaughtException', (error) => {

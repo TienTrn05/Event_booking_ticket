@@ -10,6 +10,7 @@ import type {
   TicketIssuer,
   Receipt,
   PaymentLink,
+  LockedPurchase,
 } from './payment.ports.js';
 import { PaymentRepository, type PaymentRow } from '../repositories/payment.repository.js';
 export class PaymentService {
@@ -25,7 +26,13 @@ export class PaymentService {
       throw new AppError(503, 'PAYMENT_UNAVAILABLE', 'Thanh toán payOS chưa được cấu hình.');
     return this.gateway;
   }
-  private dto(payment: PaymentRow) {
+  private dto(payment: PaymentRow, purchase: LockedPurchase, canRetry: boolean) {
+    const succeeded =
+      purchase.confirmedPaymentId === payment.id &&
+      ((payment.status === 'SUCCESS' && purchase.status === 'CONFIRMED') ||
+        (payment.status === 'REFUNDED' && purchase.status === 'REFUNDED'));
+    const failed =
+      payment.status === 'FAILED' || payment.status === 'SUCCESS' || !purchase.canConfirm;
     return {
       id: payment.id,
       bookingId: payment.booking_id,
@@ -37,6 +44,9 @@ export class PaymentService {
       checkoutUrl: payment.checkout_url,
       reconciliationStatus: payment.reconciliation_status,
       reconciliationReason: payment.reconciliation_reason,
+      outcome: succeeded ? 'SUCCESS' : failed ? 'FAILED' : null,
+      canRetry,
+      expiresAt: purchase.expiresAt.toISOString(),
     };
   }
   async start(actor: RequestActor, bookingId: string, key: string, requestId: string) {
@@ -74,6 +84,12 @@ export class PaymentService {
           'Cần đủ thông tin và độ tuổi cho từng vé trước thanh toán.',
         );
       const pending = await this.repository.pending(db, bookingId);
+      if (!pending && (await this.repository.hasReceivedFunds(db, bookingId)))
+        throw new AppError(
+          409,
+          'PAYMENT_CONFIRMATION_REQUIRED',
+          'Đã ghi nhận tiền cho đơn; cần xác nhận kết quả trước khi thanh toán lại.',
+        );
       const payment = pending ?? (await this.repository.create(db, bookingId, purchase.amount));
       if (!pending) {
         const returnUrl = new URL('/payments/return', this.appOrigin);
@@ -102,8 +118,16 @@ export class PaymentService {
       await this.bookings.authorize(db, actor, 'booking.read_self');
       const payment = await this.repository.find(db, id);
       if (!payment) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy thanh toán.');
-      await this.bookings.lock(db, payment.booking_id, actor.id);
-      return this.dto(payment);
+      const purchase = await this.bookings.lock(db, payment.booking_id, actor.id);
+      // Read under the purchase lock so a callback cannot leave a stale payment result.
+      const current = await this.repository.find(db, id);
+      if (!current) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy thanh toán.');
+      const canRetry =
+        current.status === 'FAILED' &&
+        current.received_minor === '0' &&
+        purchase.canConfirm &&
+        !(await this.repository.hasReceivedFunds(db, purchase.id));
+      return this.dto(current, purchase, canRetry);
     });
   }
   async createLink(paymentId?: string) {

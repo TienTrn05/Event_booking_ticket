@@ -14,6 +14,7 @@ export type RefundContext = {
   session_status: string;
 };
 export type RefundRow = {
+  type: 'CUSTOMER' | 'COMPENSATION';
   id: string;
   payment_id: string;
   requested_by: string | null;
@@ -32,7 +33,7 @@ export type RefundRow = {
 };
 export class RefundRepository {
   private readonly select =
-    'r.id::text,r.payment_id::text,r.requested_by::text,r.approved_by::text,r.status,r.amount_minor::text,r.reason,r.version,r.decision_reason,r.approved_at,r.recorded_at,r.provider_reference,r.evidence_note,r.transferred_at,r.created_at';
+    'r.id::text,r.type,r.payment_id::text,r.requested_by::text,r.approved_by::text,r.status,r.amount_minor::text,r.reason,r.version,r.decision_reason,r.approved_at,r.recorded_at,r.provider_reference,r.evidence_note,r.transferred_at,r.created_at';
   async context(db: PoolClient, id: string, byRefund = false) {
     return (
       await db.query<RefundContext>(
@@ -62,6 +63,28 @@ export class RefundRepository {
       await db.query<{ id: string }>(
         "INSERT INTO refunds(payment_id,requested_by,type,amount_minor,reason,provider,provider_key) VALUES($1,$2,'CUSTOMER',$3,$4,'PAYOS',$5) RETURNING id::text",
         [paymentId, userId, amount, reason, randomUUID()],
+      )
+    ).rows[0]!.id;
+  }
+  async cancellation(
+    db: PoolClient,
+    paymentId: string,
+    actorId: string,
+    amount: string,
+    reason: string,
+  ) {
+    const current = await this.active(db, paymentId);
+    if (current) {
+      await db.query(
+        "UPDATE refunds SET status='PROCESSING',approved_by=$2,approved_at=clock_timestamp(),decision_reason=$3,version=version+1 WHERE id=$1 AND status='REQUESTED'",
+        [current.id, actorId, reason],
+      );
+      return current.id;
+    }
+    return (
+      await db.query<{ id: string }>(
+        "INSERT INTO refunds(payment_id,type,status,amount_minor,reason,provider,provider_key,approved_by,approved_at,decision_reason) VALUES($1,'COMPENSATION','PROCESSING',$3,$4,'PAYOS',$5,$2,clock_timestamp(),$4) RETURNING id::text",
+        [paymentId, actorId, amount, reason.slice(0, 500), randomUUID()],
       )
     ).rows[0]!.id;
   }

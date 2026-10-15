@@ -41,26 +41,29 @@ function mapOrganizer(row: CatalogRow<CatalogOrganizer>): CatalogOrganizer {
   };
 }
 export const organizersRepository: Pick<CatalogRepository, 'listOrganizers' | 'findOrganizer'> = {
-  async listOrganizers(featuredOnly = false) {
+  async listOrganizers(featuredOnly = false, userId) {
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogOrganizer>>(
         `${organizerSelect}
          WHERE o.status = 'APPROVED' AND o.public_id IS NOT NULL ${featuredOnly ? 'AND o.featured_rank IS NOT NULL' : ''}
+         AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.organization_id=o.id AND ob.user_id=$1::bigint)
          GROUP BY o.id, o.public_id, o.name, o.avatar_url, o.summary, o.status,
            o.category_label, o.featured_rank
          ORDER BY COALESCE(o.featured_rank, 9999), o.name`,
+        [userId ?? null],
       );
       return rows.map(mapOrganizer);
     });
   },
-  async findOrganizer(id) {
+  async findOrganizer(id, userId) {
     return withConnection(async (connection) => {
       const { rows } = await connection.query<CatalogRow<CatalogOrganizer>>(
         `${organizerSelect}
          WHERE o.status = 'APPROVED' AND o.public_id IS NOT NULL AND o.public_id = $1
+         AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.organization_id=o.id AND ob.user_id=$2::bigint)
          GROUP BY o.id, o.public_id, o.name, o.avatar_url, o.summary, o.status,
            o.category_label, o.featured_rank LIMIT 1`,
-        [id],
+        [id, userId ?? null],
       );
       return rows[0] ? mapOrganizer(rows[0]) : null;
     });

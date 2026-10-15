@@ -2,11 +2,76 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { authenticatedUser } from '../../auth/auth.service.js';
 import { sendData } from '../../../shared/http/response.js';
-import { numericId } from '../../../shared/validation/common.schema.js';
+import { numericId, paginationSchema } from '../../../shared/validation/common.schema.js';
 import { idempotencyKey } from '../../../shared/idempotency/idempotency.schema.js';
-import { draftInput, versionInput, reviewDecision } from './event-management.schema.js';
+import {
+  draftInput,
+  versionInput,
+  reviewDecision,
+  reviewHistoryQuery,
+  ownReviewQuery,
+  reasonDraft,
+} from './event-management.schema.js';
 import { EventManagementService } from './event-management.service.js';
 export class EventManagementController {
+  remove: RequestHandler = async (req, res) => {
+    await this.service.remove(
+      await authenticatedUser(req.get('authorization')),
+      numericId.parse(req.params.id),
+      versionInput.parse(req.body).version,
+      String(res.locals.requestId),
+    );
+    res.status(204).end();
+  };
+  reasonQueue: RequestHandler = async (req, res) => {
+    const q = paginationSchema.parse(req.query);
+    sendData(
+      res,
+      await this.service.reasonQueue(
+        await authenticatedUser(req.get('authorization')),
+        q.page,
+        q.pageSize,
+      ),
+    );
+  };
+  reasonPreview: RequestHandler = async (req, res) =>
+    sendData(
+      res,
+      await this.service.reasonPreview(
+        await authenticatedUser(req.get('authorization')),
+        numericId.parse(req.params.id),
+      ),
+    );
+  saveReasonDraft: RequestHandler = async (req, res) =>
+    sendData(
+      res,
+      await this.service.saveReasonDraft(
+        await authenticatedUser(req.get('authorization')),
+        numericId.parse(req.params.id),
+        reasonDraft.parse(req.body),
+        idempotencyKey.parse(req.get('idempotency-key')),
+        String(res.locals.requestId),
+      ),
+    );
+  history(own = false): RequestHandler {
+    return async (req, res) =>
+      sendData(
+        res,
+        await this.service.history(
+          await authenticatedUser(req.get('authorization')),
+          (own ? ownReviewQuery : reviewHistoryQuery).parse(req.query),
+          own ? numericId.parse(req.params.id) : undefined,
+        ),
+      );
+  }
+  ownReview: RequestHandler = async (req, res) =>
+    sendData(
+      res,
+      await this.service.ownReview(
+        await authenticatedUser(req.get('authorization')),
+        numericId.parse(req.params.reviewId),
+      ),
+    );
   options: RequestHandler = async (req, res) =>
     sendData(res, await this.service.options(await authenticatedUser(req.get('authorization'))));
   constructor(private readonly service = new EventManagementService()) {}

@@ -45,3 +45,11 @@ Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). 
 Onboarding mới và Organizer cá nhân: xem [Docs/33](../Docs/33-registration-onboarding.md) và [Docs/34](../Docs/34-organizer-event-api.md). DB đã có 007 cần backup/chạy 008 rồi009; chưa tự áp dụng trên DB local. `npm run test:commerce` chạy fresh/upgrade và integration trên PG tạm; đặt COMMERCE_TEST_BROWSER=1 sau FE build để kiểm chứng onboarding→purchase bằng Edge. Không gọi payOS/SMTP thật trong tests.
 
 Refund/report/feedback APIs đã triển khai theo [Docs37](../Docs/37-refunds-reviews-app-feedback.md): hoàn thủ công có chứng từ, tổ chức duyệt/Admin theo report; đánh giá tổ chức và góp ý app riêng tư. Migration012 đã áp dụng DB local, fresh/local46 bảng. FE chức năng mới chưa nối; không tự chuyển tiền hoặc cấp Admin thật.
+
+## Home event search
+
+Elasticsearch một instance đã được chấp thuận ADR-036; English/fuzzy/N-gram/prefix/completion, Redis candidates15s và PostgreSQL hydrate dữ liệu hiện hành. npm run search:setup → infra:search → apply015 khi cần → search:reindex; notifications worker hiện có đồng bộ outbox. DB local đã apply015, không chạy lại. npm run test:search chạy PG + ES thật trong fixture riêng và dọn index/API key. [Setup/hợp đồng/consistency/limits](../Docs/41-home-event-search.md).
+
+## Indoor/outdoor
+
+NUMBERED indoor/QUANTITY outdoor theo khu đã có BE. POST Organizer zone-layouts và PUT zone-prices, GET public zones/POST zones/hold, cùng checkout/payment/tickets/attendees/refund/cancel. Không ghế vật lý giả, giữ6 vé/hold5 phút. Migration016 dùng lại47 bảng. Health Admin/API dùng chung readiness có Elasticsearch. [Docs42](../Docs/42-outdoor-zone-ticketing.md).

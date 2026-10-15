@@ -39,3 +39,11 @@
 Google/email OTP dùng được cho Customer và Organizer, không yêu cầu mail công ty. Vai trò chọn lúc onboarding (CUSTOMER hoặc ORGANIZER), displayName/gender/DOB bắt buộc. Organizer riêng Customer; chỉ bật Customer khi người dùng yêu cầu rõ qua API. Không tự cấp ADMIN. Tạo tổ chức/sự kiện nháp ngay, Admin duyệt tổ chức và sự kiện trước mở bán. Yêu cầu company session/domain cũ bị thay thế trong phạm vi này. JWT/refresh/cookie/CSRF/linking giữ nguyên. Xem Docs/33 và Docs/34.
 
 ADR-030 / chủ dự án chốt2026-10-12: Admin có onboarding.manage để cấu hình câu hỏi bổ sung (thêm/bỏ/required/nhãn/thứ tự). Bốn trường role/displayName/gender/DOB luôn bắt buộc. Bộ câu hỏi có phiên bản; giữ câu trả lời cũ, không cấp quyền từ custom answers. Xem Docs/35.
+
+## Search Home — chủ dự án chốt 2026-10-14 / ADR-036
+
+Đã chấp thuận Elasticsearch **một instance** cho search/autocomplete sự kiện Home, PostgreSQL dữ liệu gốc, Redis cache, English analyzer, N-gram và gợi ý tiền tố. API vẫn Modular Monolith một instance, worker cùng codebase hiện có. Đây là ngoại lệ search được chốt của ADR-025, không quyền mở cluster/replica/sharding, broker hoặc API instance mới. Xem Docs/41. Không hỏi lại quyền cho phạm vi search đã chấp thuận.
+
+## Indoor/outdoor — chủ dự án chốt 2026-10-14 / ADR-037
+
+Indoor dùng ghế đánh số; outdoor dùng khu/sức chứa và khách chọn số lượng. Hoàn thiện BE outdoor, giữ lifecycle hold5 phút/tối đa6 vé/payment/attendee/QR/check-in/refund/cancel đã chốt. Mode NUMBERED/QUANTITY ở draft, không đổi sự kiện đang bán; không ghế vật lý giả hoặc hạ tầng mới. Docs42/migration016. FE editor/picker khu chưa thuộc lượt BE này.

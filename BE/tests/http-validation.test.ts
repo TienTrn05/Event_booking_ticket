@@ -107,9 +107,13 @@ describe('HTTP validation and routing after separation', () => {
   it('preserves catalog defaults and false filters', async () => {
     const { api, repository } = app();
     await request(api).get('/api/v1/events').expect(200);
-    expect(repository.listEvents).toHaveBeenCalledWith({ page: 1, pageSize: 24 });
+    expect(repository.listEvents).toHaveBeenCalledWith({
+      page: 1,
+      pageSize: 24,
+      excludedForUserId: undefined,
+    });
     await request(api).get('/api/v1/organizers?featured=false').expect(200);
-    expect(repository.listOrganizers).toHaveBeenCalledWith(false);
+    expect(repository.listOrganizers).toHaveBeenCalledWith(false, undefined);
   });
   it('rejects profile mass assignment before mutation', async () => {
     const response = await request(app().api)

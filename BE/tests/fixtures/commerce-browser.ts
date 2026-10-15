@@ -12,7 +12,7 @@ type Reply = {
   result?: Record<string, unknown>;
   error?: { message: string };
 };
-class Cdp {
+export class Cdp {
   seq = 0;
   pending = new Map<
     number,
@@ -58,15 +58,19 @@ class Cdp {
     this.socket.close();
   }
 }
-export async function runCommerceBrowser(input: {
-  app: Express;
-  origin: string;
-  publicId: string;
-  sessionId: string;
-  refreshCookie: (role: 'customer' | 'staff' | 'admin') => Promise<string>;
-  pay: () => Promise<string>;
-  ticket: () => Promise<string>;
-}) {
+export async function runCommerceBrowser(
+  input:
+    | {
+        app: Express;
+        origin: string;
+        publicId: string;
+        sessionId: string;
+        refreshCookie: (role: 'customer' | 'staff' | 'admin') => Promise<string>;
+        pay: () => Promise<string>;
+        ticket: () => Promise<string>;
+      }
+    | { app: Express; origin: string; run: (browser: Cdp) => Promise<void> },
+) {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
   const web = resolve(repository, '../Fe/dist'),
     temporaryRoot = resolve(repository, 'tmp'),
@@ -142,11 +146,13 @@ export async function runCommerceBrowser(input: {
     cdp = new Cdp(socket);
     await cdp.send('Page.enable');
     await cdp.send('Network.enable');
+    if ('run' in input) return await input.run(cdp);
+    const refreshCookie = input.refreshCookie;
     async function login(role: 'customer' | 'staff' | 'admin') {
       await cdp!.send('Network.clearBrowserCookies');
       await cdp!.send('Network.setCookie', {
         name: 'eventix.refresh',
-        value: await input.refreshCookie(role),
+        value: await refreshCookie(role),
         url: input.origin,
         path: '/api/v1/auth',
         httpOnly: true,

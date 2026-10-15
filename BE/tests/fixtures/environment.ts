@@ -1,6 +1,11 @@
 // Tests use explicit fixtures and never load BE/.env or external provider credentials.
 for (const key of Object.keys(process.env)) {
-  if (/^(GOOGLE_|SMTP_|JWT_|OTP_|REDIS_|R2_|R3_|ATTENDEE_|PAYOS_|TICKET_)/.test(key))
+  if (key === 'SUPERVISED_PROCESS') delete process.env[key];
+  if (
+    /^(GOOGLE_|SMTP_|JWT_|OTP_|REDIS_|ELASTICSEARCH_|R2_|R3_|ATTENDEE_|PAYOS_|TICKET_|HTTPS_|READINESS_|WORKER_)/.test(
+      key,
+    )
+  )
     delete process.env[key];
 }
 Object.assign(process.env, {

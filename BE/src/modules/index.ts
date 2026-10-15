@@ -1,4 +1,8 @@
 import type { Express } from 'express';
+import { createSearchRouter } from './search/search.routes.js';
+import { createOrganizerBlockRouter } from './users/blocks/organizer-block.routes.js';
+import { createAuditRouter } from './audit/audit.routes.js';
+import { createSupportReportRouter } from './support-reports/support-report.routes.js';
 
 import { createCatalogRouter } from './catalog/catalog.routes.js';
 
@@ -19,6 +23,9 @@ import { createPaymentRouter } from './payments/payment.routes.js';
 import { createTicketRouter } from './tickets/ticket.routes.js';
 import { createRefundRouter } from './refunds/refund.routes.js';
 import { createFeedbackRouter } from './feedback/feedback.routes.js';
+import { createSalesRouter } from './sales/sales.routes.js';
+import { createOperationsRouter } from './operations/operations.routes.js';
+import { createEventOperationsRouter } from './events/operations/event-operations.routes.js';
 import { createCommerceServices } from '../startup/payment.dependencies.js';
 import type { PaymentGateway, TicketIssuer } from './payments/application/payment.ports.js';
 
@@ -30,8 +37,15 @@ export interface ModuleDependencies {
 
 export function registerModules(app: Express, deps: ModuleDependencies) {
   const commerce = createCommerceServices(deps.paymentGateway, deps.ticketIssuer);
+  app.use('/api/v1', createSearchRouter());
+  app.use('/api/v1', createAuditRouter());
+  app.use('/api/v1', createOrganizerBlockRouter());
+  app.use('/api/v1', createSupportReportRouter());
   app.use('/api/v1', createRefundRouter());
   app.use('/api/v1', createFeedbackRouter());
+  app.use('/api/v1', createSalesRouter());
+  app.use('/api/v1', createOperationsRouter());
+  app.use('/api/v1', createEventOperationsRouter());
   app.use('/api/v1', createPaymentRouter(commerce.payments));
   app.use('/api/v1', createTicketRouter(commerce.tickets));
   app.use('/api/v1/auth', createAuthRouter());

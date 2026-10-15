@@ -1,10 +1,14 @@
 import { ui } from '../../../../shared/styles/classes';
 import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
 import { useState, useMemo } from 'react';
+import { useAuthDialog } from '../../../auth/context/AuthDialogContext';
+import { useEventSearch, useEventSuggestions } from '../../../search/hooks/useEventSearch';
+import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import type { EventSearchInput } from '../../../search/api/event-search.api';
 import { useSearchParams } from 'react-router-dom';
-import { Search, MapPin, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import EventCard from './DiscoveryEventCard';
-import type { Event, EventCategory } from '../../types/index';
+import type { EventCategory } from '../../types/index';
 import { useCatalog } from '../../../catalog/hooks/useCatalog';
 
 const categoryFilters = [
@@ -25,12 +29,12 @@ const cityFilters = [
   'Hai Phong',
 ] as const;
 const sortOptions = [
+  'Best Match',
   'Most Popular',
   'Date (Soonest)',
   'Price (Low to High)',
   'Price (High to Low)',
 ] as const;
-const initialEventCount = 8;
 
 export default function ExploreEvents({
   category,
@@ -41,17 +45,45 @@ export default function ExploreEvents({
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedCity = searchParams.get('city');
-  const [search, setSearch] = useState('');
+  const search = searchParams.get('q') ?? '';
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const city: (typeof cityFilters)[number] = cityFilters.includes(
     requestedCity as (typeof cityFilters)[number],
   )
     ? (requestedCity as (typeof cityFilters)[number])
     : 'All Cities';
-  const [sort, setSort] = useState<(typeof sortOptions)[number]>('Most Popular');
+  const [sort, setSort] = useState<(typeof sortOptions)[number]>(
+    search.trim() ? 'Best Match' : 'Most Popular',
+  );
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
-  const [showAll, setShowAll] = useState(false);
   const { catalog } = useCatalog();
+  const { accessToken } = useAuthDialog();
+  const { openPreview } = useQuickPreview();
+  const filters = useMemo(() => {
+    const categorySlug =
+      category === 'All'
+        ? undefined
+        : (catalog.categories.find((c) => c.name === category)?.id ??
+          catalog.events.find((e) => e.category === category)?.categorySlug ??
+          category.toLowerCase());
+    const sorts: Record<(typeof sortOptions)[number], EventSearchInput['sort']> = {
+      'Best Match': 'relevance',
+      'Most Popular': 'popular',
+      'Date (Soonest)': 'date_asc',
+      'Price (Low to High)': 'price_asc',
+      'Price (High to Low)': 'price_desc',
+    };
+    return {
+      q: search.trim(),
+      ...(categorySlug ? { category: categorySlug } : {}),
+      ...(city === 'All Cities' ? {} : { city }),
+      sort: sorts[sort],
+    };
+  }, [search, category, city, sort, catalog.categories, catalog.events]);
+  const results = useEventSearch(filters, accessToken);
+  const suggestions = useEventSuggestions(filters, accessToken, suggestOpen);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => {
@@ -61,31 +93,6 @@ export default function ExploreEvents({
       return next;
     });
   };
-
-  const filtered = useMemo(() => {
-    let result: Event[] = catalog.events.filter((event) => {
-      if (category !== 'All' && event.category !== category) return false;
-      if (city !== 'All Cities' && event.city !== city) return false;
-      if (
-        search &&
-        !event.title.toLowerCase().includes(search.toLowerCase()) &&
-        !event.venue.toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
-      return true;
-    });
-
-    if (sort === 'Date (Soonest)') {
-      result = [...result].sort((a, b) => a.date.localeCompare(b.date));
-    } else if (sort === 'Price (Low to High)') {
-      result = [...result].sort((a, b) => compareMoney(a.startingPrice, b.startingPrice));
-    } else if (sort === 'Price (High to Low)') {
-      result = [...result].sort((a, b) => compareMoney(b.startingPrice, a.startingPrice));
-    }
-    return result;
-  }, [catalog.events, search, category, city, sort]);
-
-  const visibleEvents = showAll ? filtered : filtered.slice(0, initialEventCount);
 
   return (
     <section id="discover" className={ui('home-chapter chapter-discover py-14 lg:py-20')}>
@@ -103,7 +110,7 @@ export default function ExploreEvents({
             </h2>
           </div>
           <span className={ui('text-sm text-ink-500 font-medium')}>
-            {filtered.length} events found
+            {results.loading ? 'Searching…' : `${results.total} events found`}
           </span>
         </div>
 
@@ -114,17 +121,90 @@ export default function ExploreEvents({
               size={18}
             />
             <input
+              aria-label="Search events"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={suggestions.length > 0}
+              aria-controls="event-search-suggestions"
+              aria-activedescendant={
+                activeSuggestion >= 0 && suggestions[activeSuggestion]
+                  ? `event-suggestion-${activeSuggestion}`
+                  : undefined
+              }
               type="text"
               placeholder="Search events, venues, organizers..."
               value={search}
               onChange={(event) => {
-                setSearch(event.target.value);
-                setShowAll(false);
+                const next = new URLSearchParams(searchParams);
+                if (event.target.value) next.set('q', event.target.value);
+                else next.delete('q');
+                void setSearchParams(next, { replace: true, preventScrollReset: true });
+                if (!search.trim() && event.target.value.trim()) setSort('Best Match');
+                setSuggestOpen(true);
+                setActiveSuggestion(-1);
+              }}
+              onFocus={() => setSuggestOpen(true)}
+              onBlur={() => setSuggestOpen(false)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setSuggestOpen(false);
+                  setActiveSuggestion(-1);
+                }
+                if (event.key === 'ArrowDown' && suggestions.length) {
+                  event.preventDefault();
+                  setActiveSuggestion((value) => (value + 1) % suggestions.length);
+                }
+                if (event.key === 'ArrowUp' && suggestions.length) {
+                  event.preventDefault();
+                  setActiveSuggestion(
+                    (value) => (value - 1 + suggestions.length) % suggestions.length,
+                  );
+                }
+                if (event.key === 'Enter' && suggestions[activeSuggestion]) {
+                  event.preventDefault();
+                  openPreview('event', suggestions[activeSuggestion]!.id);
+                  setSuggestOpen(false);
+                }
               }}
               className={ui(
                 'w-full h-11 pl-11 pr-4 text-sm rounded-xl border border-ink-200 bg-white text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all',
               )}
             />
+            {suggestions.length > 0 && (
+              <ul
+                id="event-search-suggestions"
+                role="listbox"
+                aria-label="Event suggestions"
+                className="absolute left-0 right-0 top-full z-40 mt-2 rounded-xl border border-ink-200 bg-white p-1 shadow-lg"
+              >
+                {suggestions.map((item, index) => (
+                  <li
+                    id={`event-suggestion-${index}`}
+                    role="option"
+                    aria-selected={activeSuggestion === index}
+                    key={item.id}
+                  >
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        openPreview('event', item.id);
+                        setSuggestOpen(false);
+                      }}
+                      className={ui(
+                        `w-full rounded-lg px-3 py-2 text-left text-sm ${activeSuggestion === index ? 'bg-primary-100' : 'hover:bg-ink-50'}`,
+                      )}
+                    >
+                      <span className="block font-semibold text-ink-900">{item.title}</span>
+                      <span className="block text-xs text-ink-500">
+                        {item.organizer} · {item.venue}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <button
             onClick={() => setShowFilters((prev) => !prev)}
@@ -149,7 +229,6 @@ export default function ExploreEvents({
                   key={cat}
                   onClick={() => {
                     onCategoryChange(cat);
-                    setShowAll(false);
                   }}
                   className={ui(
                     `px-3 py-1.5 text-sm font-semibold rounded-lg whitespace-nowrap transition-all ${category === cat ? 'bg-primary-600 text-white' : 'bg-white text-ink-600 hover:bg-ink-100 border border-ink-200'}`,
@@ -172,7 +251,6 @@ export default function ExploreEvents({
                   if (event.target.value === 'All Cities') next.delete('city');
                   else next.set('city', event.target.value);
                   void setSearchParams(next, { preventScrollReset: true });
-                  setShowAll(false);
                 }}
                 className={ui(
                   'h-10 pl-9 pr-8 text-sm font-medium rounded-lg border border-ink-200 bg-white text-ink-700 focus:outline-none focus:border-primary-400 appearance-none cursor-pointer',
@@ -196,7 +274,6 @@ export default function ExploreEvents({
                 value={sort}
                 onChange={(event) => {
                   setSort(event.target.value as (typeof sortOptions)[number]);
-                  setShowAll(false);
                 }}
                 className={ui(
                   'h-10 pl-3 pr-8 text-sm font-medium rounded-lg border border-ink-200 bg-white text-ink-700 focus:outline-none focus:border-primary-400 appearance-none cursor-pointer',
@@ -219,7 +296,7 @@ export default function ExploreEvents({
         )}
 
         <div className={ui('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5')}>
-          {visibleEvents.map((event) => (
+          {results.items.map((event) => (
             <EventCard
               key={event.id}
               event={event}
@@ -229,23 +306,44 @@ export default function ExploreEvents({
           ))}
         </div>
 
-        {filtered.length > initialEventCount && (
+        {results.degraded && (
+          <p className="mt-4 text-sm text-ink-500" role="status">
+            Some search features are temporarily unavailable.
+          </p>
+        )}
+        {results.hasMore && (
           <div className="flex justify-center mt-8">
             <button
-              onClick={() => setShowAll((prev) => !prev)}
+              onClick={results.loadMore}
+              disabled={results.loading || results.error}
               className={ui(
                 'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-ink-200 bg-white text-sm font-bold text-ink-700 hover:border-primary-300 hover:text-primary-700 hover:shadow-card transition-all',
               )}
             >
-              {showAll
-                ? 'Show fewer events'
-                : `Show ${filtered.length - initialEventCount} more events`}
-              {showAll ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              {results.loading ? 'Loading…' : 'Load more events'}
+              <ChevronDown size={16} />
             </button>
           </div>
         )}
 
-        {filtered.length === 0 && (
+        {results.error && (
+          <div className="py-6 text-center" role="alert">
+            <p>Could not load events. Please try again.</p>
+            <button
+              type="button"
+              onClick={results.retry}
+              className="mt-3 font-semibold text-primary-600"
+            >
+              Retry search
+            </button>
+          </div>
+        )}
+        {results.loading && results.items.length === 0 && (
+          <p className="py-12 text-center text-ink-500" role="status">
+            Searching events…
+          </p>
+        )}
+        {!results.loading && !results.error && results.items.length === 0 && (
           <div className="text-center py-16">
             <p className={ui('text-ink-400 font-medium')}>
               No events match your filters. Try adjusting your search.
@@ -255,10 +353,4 @@ export default function ExploreEvents({
       </div>
     </section>
   );
-}
-
-function compareMoney(left: string, right: string) {
-  const leftValue = BigInt(left);
-  const rightValue = BigInt(right);
-  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
 }

@@ -35,3 +35,12 @@ Sửa nguồn `.mmd` rồi xuất SVG bằng trình hỗ trợ Mermaid khi cần
 Các script sinh/xuất sơ đồ và dependency phụ trợ đã được dọn theo yêu cầu, repo không có build command riêng. Khi thay sơ đồ, xuất lại SVG cùng tên và cập nhật mục lục gallery/README nếu thêm hoặc bỏ sơ đồ; không sửa SVG thủ công.
 
 Cú pháp ERD dựa trên [Mermaid Entity Relationship Diagrams](https://mermaid.js.org/syntax/entityRelationshipDiagram.html). Các nhãn Việt và các bước nghiệp vụ là thiết kế của dự án, không phải nội dung quy phạm từ thư viện.
+
+## Bổ sung hiện hành 2026-10-12
+
+ERD các field mới của event_change_requests/events/notifications và workflow hậu xử lý theo ADR-034 được ghi trực tiếp trong [Docs38](38-organizer-sales-operations.md). Source SQL local/fresh vẫn46 bảng; outbox aggregate ID là tham chiếu đa hình, không vẽ như FK. Phần gallery lịch sử bên trên không thay hợp đồng/schema hiện hành này.
+
+
+## Bổ sung ADR-035 / 2026-10-14
+
+Mermaid quan hệ organization_blocks giữa Users và Organizations tại Docs40 khớp schema.sql/migration014. Admin gỡ PUBLISHED→ARCHIVED dừng public/bán/check-in/vào cửa, giữ lịch sử, không compensation. Modular Monolith một API; không khôi phục bộ SVG cũ đã bị xóa.

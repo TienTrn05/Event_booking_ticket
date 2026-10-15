@@ -2,12 +2,14 @@
 
 Nền tảng đặt vé sự kiện dành cho khách tham dự và các đơn vị tổ chức. Dự án hướng tới quy trình chọn ghế, thanh toán, nhận vé, check-in và quản lý sự kiện có kiểm soát.
 
-**Giai đoạn hiện tại:** đã có đặc tả, PostgreSQL schema, Swagger, backend catalog, Google OAuth/JWT và FE khám phá sự kiện với theme Biển xanh/Vũ trụ. FE lấy event, organizer, venue, merchandise, bài viết và hồ sơ mở bán từ API thật; luồng Google cần cấu hình OAuth client và kiểm tra đăng nhập thật. Email OTP Customer có mã nguồn theo ADR-021, cần migration và SMTP trước khi gửi thật; mua vé, giao dịch merchandise, editor và duyệt sự kiện chưa được tích hợp. Đây chưa phải sản phẩm sẵn sàng vận hành thực tế.
+**Giai đoạn hiện tại (2026-10-14):** BE có catalog, Google/email OTP, onboarding Customer/Organizer, tạo nháp/duyệt sự kiện, giữ ghế, payOS/phát vé/check-in, hoàn tiền thủ công, feedback và API Organizer theo dõi bán vé/doanh thu/sửa-hủy. FE đã nối một phần luồng mua vé; dashboard quản lý mới chưa nối. payOS đã thử tạo/hủy link, chưa chuyển hoặc hoàn tiền thật. Demo local bán vé và hướng dẫn Swagger tại [Docs38](Docs/38-organizer-sales-operations.md).
 
 ## Phạm vi sản phẩm
 
+BE đã bổ sung quản lý phiên/logout-all, bộ lọc ngày–giá–ghế, xóa nháp rỗng, report hỗ trợ/audit, phiếu lý do nháp/xem trước, Admin gỡ sự kiện và Customer ẩn Organizer. Hợp đồng hiện hành, migration014 và giới hạn tại [Docs40](Docs/40-backend-functional-completion.md). Dashboard FE cho các chức năng mới chưa nối; merchandise mua/giao hàng, uy tín và mở bán lại còn cần chính sách.
+
 - **Khách hàng:** đăng nhập Google/email OTP, chọn ghế, mua vé, khai tên người tham dự và check-in bằng mã vé do hệ thống cấp.
-- **Tổ chức:** đăng ký bằng email công ty, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
+- **Tổ chức:** đăng ký Google/email và chọn Organizer, quản lý sự kiện, suất diễn, loại vé, sơ đồ ghế và hoạt động tại quầy.
 - **Admin:** duyệt tổ chức/vai trò, duyệt hồ sơ sự kiện và xử lý yêu cầu hỗ trợ theo report.
 
 Đây là phạm vi sản phẩm đã đặc tả, chưa triển khai đầy đủ. Phần FE đã dựng và giới hạn tại [hướng dẫn frontend](Fe/README.md); hợp đồng nghiệp vụ tại [tổ chức, duyệt, feedback và merchandise](Docs/23-organization-review-seatmap.md).
@@ -150,3 +152,11 @@ Không commit .env, token, khóa bí mật hoặc thông tin kết nối thật.
 Auth Customer ADR-021: Google hoặc email/SĐT + OTP email SMTP Gmail; dùng chung User sau liên kết tường minh, SĐT alias chưa xác minh. DB cũ cần migration 002. Xem [cấu hình/test](Docs/27-email-otp-setup.md); email công ty/Organizer vẫn chưa triển khai.
 
 Onboarding hiện hành theo [ADR-029](Docs/17-architecture-decisions.md): chọn Customer hoặc Organizer bằng Google/email cá nhân, nhập tên/giới tính/ngày sinh; sở thích/thành phố/theo dõi tùy chọn. Organizer tạo nháp trước khi duyệt, bật Customer sau nếu muốn mua vé. [Hợp đồng đăng ký](Docs/33-registration-onboarding.md), [API Organizer/Admin](Docs/34-organizer-event-api.md). Mô tả email công ty ở các đoạn cũ đã được thay.
+
+## Tìm sự kiện trên Home — 2026-10-14
+
+Ô search Home đã nối Elasticsearch một instance được chủ dự án chấp thuận, PostgreSQL dữ liệu gốc, Redis cache; English search theo tên/Organizer/địa điểm, fuzzy/N-gram/prefix/completion, filters/phân trang và preview từ API. API vẫn monolith một instance. Trong BE: npm run search:setup, npm run infra:search, migration015 nếu DB chưa có, npm run search:reindex; start:monolith giữ worker đồng bộ. Local đã apply015/backfill; không chạy migration lại. [Hướng dẫn, API và kiểm chứng](Docs/41-home-event-search.md).
+
+## Indoor/outdoor BE — 2026-10-14
+
+BE có indoor ghế đánh số và outdoor theo khu/sức chứa. Organizer tạo draft ticketingMode QUANTITY, cấu hình zone-layouts/zone-prices rồi gửi Admin duyệt; khách GET zones và POST zones/hold theo số lượng, tiếp tục checkout/payOS/QR/check-in/refund/cancel hiện hành. FE editor/picker khu chưa nối. Health Admin và API cùng kiểm tra Elasticsearch. [API, migration016, dữ liệu và kiểm chứng](Docs/42-outdoor-zone-ticketing.md).

@@ -1,0 +1,26 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5@sha256:13b4a40bb095774f5fda635e45fd5677cc6a26565e42b24997b0c72b88e75984
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'true'
+      xpack.security.enrollment.enabled: 'false'
+      xpack.security.http.ssl.enabled: 'false'
+      xpack.ml.enabled: 'false'
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Run npm run search:setup first}
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - 127.0.0.1:9200:9200
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    mem_limit: 2g
+    healthcheck:
+      test: [CMD-SHELL, 'curl --silent --fail -u "elastic:$$ELASTIC_PASSWORD" http://localhost:9200/_cluster/health?wait_for_status=yellow > /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    restart: unless-stopped
+    networks:
+      - backend
+volumes:
+  elasticsearch-data:

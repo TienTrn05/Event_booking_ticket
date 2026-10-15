@@ -7,6 +7,7 @@ export interface RefundBookingPort extends PurchaseReader {
   complete(db: PoolClient, bookingId: string): Promise<void>;
 }
 export interface RefundPaymentPort {
+  closeUnpaid(db: PoolClient, bookingId: string): Promise<void>;
   lock(
     db: PoolClient,
     id: string,
