@@ -12,12 +12,15 @@ const files = execFileSync(
   .split('\0')
   .filter(Boolean);
 const failures = [];
-function inspect(file, text) {
+function shouldInspect(file) {
   if (/(^|\/)\.env($|\.)/.test(file) && !file.endsWith('.example')) {
     failures.push(file);
-    return;
+    return false;
   }
-  if (!/\.(?:ts|tsx|js|mjs|json|md|ya?ml|example|ps1|sql|pem|key)$/.test(file)) return;
+  // Filter before reading: large binary assets can overflow git show's output buffer.
+  return /\.(?:ts|tsx|js|mjs|json|md|ya?ml|example|ps1|sql|pem|key)$/i.test(file);
+}
+function inspect(file, text) {
   if (/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(text)) failures.push(file);
   if (
     /^\s*(?:DB_PASSWORD|REDIS_PASSWORD|PAYOS_API_KEY|PAYOS_CHECKSUM_KEY|JWT_ACCESS_SECRET|OTP_HMAC_KEY|TICKET_ENCRYPTION_KEY|ATTENDEE_PII_KEY|SMTP_PASSWORD|GOOGLE_CLIENT_SECRET|R[23]_ACCESS_KEY_ID|R[23]_SECRET_ACCESS_KEY)\s*=\s*(?!replace_me\s*$|GENERATE_ME\s*$|$)[^\s#]+/m.test(
@@ -42,6 +45,7 @@ const stagedFiles = execFileSync('git', ['ls-files', '-z', '--cached'], {
   .split('\0')
   .filter(Boolean);
 for (const file of new Set(stagedFiles)) {
+  if (!shouldInspect(file)) continue;
   try {
     inspect(
       file,
@@ -56,6 +60,7 @@ for (const file of new Set(stagedFiles)) {
   }
 }
 for (const file of new Set(files)) {
+  if (!shouldInspect(file)) continue;
   try {
     inspect(file, readFileSync(join(repositoryRoot, file), 'utf8'));
   } catch (error) {
