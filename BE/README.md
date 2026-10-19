@@ -14,7 +14,7 @@ Một lệnh bật Redis, Elasticsearch và container ứng dụng chứa **mộ
 
 PostgreSQL vẫn là database hiện có trên máy; container kết nối qua `host.docker.internal`. Nếu DB ở máy khác, đặt `DOCKER_DB_HOST` trong `.env`. Không tự tạo DB, chạy migration, seed hoặc reindex khi khởi động. Dừng API Node cũ trước khi dùng cùng cổng3000. Hướng dẫn setup lần đầu, xử lý kết nối và phạm vi production tại Docs49 (`../Docs/49-backend-packaging.md`, local).
 
-Entrypoint vận hành nằm trong `src/runtime/`, được build vào `dist/runtime/`; `npm start` chạy bản build gồm API và hai worker. Image không chứa thư mục `scripts/`, TypeScript source, tests hoặc `.env`; `scripts/` giữ công cụ setup/kiểm tra/CI, không phải dependency khởi động production.
+Entrypoint vận hành nằm trong `src/runtime/`, được build vào `dist/runtime/`; `npm start` chạy bản build gồm API và hai worker. Image không chứa thư mục `scripts/`, TypeScript source, tests hoặc `.env`; `scripts/` chỉ giữ công cụ hỗ trợ local. CI dùng `check-secrets.mjs` ở gốc BE.
 
 ## Phát triển và bảo trì
 
@@ -41,7 +41,7 @@ Giai đoạn phát triển dùng một API instance, không load balancer. `comp
 Chạy ngay trong **BE/** bằng `npm run dev`, mặc định cổng **3000**; FE ở terminal riêng, cổng **5173**. Trên Windows dùng runtime nvm chung:
 
 ```powershell
-. .\scripts\use-node.ps1
+# Dùng Node 24 / npm 11 đã có trong PATH
 npm.cmd run dev
 ```
 
@@ -62,7 +62,7 @@ Tạo schema/seed bằng DBeaver theo [database README](../database/README.md), 
 
 Catalog chỉ trả event `PUBLISHED` và hồ sơ thay đổi đã duyệt. ID/tiền là chuỗi. Cấu hình auth ở [module auth](src/modules/auth/README.md), [hold/booking](src/modules/bookings/README.md), [payOS](src/modules/payments/README.md) và API Organizer/Admin (`../Docs/34-organizer-event-api.md`, local). `src/shared/database/transaction.ts` cung cấp một connection cho toàn transaction, không gọi mạng trong transaction. `npm run dev` chạy riêng API; launcher `start:monolith` chạy API cùng hai worker. Migration áp dụng có kiểm soát, không tự chạy lúc startup.
 
-Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\scripts\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.
+Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Helper `. .\scripts\use-node.ps1` và các lệnh setup/search/HTTPS/restore trong `scripts/` chỉ có ở bản local của chủ dự án. Clone GitHub cần Node/npm trong PATH và tự cấu hình `.env` theo `.env.example`; không dùng các lệnh helper khi chưa có thư mục local. CI dùng `npm run check:ci` và `check-secrets.mjs` ở gốc BE. Xem Docs/24-local-development.md.
 
 Onboarding và Organizer cá nhân theo Docs/33 (`../Docs/33-registration-onboarding.md`, local) và Docs/34 (`../Docs/34-organizer-event-api.md`, local). `npm run test:commerce` chạy fresh/upgrade và integration trên PG tạm; đặt COMMERCE_TEST_BROWSER=1 sau FE build để kiểm chứng onboarding→purchase bằng Edge. Không gọi payOS/SMTP thật trong tests. Cách nâng từng phiên bản DB và trạng thái apply đã ghi tại database/README và Docs/26; không chạy lại migration đã có.
 

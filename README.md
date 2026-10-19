@@ -1,6 +1,6 @@
 # Event Ticketing Platform
 
-GitHub giữ source, cấu hình chạy/build, SQL và README. Tài liệu `Docs/`, bộ test, `AGENTS.md` và `PROJECT_RULES.md` chỉ giữ local. GitHub Actions chạy kiểm tra source/build; kiểm thử đầy đủ vẫn chạy local khi có bộ test.
+GitHub giữ source, cấu hình chạy/build, SQL và README. Tài liệu `Docs/`, bộ test, `scripts/`, `tooling/`, `AGENTS.md` và `PROJECT_RULES.md` chỉ giữ local. GitHub Actions chạy kiểm tra source/build; kiểm thử đầy đủ vẫn chạy local khi có bộ test. Bộ kiểm tra secret phục vụ CI nằm tại `BE/check-secrets.mjs`.
 
 Chạy trọn BE trong `BE/` bằng `docker compose up -d --build --wait --wait-timeout 240`: một API và hai worker trong container ứng dụng, cùng Redis/Elasticsearch; PostgreSQL hiện có và FE giữ riêng. Không cần mở nhiều terminal BE. Setup, log, dừng và phạm vi production (`Docs/49-backend-packaging.md`, local).
 

@@ -56,6 +56,10 @@ __tests__/
 /BE/vitest.config.ts
 /BE/scripts/test-*.mjs
 
+# Công cụ hỗ trợ phát triển chỉ giữ local
+scripts/
+tooling/
+
 # Báo cáo và thư mục QA tạm
 playwright-report/
 test-results/

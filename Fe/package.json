@@ -14,9 +14,9 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host 127.0.0.1",
     "setup:env": "node tooling/setup-env.mjs",
-    "lint": "eslint --config eslint.config.mjs src tooling vite.config.ts --max-warnings 0",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tooling/*.mjs\" \"*.{json,html,ts,md}\" \"config/**/*.js\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tooling/*.mjs\" \"*.{json,html,ts,md}\" \"config/**/*.js\"",
+    "lint": "eslint --config eslint.config.mjs src vite.config.ts --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{json,html,ts,md}\" \"config/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{json,html,ts,md}\" \"config/**/*.js\"",
     "check": "npm run lint && npm run typecheck && npm run build && npm run format:check"
   },
   "dependencies": {
