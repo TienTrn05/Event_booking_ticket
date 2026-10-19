@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -46,6 +46,17 @@ describe('secret guard commit boundary', () => {
       writeFileSync(join(directory, '.gitignore'), '.env\n');
       writeFileSync(join(directory, '.env'), 'DB_PASSWORD=local-fixture\n');
       writeFileSync(join(directory, '.env.example'), 'DB_PASSWORD=replace_me\n');
+      expect(run(directory).status).toBe(0);
+    });
+  });
+
+  it('skips large non-source assets in staged content checks', () => {
+    inRepository((directory) => {
+      mkdirSync(join(directory, 'Fe/public'), { recursive: true });
+      writeFileSync(join(directory, 'Fe/public/logo.png'), Buffer.alloc(1_200_000, 1), {
+        encoding: 'binary',
+      });
+      execFileSync('git', ['add', 'Fe/public/logo.png'], { cwd: directory });
       expect(run(directory).status).toBe(0);
     });
   });

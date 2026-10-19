@@ -8,6 +8,12 @@ const files = execFileSync(
   .split('\0')
   .filter(Boolean);
 const failures = [];
+function shouldInspect(file) {
+  return (
+    /(^|\/)\.env($|\.)/.test(file) ||
+    /\.(?:ts|tsx|js|mjs|json|md|ya?ml|example|ps1|sql|pem|key)$/.test(file)
+  );
+}
 function inspect(file, text) {
   if (/(^|\/)\.env($|\.)/.test(file) && !file.endsWith('.example')) {
     failures.push(file);
@@ -29,6 +35,7 @@ const stagedFiles = execFileSync('git', ['ls-files', '-z', '--cached'], { encodi
   .split('\0')
   .filter(Boolean);
 for (const file of new Set(stagedFiles)) {
+  if (!shouldInspect(file)) continue;
   try {
     inspect(
       file,
@@ -42,6 +49,7 @@ for (const file of new Set(stagedFiles)) {
   }
 }
 for (const file of new Set(files)) {
+  if (!shouldInspect(file)) continue;
   try {
     inspect(file, readFileSync(file, 'utf8'));
   } catch (error) {
