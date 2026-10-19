@@ -4,6 +4,7 @@ type Selections = {
   favoriteCategories: string[];
   preferredCity: string | null;
   followedOrganizers: string[];
+  noOrganizerYet?: boolean;
 };
 export function validateAnswers(questions: Question[], answers: Answers, selections?: Selections) {
   const byKey = new Map(questions.map((q) => [q.key, q]));
@@ -31,14 +32,25 @@ export function validateAnswers(questions: Question[], answers: Answers, selecti
         : question.kind === 'CITY'
           ? selections?.preferredCity
           : question.kind === 'ORGANIZERS'
-            ? selections?.followedOrganizers.length
+            ? selections && (selections.followedOrganizers.length > 0 || selections.noOrganizerYet)
             : answers[question.key];
-    if (question.required && !selected && (selections || question.key.startsWith('custom_')))
+    const answered = Array.isArray(selected)
+      ? selected.length > 0
+      : typeof selected === 'string'
+        ? selected.trim().length > 0
+        : !!selected;
+    if (
+      (selections || question.required) &&
+      !answered &&
+      (selections || question.key.startsWith('custom_'))
+    )
       throw new AppError(422, 'ONBOARDING_ANSWER_REQUIRED', 'Cần trả lời câu hỏi bắt buộc.', [
         { field: question.key, code: 'REQUIRED' },
       ]);
   }
   if (selections) {
+    if (selections.noOrganizerYet && !byKey.has('followedOrganizers'))
+      throw new AppError(422, 'QUESTION_NOT_AVAILABLE', 'Câu hỏi không còn trong bộ đăng ký.');
     for (const key of ['favoriteCategories', 'preferredCity', 'followedOrganizers'] as const) {
       const value = selections[key];
       if (!byKey.has(key) && (Array.isArray(value) ? value.length > 0 : !!value))

@@ -1,9 +1,11 @@
+import Button from '../../shared/ui/Button';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Users, History, Plus, RefreshCw, LockKeyhole } from 'lucide-react';
 import { z } from 'zod';
 import { useAuthDialog } from '../auth/context/AuthDialogContext';
 import { ApiError } from '../../shared/api/client';
+import { useLocale } from '../../shared/i18n/LocaleContext';
 import {
   auditSchema,
   changeSchema,
@@ -24,25 +26,40 @@ import './rbac.css';
 type Run = (command: Command) => Promise<boolean>;
 export function RbacPage() {
   const { accessToken, user, openAuth } = useAuthDialog();
+  const { t } = useLocale();
   return (
     <main id="main" className="rbac-page">
       <header className="rbac-heading">
-        <span className="rbac-eyebrow">QUẢN TRỊ HỆ THỐNG</span>
+        <span className="rbac-eyebrow">{t('QUẢN TRỊ HỆ THỐNG', 'ADMINISTRATION')}</span>
         <h1>
           <ShieldCheck aria-hidden="true" />
-          Phân quyền truy cập
+          {t('Phân quyền truy cập', 'Access management')}
         </h1>
-        <p>Quản lý vai trò, quyền được cấp và lịch sử thay đổi.</p>
-        <Link to="/admin/onboarding">Quản lý câu hỏi đăng ký →</Link>
+        <p>
+          {t(
+            'Quản lý vai trò, quyền được cấp và lịch sử thay đổi.',
+            'Manage roles, effective permissions, and change history.',
+          )}
+        </p>
+        <Link to="/admin/onboarding">
+          {t('Quản lý câu hỏi đăng ký', 'Manage registration questions')} →
+        </Link>
       </header>
       {accessToken && user ? (
-        <Manager key={accessToken} token={accessToken} actorId={user.id} />
+        <Manager key={user.id} token={accessToken} actorId={user.id} />
       ) : (
         <section className="rbac-card">
           <LockKeyhole aria-hidden="true" />
-          <h2>Đăng nhập Admin để tiếp tục</h2>
-          <p>Trang này yêu cầu quyền quản trị phân quyền.</p>
-          <button onClick={() => openAuth('login')}>Đăng nhập</button>
+          <h2>{t('Đăng nhập Admin để tiếp tục', 'Sign in as an administrator')}</h2>
+          <p>
+            {t(
+              'Trang này yêu cầu quyền quản trị phân quyền.',
+              'This tool requires access management permission.',
+            )}
+          </p>
+          <Button variant="outline" onClick={() => openAuth('login')}>
+            {t('Đăng nhập', 'Sign in')}
+          </Button>
         </section>
       )}
     </main>
@@ -61,22 +78,33 @@ function Pager({
   onChange: (n: number) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLocale();
   return (
-    <nav className="rbac-pager" aria-label="Phân trang">
-      <button disabled={disabled || page === 1} onClick={() => onChange(page - 1)}>
-        Trước
-      </button>
+    <nav className="rbac-pager" aria-label={t('Phân trang', 'Pagination')}>
+      <Button
+        variant="outline"
+        disabled={disabled || page === 1}
+        onClick={() => onChange(page - 1)}
+      >
+        {t('Trước', 'Previous')}
+      </Button>
       <span>
-        Trang {page} / {Math.max(1, Math.ceil(total / size))} · {total} kết quả
+        {t('Trang', 'Page')} {page} / {Math.max(1, Math.ceil(total / size))} · {total}{' '}
+        {t('kết quả', 'results')}
       </span>
-      <button disabled={disabled || page * size >= total} onClick={() => onChange(page + 1)}>
-        Sau
-      </button>
+      <Button
+        variant="outline"
+        disabled={disabled || page * size >= total}
+        onClick={() => onChange(page + 1)}
+      >
+        {t('Sau', 'Next')}
+      </Button>
     </nav>
   );
 }
 function Manager({ token, actorId }: { token: string; actorId: string }) {
   const { logout } = useAuthDialog();
+  const { t, locale } = useLocale();
   const [tab, setTab] = useState<'roles' | 'users' | 'audit'>('roles'),
     [roles, setRoles] = useState<Role[]>([]),
     [total, setTotal] = useState(0),
@@ -92,6 +120,7 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
     [reauth, setReauth] = useState(false),
     [selected, setSelected] = useState<Role | null>(null);
   const pending = useRef<(Command & { key: string }) | null>(null),
+    uncertainCommand = useRef<(Command & { key: string }) | null>(null),
     running = useRef(false);
   useEffect(() => {
     const ctrl = new AbortController();
@@ -118,7 +147,7 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
       .catch((e) => {
         if (!ctrl.signal.aborted) {
           setReady(false);
-          setError(rbacError(e));
+          setError(rbacError(e, locale === 'en'));
           setReauth(e instanceof ApiError && e.status === 401);
         }
       })
@@ -126,7 +155,7 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
         if (!ctrl.signal.aborted) setLoading(false);
       });
     return () => ctrl.abort();
-  }, [token, page, revision]);
+  }, [token, page, revision, locale]);
   const execute: Run = async (command) => {
     if (running.current) return false;
     running.current = true;
@@ -143,20 +172,33 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
         body: JSON.stringify(current.body),
       });
       pending.current = null;
+      uncertainCommand.current = null;
       setUncertain(false);
-      setNotice(`Đã lưu thay đổi. Mã audit #${change.auditId}.`);
+      setNotice(`${t('Đã lưu thay đổi. Mã audit', 'Changes saved. Audit ID')} #${change.auditId}.`);
       setLoading(true);
       setRevision((n) => n + 1);
       return true;
     } catch (e) {
-      if (e instanceof ApiError && e.status < 500 && e.code !== 'REQUEST_IN_PROGRESS') {
+      if (
+        e instanceof ApiError &&
+        e.status < 500 &&
+        e.code !== 'REQUEST_IN_PROGRESS' &&
+        uncertainCommand.current !== current
+      ) {
         pending.current = null;
         setUncertain(false);
-        setError(rbacError(e));
+        setError(rbacError(e, locale === 'en'));
         setReauth(e.status === 401);
       } else {
+        uncertainCommand.current = current;
         setUncertain(true);
-        setError('Chưa xác nhận được kết quả. Thử lại đúng yêu cầu đang chờ bằng nút bên dưới.');
+        setReauth(e instanceof ApiError && e.status === 401);
+        setError(
+          t(
+            'Chưa xác nhận được kết quả. Thử lại đúng yêu cầu đang chờ bằng nút bên dưới.',
+            'The result is uncertain. Retry the same pending request using the button below.',
+          ),
+        );
       }
       return false;
     } finally {
@@ -170,20 +212,23 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
       <div className="rbac-policy">
         <ShieldCheck aria-hidden="true" />
         <p>
-          Role bổ sung <strong>cộng quyền</strong> với role gốc. Chỉ cấp trong cùng nhóm. Thay đổi
-          quyền cần đăng nhập trong 5 phút và lý do; không được tự sửa quyền của mình.
+          {t(
+            'Role bổ sung cộng quyền với role gốc. Chỉ cấp trong cùng nhóm. Thay đổi quyền cần đăng nhập trong 5 phút và lý do; không được tự sửa quyền của mình.',
+            'Additional roles add permissions within their base group. Changes require authentication within 5 minutes and a reason. You cannot change your own access.',
+          )}
         </p>
       </div>
       <div className="rbac-toolbar">
-        <nav aria-label="Chức năng phân quyền">
+        <nav aria-label={t('Chức năng phân quyền', 'Access management tools')}>
           {(
             [
-              { id: 'roles', label: 'Vai trò', Icon: ShieldCheck },
-              { id: 'users', label: 'Người dùng', Icon: Users },
-              { id: 'audit', label: 'Lịch sử', Icon: History },
+              { id: 'roles', label: t('Vai trò', 'Roles'), Icon: ShieldCheck },
+              { id: 'users', label: t('Người dùng', 'Users'), Icon: Users },
+              { id: 'audit', label: t('Lịch sử', 'History'), Icon: History },
             ] as const
           ).map(({ id, label, Icon }) => (
-            <button
+            <Button
+              variant="outline"
               key={id}
               aria-current={tab === id ? 'page' : undefined}
               disabled={busy || uncertain}
@@ -191,10 +236,11 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
             >
               <Icon size={17} aria-hidden="true" />
               {label}
-            </button>
+            </Button>
           ))}
         </nav>
-        <button
+        <Button
+          variant="outline"
           disabled={busy || uncertain}
           onClick={() => {
             setLoading(true);
@@ -202,8 +248,8 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
           }}
         >
           <RefreshCw size={16} aria-hidden="true" />
-          Tải lại
-        </button>
+          {t('Tải lại', 'Reload')}
+        </Button>
       </div>
       {error && (
         <div role="alert" className="rbac-alert">
@@ -217,37 +263,42 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
       )}
       {reauth && (
         <p>
-          <button disabled={busy || uncertain} onClick={() => void logout()}>
-            Đăng xuất để đăng nhập lại
-          </button>{' '}
-          Phiên hiện tại sẽ kết thúc; đăng nhập mới để tiếp tục.
+          <Button variant="outline" disabled={busy} onClick={() => void logout()}>
+            {t('Đăng xuất để đăng nhập lại', 'Sign out to authenticate again')}
+          </Button>{' '}
+          {t(
+            'Phiên hiện tại sẽ kết thúc; đăng nhập mới để tiếp tục.',
+            'Your current session will end. Sign in again to continue.',
+          )}
         </p>
       )}
       {uncertain && (
-        <button
+        <Button
+          variant="outline"
           disabled={busy}
           onClick={() => {
             if (pending.current) void execute(pending.current);
           }}
         >
-          Thử lại yêu cầu đang chờ
-        </button>
+          {t('Thử lại yêu cầu đang chờ', 'Retry pending request')}
+        </Button>
       )}
-      {loading && <p role="status">Đang tải dữ liệu…</p>}
+      {loading && <p role="status">{t('Đang tải dữ liệu…', 'Loading data…')}</p>}
       {ready && tab === 'roles' && (
         <div className="rbac-columns">
           <section className="rbac-card">
             <div className="rbac-section-heading">
-              <h2>Danh sách vai trò</h2>
-              <button disabled={disabled} onClick={() => setSelected(null)}>
+              <h2>{t('Danh sách vai trò', 'Role directory')}</h2>
+              <Button variant="outline" disabled={disabled} onClick={() => setSelected(null)}>
                 <Plus size={16} aria-hidden="true" />
-                Tạo role
-              </button>
+                {t('Tạo role', 'Create role')}
+              </Button>
             </div>
             <ul className="rbac-role-list">
               {roles.map((r) => (
                 <li key={r.id}>
-                  <button
+                  <Button
+                    variant="outline"
                     disabled={disabled}
                     aria-pressed={selected?.id === r.id}
                     onClick={() => setSelected(r)}
@@ -260,12 +311,12 @@ function Manager({ token, actorId }: { token: string; actorId: string }) {
                     </span>
                     <span className="rbac-badge">
                       {r.system
-                        ? 'Hệ thống'
+                        ? t('Hệ thống', 'System')
                         : r.status === 'ARCHIVED'
-                          ? 'Đã lưu trữ'
-                          : `${r.userCount} người`}
+                          ? t('Đã lưu trữ', 'Archived')
+                          : `${r.userCount} ${t('người', 'users')}`}
                     </span>
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -319,6 +370,7 @@ function RoleEditor({
   disabled: boolean;
   run: Run;
 }) {
+  const { t } = useLocale();
   const [code, setCode] = useState(''),
     [name, setName] = useState(role?.name ?? ''),
     [description, setDescription] = useState(role?.description ?? ''),
@@ -349,12 +401,18 @@ function RoleEditor({
   }
   return (
     <section className="rbac-card">
-      <h2>{role ? role.name : 'Tạo vai trò bổ sung'}</h2>
+      <h2>{role ? role.name : t('Tạo vai trò bổ sung', 'Create additional role')}</h2>
       {immutable && (
         <p className="rbac-muted">
           {role.system
-            ? 'Role hệ thống được bảo vệ. Các quyền bên dưới chỉ để xem.'
-            : 'Role đã lưu trữ, giữ lại để tra cứu lịch sử.'}
+            ? t(
+                'Role hệ thống được bảo vệ. Các quyền bên dưới chỉ để xem.',
+                'System roles are protected. Permissions below are read-only.',
+              )
+            : t(
+                'Role đã lưu trữ, giữ lại để tra cứu lịch sử.',
+                'Archived roles remain available for historical reference.',
+              )}
         </p>
       )}
       <form
@@ -366,11 +424,11 @@ function RoleEditor({
         <fieldset disabled={disabled || immutable}>
           {!role && (
             <label>
-              Mã role{' '}
+              {t('Mã role', 'Role code')}{' '}
               <span className="rbac-inline">
                 <span>CUSTOM_</span>
                 <input
-                  aria-label="Mã role"
+                  aria-label={t('Mã role', 'Role code')}
                   required
                   minLength={2}
                   maxLength={40}
@@ -383,7 +441,7 @@ function RoleEditor({
             </label>
           )}
           <label>
-            Tên vai trò
+            {t('Tên vai trò', 'Role name')}
             <input
               required
               maxLength={120}
@@ -392,7 +450,7 @@ function RoleEditor({
             />
           </label>
           <label>
-            Mô tả
+            {t('Mô tả', 'Description')}
             <textarea
               maxLength={500}
               value={description}
@@ -400,7 +458,7 @@ function RoleEditor({
             />
           </label>
           <label>
-            Nhóm role gốc
+            {t('Nhóm role gốc', 'Base role group')}
             <select
               value={baseRole}
               disabled={!!role}
@@ -415,8 +473,10 @@ function RoleEditor({
             </select>
           </label>
           <p className="rbac-muted">
-            User phải có role gốc tương ứng. Role bổ sung không giảm quyền đã có hoặc thay thế quyền
-            sở hữu và thành viên tổ chức.
+            {t(
+              'User phải có role gốc tương ứng. Role bổ sung không giảm quyền đã có hoặc thay thế quyền sở hữu và thành viên tổ chức.',
+              'The user must hold the matching base role. Additional roles do not reduce existing permissions or replace ownership and organization membership.',
+            )}
           </p>
           <div className="rbac-permissions" role="group" aria-label="Permission">
             {permissions
@@ -442,29 +502,41 @@ function RoleEditor({
           {!immutable && (
             <>
               <label>
-                Lý do thay đổi
+                {t('Lý do thay đổi', 'Reason for change')}
                 <textarea
                   required
                   minLength={5}
                   maxLength={500}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder="Nêu mục đích và phạm vi cấp quyền"
+                  placeholder={t(
+                    'Nêu mục đích và phạm vi cấp quyền',
+                    'Describe the purpose and access scope',
+                  )}
                 />
               </label>
-              <button className="rbac-primary" type="submit">
-                {role ? 'Lưu thay đổi' : 'Tạo role'}
-              </button>
+              <Button variant="primary" className="rbac-primary" type="submit">
+                {role ? t('Lưu thay đổi', 'Save changes') : t('Tạo role', 'Create role')}
+              </Button>
             </>
           )}
         </fieldset>
       </form>
       {role && !immutable && (
         <div className="rbac-archive">
-          <button disabled={disabled || role.userCount > 0} onClick={() => setArchive((v) => !v)}>
-            Lưu trữ role
-          </button>
-          {role.userCount > 0 && <p>Thu hồi {role.userCount} lượt gán trước khi lưu trữ.</p>}
+          <Button
+            variant="outline"
+            disabled={disabled || role.userCount > 0}
+            onClick={() => setArchive((v) => !v)}
+          >
+            {t('Lưu trữ role', 'Archive role')}
+          </Button>
+          {role.userCount > 0 && (
+            <p>
+              {t('Thu hồi', 'Revoke')} {role.userCount}{' '}
+              {t('lượt gán trước khi lưu trữ.', 'assignments before archiving.')}
+            </p>
+          )}
           {archive && (
             <form
               onSubmit={(e) => {
@@ -477,7 +549,7 @@ function RoleEditor({
               }}
             >
               <label>
-                Lý do lưu trữ
+                {t('Lý do lưu trữ', 'Archiving reason')}
                 <textarea
                   required
                   minLength={5}
@@ -487,9 +559,9 @@ function RoleEditor({
                   onChange={(e) => setReason(e.target.value)}
                 />
               </label>
-              <button className="rbac-danger" disabled={disabled}>
-                Xác nhận lưu trữ
-              </button>
+              <Button variant="outline" type="submit" className="rbac-danger" disabled={disabled}>
+                {t('Xác nhận lưu trữ', 'Confirm archive')}
+              </Button>
             </form>
           )}
         </div>
@@ -518,6 +590,7 @@ function UsersPanel({
   disabled: boolean;
   run: Run;
 }) {
+  const { t, locale } = useLocale();
   const [search, setSearch] = useState(''),
     [query, setQuery] = useState(''),
     [searchRevision, setSearchRevision] = useState(0),
@@ -550,14 +623,14 @@ function UsersPanel({
       .catch((e) => {
         if (!ctrl.signal.aborted) {
           setResults(null);
-          setError(rbacError(e));
+          setError(rbacError(e, locale === 'en'));
         }
       })
       .finally(() => {
         if (!ctrl.signal.aborted) setLoading(false);
       });
     return () => ctrl.abort();
-  }, [query, userPage, token, revision, searchRevision]);
+  }, [query, userPage, token, revision, searchRevision, locale]);
   useEffect(() => {
     if (!selectedId) return;
     const ctrl = new AbortController();
@@ -571,10 +644,10 @@ function UsersPanel({
         }
       })
       .catch((e) => {
-        if (!ctrl.signal.aborted) setError(rbacError(e));
+        if (!ctrl.signal.aborted) setError(rbacError(e, locale === 'en'));
       });
     return () => ctrl.abort();
-  }, [selectedId, token, revision]);
+  }, [selectedId, token, revision, locale]);
   const own = selectedId === actorId;
   const eligible = roles
     .filter(
@@ -586,7 +659,7 @@ function UsersPanel({
   return (
     <div className="rbac-columns">
       <section className="rbac-card">
-        <h2>Tìm người dùng</h2>
+        <h2>{t('Tìm người dùng', 'Find a user')}</h2>
         <form
           className="rbac-search"
           onSubmit={(e) => {
@@ -599,7 +672,7 @@ function UsersPanel({
           }}
         >
           <label>
-            Tên hiển thị hoặc User ID
+            {t('Tên hiển thị hoặc User ID', 'Display name or user ID')}
             <input
               required
               minLength={1}
@@ -608,15 +681,18 @@ function UsersPanel({
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
-          <button disabled={disabled || loading}>Tìm kiếm</button>
+          <Button variant="outline" type="submit" disabled={disabled || loading}>
+            {t('Tìm kiếm', 'Search')}
+          </Button>
         </form>
-        {loading && <p role="status">Đang tìm…</p>}
+        {loading && <p role="status">{t('Đang tìm…', 'Searching…')}</p>}
         {results && (
           <>
             <ul className="rbac-role-list">
               {results.items.map((u) => (
                 <li key={u.id}>
-                  <button
+                  <Button
+                    variant="outline"
                     disabled={disabled}
                     aria-pressed={selectedId === u.id}
                     onClick={() => {
@@ -632,11 +708,11 @@ function UsersPanel({
                         #{u.id} · {u.status}
                       </small>
                     </span>
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
-            {!results.total && <p>Không tìm thấy người dùng.</p>}
+            {!results.total && <p>{t('Không tìm thấy người dùng.', 'No users found.')}</p>}
             <Pager
               page={userPage}
               total={results.total}
@@ -655,17 +731,32 @@ function UsersPanel({
         )}
       </section>
       <section className="rbac-card">
-        <h2>{user ? `${user.displayName} · #${user.id}` : 'Quyền của người dùng'}</h2>
-        {!user && <p>Chọn một người dùng để xem và quản lý role.</p>}
+        <h2>
+          {user ? `${user.displayName} · #${user.id}` : t('Quyền của người dùng', 'User access')}
+        </h2>
+        {!user && (
+          <p>
+            {t(
+              'Chọn một người dùng để xem và quản lý role.',
+              'Select a user to view and manage roles.',
+            )}
+          </p>
+        )}
         {user && (
           <>
             <p className="rbac-muted">
-              {user.status} · {user.onboarded ? 'Đã hoàn tất đăng ký' : 'Chưa hoàn tất đăng ký'} ·
-              phiên bản {user.rolesVersion}
+              {user.status} ·{' '}
+              {user.onboarded
+                ? t('Đã hoàn tất đăng ký', 'Registration complete')
+                : t('Chưa hoàn tất đăng ký', 'Registration incomplete')}{' '}
+              ·{t('phiên bản', 'version')} {user.rolesVersion}
             </p>
             {own && (
               <p className="rbac-alert">
-                Bạn chỉ được xem quyền của mình. Cần Admin khác thực hiện thay đổi.
+                {t(
+                  'Bạn chỉ được xem quyền của mình. Cần Admin khác thực hiện thay đổi.',
+                  'Your access is read-only here. Another administrator must make changes.',
+                )}
               </p>
             )}
             <ul className="rbac-assigned">
@@ -676,30 +767,39 @@ function UsersPanel({
                     <small>{r.code}</small>
                   </span>
                   {(!r.system || r.code === 'ADMIN') && (
-                    <button
+                    <Button
+                      variant="outline"
                       disabled={disabled || own}
                       onClick={() => {
                         setIntent({ role: r, grant: false });
                         setReason('');
                       }}
                     >
-                      Thu hồi
-                    </button>
+                      {t('Thu hồi', 'Revoke')}
+                    </Button>
                   )}
                 </li>
               ))}
             </ul>
             <details>
-              <summary>Quyền hiệu lực ({user.permissionCodes.length})</summary>
-              <p className="rbac-code">{user.permissionCodes.join(', ') || 'Chưa có quyền'}</p>
+              <summary>
+                {t('Quyền hiệu lực', 'Effective permissions')} ({user.permissionCodes.length})
+              </summary>
+              <p className="rbac-code">
+                {user.permissionCodes.join(', ') || t('Chưa có quyền', 'No permissions')}
+              </p>
             </details>
-            <h3>Cấp role</h3>
+            <h3>{t('Cấp role', 'Grant role')}</h3>
             <p className="rbac-muted">
-              Chọn trong các role của trang hiện tại. Chuyển trang để xem thêm.
+              {t(
+                'Chọn trong các role của trang hiện tại. Chuyển trang để xem thêm.',
+                'Choose from roles on the current page. Change pages to see more.',
+              )}
             </p>
             <div className="rbac-grants">
               {eligible.map((r) => (
-                <button
+                <Button
+                  variant="outline"
                   key={r.id}
                   disabled={disabled || own || user.status !== 'ACTIVE' || !user.onboarded}
                   onClick={() => {
@@ -708,9 +808,13 @@ function UsersPanel({
                   }}
                 >
                   + {r.name} <small>{r.code}</small>
-                </button>
+                </Button>
               ))}
-              {!eligible.length && <p>Không có role phù hợp trên trang này.</p>}
+              {!eligible.length && (
+                <p>
+                  {t('Không có role phù hợp trên trang này.', 'No eligible roles on this page.')}
+                </p>
+              )}
             </div>
             <Pager page={page} total={total} onChange={onPage} disabled={disabled} />
             {intent && (
@@ -730,24 +834,35 @@ function UsersPanel({
                 }}
               >
                 <h3>
-                  {intent.grant ? 'Cấp' : 'Thu hồi'} {intent.role.code}
+                  {intent.grant ? t('Cấp', 'Grant') : t('Thu hồi', 'Revoke')} {intent.role.code}
                 </h3>
                 {intent.role.code === 'ADMIN' && (
                   <p className="rbac-alert">
-                    ADMIN có quyền duyệt, hỗ trợ và quản trị phân quyền cho người khác. Hãy kiểm tra
-                    đúng User #{user.id}.
+                    {t(
+                      'ADMIN có quyền duyệt, hỗ trợ và quản trị phân quyền cho người khác. Hãy kiểm tra đúng User',
+                      'ADMIN can review, provide support, and manage access for others. Verify the target user',
+                    )}{' '}
+                    #{user.id}.
                   </p>
                 )}
                 <p>
-                  Permission của role:{' '}
+                  {t('Permission của role:', 'Role permissions:')}{' '}
                   <span className="rbac-code">
-                    {intent.role.permissionCodes.join(', ') || 'Chưa có permission'}
+                    {intent.role.permissionCodes.join(', ') ||
+                      t('Chưa có permission', 'No permissions')}
                   </span>
                 </p>
-                {!intent.grant && <p>Quyền vẫn còn nếu được cấp từ role khác.</p>}
+                {!intent.grant && (
+                  <p>
+                    {t(
+                      'Quyền vẫn còn nếu được cấp từ role khác.',
+                      'Permissions may remain if granted by another role.',
+                    )}
+                  </p>
+                )}
                 <fieldset disabled={disabled || own}>
                   <label>
-                    Lý do
+                    {t('Lý do', 'Reason')}
                     <textarea
                       required
                       minLength={5}
@@ -757,12 +872,17 @@ function UsersPanel({
                     />
                   </label>
                   <div className="rbac-actions">
-                    <button className={intent.grant ? 'rbac-primary' : 'rbac-danger'}>
-                      Xác nhận {intent.grant ? 'cấp role' : 'thu hồi'}
-                    </button>
-                    <button type="button" onClick={() => setIntent(null)}>
-                      Hủy
-                    </button>
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className={intent.grant ? 'rbac-primary' : 'rbac-danger'}
+                    >
+                      {t('Xác nhận', 'Confirm')}{' '}
+                      {intent.grant ? t('cấp role', 'grant') : t('thu hồi', 'revoke')}
+                    </Button>
+                    <Button variant="outline" type="button" onClick={() => setIntent(null)}>
+                      {t('Hủy', 'Cancel')}
+                    </Button>
                   </div>
                 </fieldset>
               </form>
@@ -774,6 +894,7 @@ function UsersPanel({
   );
 }
 function AuditPanel({ token, revision }: { token: string; revision: number }) {
+  const { t, locale } = useLocale();
   const [page, setPage] = useState(1),
     [data, setData] = useState<z.infer<ReturnType<typeof paged<typeof auditSchema>>> | null>(null),
     [error, setError] = useState(''),
@@ -795,14 +916,14 @@ function AuditPanel({ token, revision }: { token: string; revision: number }) {
       .catch((e) => {
         if (!signal.aborted) {
           setData(null);
-          setError(rbacError(e));
+          setError(rbacError(e, locale === 'en'));
         }
       });
     return () => ctrl.abort();
-  }, [token, page, filter, revision]);
+  }, [token, page, filter, revision, locale]);
   return (
     <section className="rbac-card">
-      <h2>Lịch sử thay đổi quyền</h2>
+      <h2>{t('Lịch sử thay đổi quyền', 'Access change history')}</h2>
       <form
         className="rbac-audit-filters"
         onSubmit={(e) => {
@@ -831,30 +952,34 @@ function AuditPanel({ token, revision }: { token: string; revision: number }) {
             onChange={(e) => setDraft((v) => ({ ...v, roleId: e.target.value }))}
           />
         </label>
-        <button>Lọc lịch sử</button>
+        <Button variant="outline" type="submit">
+          {t('Lọc lịch sử', 'Filter history')}
+        </Button>
       </form>
       {error && (
         <p role="alert" className="rbac-alert">
           {error}
         </p>
       )}
-      {!data && !error && <p role="status">Đang tải lịch sử…</p>}
+      {!data && !error && <p role="status">{t('Đang tải lịch sử…', 'Loading history…')}</p>}
       {data && (
         <>
           <div className="rbac-table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Thời gian</th>
+                  <th>{t('Thời gian', 'Time')}</th>
                   <th>Admin</th>
-                  <th>Thay đổi</th>
-                  <th>Lý do và chi tiết</th>
+                  <th>{t('Thay đổi', 'Change')}</th>
+                  <th>{t('Lý do và chi tiết', 'Reason and details')}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map((a) => (
                   <tr key={a.id}>
-                    <td>{new Date(a.createdAt).toLocaleString('vi-VN')}</td>
+                    <td>
+                      {new Date(a.createdAt).toLocaleString(locale === 'en' ? 'en-GB' : 'vi-VN')}
+                    </td>
                     <td>#{a.actorId}</td>
                     <td>
                       <strong>{a.action}</strong>
@@ -865,7 +990,7 @@ function AuditPanel({ token, revision }: { token: string; revision: number }) {
                     <td>
                       <p>{a.reason}</p>
                       <details>
-                        <summary>Xem trước / sau</summary>
+                        <summary>{t('Xem trước / sau', 'View before / after')}</summary>
                         <pre>{JSON.stringify({ before: a.before, after: a.after }, null, 2)}</pre>
                         <small>Request: {a.requestId}</small>
                       </details>
@@ -874,7 +999,9 @@ function AuditPanel({ token, revision }: { token: string; revision: number }) {
                 ))}
               </tbody>
             </table>
-            {!data.total && <p>Chưa có thay đổi phù hợp.</p>}
+            {!data.total && (
+              <p>{t('Chưa có thay đổi phù hợp.', 'No changes match this filter.')}</p>
+            )}
           </div>
           <Pager page={page} total={data.total} onChange={setPage} />
         </>

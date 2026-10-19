@@ -13,7 +13,7 @@ export const eventSchema = z.object({
   image: z.string(),
   date: z.string(),
   dateLabel: z.string(),
-  startsAt: z.string(),
+  startsAt: z.iso.datetime({ offset: true }),
   venue: z.string(),
   city: z.string(),
   startingPrice: z.string().regex(/^\d+$/),
@@ -29,7 +29,7 @@ export const eventSchema = z.object({
   reopeningNote: z.string().nullable(),
 });
 
-const organizerSchema = z.object({
+export const organizerSchema = z.object({
   id: z.string(),
   name: z.string(),
   avatar: z.string(),
@@ -43,7 +43,7 @@ const organizerSchema = z.object({
   upcomingEventId: z.string().nullable(),
 });
 
-const merchandiseSchema = z.object({
+export const merchandiseSchema = z.object({
   id: z.string(),
   eventId: z.string(),
   eventTitle: z.string(),
@@ -58,6 +58,18 @@ const merchandiseSchema = z.object({
   requiresTicket: z.boolean(),
 });
 
+export const articleSchema = z.object({
+  id: z.string(),
+  image: z.string(),
+  publishedAt: z.string(),
+  date: z.string(),
+  category: z.string(),
+  readTime: z.string(),
+  title: z.string(),
+  excerpt: z.string(),
+  paragraphs: z.array(z.string()),
+});
+
 const homeCatalogSchema = z.object({
   data: z.object({
     categories: z.array(
@@ -68,19 +80,7 @@ const homeCatalogSchema = z.object({
     spotlightEvents: z.array(eventSchema),
     organizers: z.array(organizerSchema),
     merchandise: z.array(merchandiseSchema),
-    articles: z.array(
-      z.object({
-        id: z.string(),
-        image: z.string(),
-        publishedAt: z.string(),
-        date: z.string(),
-        category: z.string(),
-        readTime: z.string(),
-        title: z.string(),
-        excerpt: z.string(),
-        paragraphs: z.array(z.string()),
-      }),
-    ),
+    articles: z.array(articleSchema),
     reopeningRequests: z.array(
       z.object({
         id: z.string(),

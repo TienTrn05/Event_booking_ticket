@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getAvatar } from '../api/media.api';
 import { ImageUpload } from './ImageUpload';
+import { useLocale } from '../../../shared/i18n/LocaleContext';
 
 export function AvatarUpload({ accessToken }: { accessToken: string }) {
+  const { t } = useLocale();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -20,7 +22,7 @@ export function AvatarUpload({ accessToken }: { accessToken: string }) {
       key={accessToken}
       accessToken={accessToken}
       target={{ purpose: 'avatar' }}
-      label="Ảnh đại diện"
+      label={t('Ảnh đại diện', 'Profile picture')}
       imageUrl={avatarUrl}
       onUploaded={(result) => setAvatarUrl(result.imageUrl)}
     />

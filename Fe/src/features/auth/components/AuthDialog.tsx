@@ -1,3 +1,4 @@
+import { useAuthMessages } from '../../../shared/i18n/authMessages';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -7,6 +8,7 @@ import type { AuthIntent } from '../context/AuthDialogContext';
 import { ApiError, apiRequest } from '../../../shared/api/client';
 import { z } from 'zod';
 import { AvatarUpload } from '../../media/components/AvatarUpload';
+import { OnboardingLoading } from './OnboardingLoading';
 const ProfileOnboarding = lazy(() =>
   import('./ProfileOnboarding').then((module) => ({ default: module.ProfileOnboarding })),
 );
@@ -39,6 +41,7 @@ const contextCopy: Record<AuthIntent, string> = {
 };
 
 export function AuthDialogProvider({ children }: { children: ReactNode }) {
+  const text = useAuthMessages();
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [methods, setMethods] = useState<z.infer<typeof methodsSchema> | null>(null);
   const sessionEpoch = useRef(0);
@@ -437,7 +440,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
     <AuthDialogContext.Provider value={{ openAuth, user, accessToken, logout, profileRevision }}>
       {children}
       {user && accessToken && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OnboardingLoading message={text('Đang tải hồ sơ…')} />}>
           <ProfileOnboarding
             key={user.id}
             token={accessToken}
@@ -470,7 +473,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
               ref={closeButton}
               type="button"
               className="auth-close"
-              aria-label="Đóng"
+              aria-label={text('Đóng')}
               onClick={closeAuth}
             >
               <X size={20} />
@@ -480,26 +483,30 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
             </span>
             <p className="auth-eyebrow">EVENTIX ACCOUNT</p>
             <h2 id="eventix-auth-title">
-              {user
-                ? 'Liên kết tài khoản'
-                : challenge
-                  ? 'Kiểm tra email của bạn'
-                  : intent === 'organizer'
-                    ? 'Dành cho nhà tổ chức'
-                    : mode === 'login'
-                      ? 'Chào mừng trở lại'
-                      : 'Bắt đầu cùng Eventix'}
+              {text(
+                user
+                  ? 'Liên kết tài khoản'
+                  : challenge
+                    ? 'Kiểm tra email của bạn'
+                    : intent === 'organizer'
+                      ? 'Dành cho nhà tổ chức'
+                      : mode === 'login'
+                        ? 'Chào mừng trở lại'
+                        : 'Bắt đầu cùng Eventix',
+              )}
             </h2>
             <p id="eventix-auth-description" className="auth-description">
-              {user
-                ? 'Bật đăng nhập email/SĐT hoặc liên kết Google trên cùng tài khoản. Dùng đúng email của tài khoản bạn vừa đăng nhập.'
-                : intent !== 'organizer' && mode === 'register'
-                  ? contextCopy.register
-                  : contextCopy[intent]}
+              {text(
+                user
+                  ? 'Bật đăng nhập email/SĐT hoặc liên kết Google trên cùng tài khoản. Dùng đúng email của tài khoản bạn vừa đăng nhập.'
+                  : intent !== 'organizer' && mode === 'register'
+                    ? contextCopy.register
+                    : contextCopy[intent],
+              )}
             </p>
             {user && methods && !challenge && (
               <p className="auth-hint">
-                Đã liên kết:{' '}
+                {text('Đã liên kết:')}{' '}
                 {[methods.googleLinked ? 'Google' : '', methods.emailLinked ? 'Email OTP' : '']
                   .filter(Boolean)
                   .join(' · ')}
@@ -515,20 +522,20 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                     setProfileEditing(true);
                   }}
                 >
-                  Sửa hồ sơ, sở thích và vai trò
+                  {text('Sửa hồ sơ, sở thích và vai trò')}
                 </button>
                 <AvatarUpload key={user.id} accessToken={accessToken} />
               </>
             )}
             {!user && !challenge && intent !== 'organizer' && (
-              <div className="auth-tabs" role="tablist" aria-label="Tài khoản">
+              <div className="auth-tabs" role="tablist" aria-label={text('Tài khoản')}>
                 <button
                   type="button"
                   role="tab"
                   aria-selected={mode === 'login'}
                   onClick={() => selectMode('login')}
                 >
-                  Đăng nhập
+                  {text('Đăng nhập')}
                 </button>
                 <button
                   type="button"
@@ -536,7 +543,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                   aria-selected={mode === 'register'}
                   onClick={() => selectMode('register')}
                 >
-                  Đăng ký
+                  {text('Đăng ký')}
                 </button>
               </div>
             )}
@@ -549,7 +556,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
               {challenge ? (
                 <>
                   <label className="auth-label" htmlFor="auth-otp">
-                    Mã xác minh gồm 6 số
+                    {text('Mã xác minh gồm 6 số')}
                   </label>
                   <div className="auth-input-wrap">
                     <Mail size={18} aria-hidden="true" />
@@ -570,11 +577,13 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                     />
                   </div>
                   <button className="auth-primary" disabled={authBusy || otp.length !== 6}>
-                    {authBusy
-                      ? 'Đang xác minh…'
-                      : user
-                        ? 'Xác minh và liên kết'
-                        : 'Xác minh và tiếp tục'}
+                    {text(
+                      authBusy
+                        ? 'Đang xác minh…'
+                        : user
+                          ? 'Xác minh và liên kết'
+                          : 'Xác minh và tiếp tục',
+                    )}
                     <ArrowRight size={17} />
                   </button>
                   <div className="auth-otp-actions">
@@ -583,7 +592,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                       disabled={authBusy || remaining > 0}
                       onClick={() => void requestEmailOtp()}
                     >
-                      {remaining > 0 ? `Gửi lại sau ${remaining}s` : 'Gửi lại mã'}
+                      {remaining > 0 ? `${text('Gửi lại mã')} (${remaining}s)` : text('Gửi lại mã')}
                     </button>
                     <button
                       type="button"
@@ -595,16 +604,18 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                         setAuthError(null);
                       }}
                     >
-                      Đổi thông tin
+                      {text('Đổi thông tin')}
                     </button>
                   </div>
                 </>
               ) : (
                 <>
                   <label className="auth-label" htmlFor="auth-identity">
-                    {user || mode === 'register'
-                      ? 'Email nhận mã xác minh'
-                      : 'Email hoặc số điện thoại'}
+                    {text(
+                      user || mode === 'register'
+                        ? 'Email nhận mã xác minh'
+                        : 'Email hoặc số điện thoại',
+                    )}
                   </label>
                   <div className="auth-input-wrap">
                     <Mail size={18} aria-hidden="true" />
@@ -612,11 +623,11 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                       id="auth-identity"
                       type={user || mode === 'register' ? 'email' : 'text'}
                       autoComplete={user || mode === 'register' ? 'email' : 'username'}
-                      placeholder={
+                      placeholder={text(
                         user || mode === 'register'
                           ? 'ban@gmail.com'
-                          : 'Nhập email hoặc SĐT đã đăng ký'
-                      }
+                          : 'Nhập email hoặc SĐT đã đăng ký',
+                      )}
                       value={identifier}
                       onChange={(event) => setIdentifier(event.target.value)}
                       maxLength={254}
@@ -627,7 +638,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                   {(user || mode === 'register') && (
                     <>
                       <label className="auth-label auth-phone-label" htmlFor="auth-phone">
-                        Số điện thoại (không bắt buộc)
+                        {text('Số điện thoại (không bắt buộc)')}
                       </label>
                       <div className="auth-input-wrap">
                         <Phone size={18} aria-hidden="true" />
@@ -646,13 +657,13 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                     </>
                   )}
                   <p className="auth-hint">
-                    Mã xác minh được gửi qua email. SĐT đã đăng ký dùng để tìm tài khoản.
+                    {text('Mã xác minh được gửi qua email. SĐT đã đăng ký dùng để tìm tài khoản.')}
                   </p>
                   <button
                     className="auth-primary"
                     disabled={!emailEnabled || authBusy || !identifier.trim()}
                   >
-                    {authBusy ? 'Đang gửi mã…' : 'Gửi mã xác minh qua email'}
+                    {text(authBusy ? 'Đang gửi mã…' : 'Gửi mã xác minh qua email')}
                     <ArrowRight size={17} />
                   </button>
                 </>
@@ -661,7 +672,7 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
             {!challenge && (!user || methods?.googleLinked === false) && (
               <>
                 <div className="auth-separator">
-                  <span>hoặc</span>
+                  <span>{text('hoặc')}</span>
                 </div>
                 <button
                   type="button"
@@ -669,18 +680,20 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
                   disabled={!googleEnabled || authBusy}
                   onClick={() => void loginGoogle()}
                 >
-                  {authBusy ? 'Đang xử lý…' : user ? 'Liên kết Google' : 'Tiếp tục với Google'}
+                  {text(
+                    authBusy ? 'Đang xử lý…' : user ? 'Liên kết Google' : 'Tiếp tục với Google',
+                  )}
                 </button>
               </>
             )}
             {notice && (
               <p className="auth-hint" role="status">
-                {notice}
+                {text(notice)}
               </p>
             )}
             {authError && (
               <p className="auth-error" role="alert">
-                {authError}
+                {text(authError)}
               </p>
             )}
           </section>

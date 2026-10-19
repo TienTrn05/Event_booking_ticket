@@ -13,7 +13,7 @@ export const onboardingPaths = {
     put: {
       ...own,
       tags: ['Admin'],
-      summary: 'Admin thêm/bớt/sắp xếp/đặt bắt buộc câu hỏi bổ sung',
+      summary: 'Admin thêm/bớt/sắp xếp câu hỏi; mọi câu đăng ký đều cần trả lời',
       description:
         'Giữ role/displayName/gender/DOB bắt buộc. Xuất bản phiên bản mới bằng questionnaireId hiện tại và Idempotency-Key; phiên bản cũ/câu trả lời được giữ. Không cấp lại quyền, không ép tài khoản đã hoàn tất trả lời lại.',
       parameters: [idempotencyHeader],
@@ -38,7 +38,7 @@ export const onboardingPaths = {
       operationId: 'completeMyOnboarding',
       summary: 'Hoàn tất đăng ký và chọn Customer hoặc Organizer',
       description:
-        'Google/email OTP đã xác minh. Role/displayName/gender/dateOfBirth luôn bắt buộc. Câu bổ sung theo questionnaireId/required trả từ options; chỉ được bỏ qua nếu không có câu bắt buộc. Admin thay bộ câu hỏi trả 409 ONBOARDING_QUESTIONNAIRE_CHANGED. answers chỉ chứa custom_*; category/city/follow dùng field hiện có. Không nhận ADMIN. Organizer chỉ nhận ORGANIZER, tạo nháp ngay; Admin duyệt trước mở bán. Retry cùng key/body. Origin đúng PUBLIC_APP_URL.',
+        'Google/email OTP đã xác minh. Role/displayName/gender/dateOfBirth và mọi câu đang có trong questionnaire đều phải trả lời trước khi hoàn tất. ORGANIZERS cần followedOrganizers không rỗng hoặc noOrganizerYet=true cùng danh sách rỗng; không tự follow khi chọn chưa biết. Admin thay bộ câu hỏi trả 409 ONBOARDING_QUESTIONNAIRE_CHANGED. answers chỉ chứa custom_*; category/city/follow dùng field hiện có. Không nhận ADMIN. Organizer chỉ nhận ORGANIZER, tạo nháp ngay; Admin duyệt trước mở bán. Retry cùng key/body. Origin đúng PUBLIC_APP_URL. Người đã hoàn tất giữ phiên bản và quy tắc sửa hồ sơ cũ.',
       parameters: [idempotencyHeader],
       requestBody: body(inputSchema(onboardingInput)),
     },

@@ -84,7 +84,37 @@ const messages: Record<string, string> = {
   LAST_ADMIN_PROTECTED: 'Không thể thu hồi Admin hoạt động cuối cùng.',
   DEPENDENT_ROLES_EXIST: 'Thu hồi các role bổ sung nhóm ADMIN trước khi thu hồi ADMIN.',
 };
-export function rbacError(error: unknown) {
+const englishMessages: Record<string, string> = {
+  RBAC_BUSY: 'The user or permission is busy. Try again in a few seconds.',
+  REAUTHENTICATION_REQUIRED: 'Sign in again, then make the change within 5 minutes.',
+  SELF_CHANGE_FORBIDDEN: 'You cannot change your own roles or a role assigned to you.',
+  SYSTEM_ROLE_PROTECTED:
+    'Base roles are protected. Customer and Organizer use their existing registration flows.',
+  RBAC_VERSION_CONFLICT: 'Another administrator changed this resource. Reload before continuing.',
+  RBAC_ASSIGNMENT_CONFLICT: 'This role assignment changed. Reload before continuing.',
+  PERMISSION_SCOPE: 'Permissions must belong to the selected base role group.',
+  ROLE_AUDIENCE_MISMATCH: 'The user must hold the matching base role.',
+  ROLE_CODE_EXISTS: 'This role code already exists. Choose another code.',
+  ROLE_IN_USE: 'Revoke all assignments before archiving this role.',
+  USER_ROLE_INELIGIBLE: 'The user must be active and registered, and the role must be active.',
+  LAST_ADMIN_PROTECTED: 'The last active administrator cannot be removed.',
+  DEPENDENT_ROLES_EXIST: 'Revoke additional ADMIN roles before removing ADMIN.',
+};
+export function rbacError(error: unknown, english = false) {
+  if (english) {
+    if (error instanceof ApiError)
+      return (
+        englishMessages[error.code ?? ''] ??
+        (error.status === 403
+          ? 'You do not have access management permission.'
+          : error.status === 401
+            ? 'Sign in again to continue.'
+            : error.status === 404
+              ? 'The resource was not found.'
+              : 'The action could not be completed. Check your input and reload.')
+      );
+    return 'Unable to load data. Please try again.';
+  }
   if (error instanceof ApiError)
     return (
       messages[error.code ?? ''] ??

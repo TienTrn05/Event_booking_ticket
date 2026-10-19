@@ -3,6 +3,8 @@ import type { HomeCatalog } from '../types';
 
 export interface CatalogContextValue {
   catalog: HomeCatalog;
+  loading: boolean;
+  error: boolean;
   reload: () => void;
 }
 

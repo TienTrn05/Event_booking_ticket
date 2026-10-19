@@ -8,6 +8,7 @@ export const searchQuery = z
   .object({
     q: z.string().trim().max(120).optional(),
     category: z.string().trim().min(1).max(160).optional(),
+    collection: z.enum(['featured']).optional(),
     city: z.string().trim().min(1).max(120).optional(),
     from: z.iso.datetime({ offset: true }).optional(),
     to: z.iso.datetime({ offset: true }).optional(),

@@ -1,37 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import { z } from 'zod';
+import { useAuthMessages } from '../../../shared/i18n/authMessages';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ApiError, apiRequest } from '../../../shared/api/client';
 import { Link } from 'react-router-dom';
 import { QuestionFields } from './QuestionFields';
-import { questionnaireSchema, type Answers } from '../schemas/questionnaire.schema';
+import type { Answers } from '../schemas/questionnaire.schema';
+import {
+  onboardingStateSchema as stateSchema,
+  onboardingOptionsSchema as optionsSchema,
+  type OnboardingState as State,
+  type OnboardingOptions as Options,
+} from '../schemas/onboarding.schema';
+import { RegistrationWizard } from './RegistrationWizard';
 
-const stateSchema = z.object({
-  data: z.object({
-    completed: z.boolean(),
-    roles: z.array(z.string()),
-    registrationRole: z.enum(['CUSTOMER', 'ORGANIZER']).nullable(),
-    favoriteCategories: z.array(z.string()),
-    preferredCity: z.string().nullable(),
-    followedOrganizers: z.array(z.string()),
-    questionnaire: questionnaireSchema.nullable(),
-    answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
-    profile: z.object({
-      displayName: z.string(),
-      gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'UNDISCLOSED']).nullable(),
-      dateOfBirth: z.string().nullable(),
-    }),
-  }),
-});
-const optionsSchema = z.object({
-  data: z.object({
-    categories: z.array(z.object({ id: z.string(), name: z.string() })),
-    cities: z.array(z.object({ id: z.string(), name: z.string() })),
-    organizers: z.array(z.object({ id: z.string(), name: z.string() })),
-    questionnaire: questionnaireSchema,
-  }),
-});
-type State = z.infer<typeof stateSchema>['data'];
-type Options = z.infer<typeof optionsSchema>['data'];
 type Props = {
   token: string;
   editing: boolean;
@@ -40,6 +21,7 @@ type Props = {
   onLogout: () => Promise<void>;
 };
 export function ProfileOnboarding(props: Props) {
+  const text = useAuthMessages();
   const dialogRef = useRef<HTMLElement>(null);
   const [loaded, setLoaded] = useState<{ state: State; options: Options } | null>(null);
   const [error, setError] = useState('');
@@ -68,17 +50,20 @@ export function ProfileOnboarding(props: Props) {
     };
   }, [props.token, retry]);
   const visible = !loaded?.state.completed || props.editing;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!visible) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    const root = document.getElementById('root');
+    const wasInert = root?.inert ?? false;
+    if (root) root.inert = true;
     dialogRef.current?.focus();
     const trap = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
       const nodes = Array.from(
         dialogRef.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),input:not(:disabled),select:not(:disabled)',
+          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]',
         ) ?? [],
       );
       const first = nodes[0],
@@ -105,51 +90,70 @@ export function ProfileOnboarding(props: Props) {
     return () => {
       document.body.style.overflow = overflow;
       document.removeEventListener('keydown', trap);
-      previous?.focus();
+      if (root) root.inert = wasInert;
+      if (previous?.isConnected) previous.focus();
     };
   }, [visible]);
   if (loaded?.state.completed && !props.editing) return null;
-  return (
-    <div className="auth-overlay" style={{ zIndex: 110 }}>
+  const editing = !!loaded?.state.completed && props.editing;
+  return createPortal(
+    <div className={editing ? 'auth-overlay' : 'onboarding-screen'} style={{ zIndex: 110 }}>
       <section
         ref={dialogRef}
         tabIndex={-1}
-        style={{ maxHeight: '90dvh', overflowY: 'auto' }}
-        className="auth-dialog"
+        style={editing ? { maxHeight: '90dvh', overflowY: 'auto' } : undefined}
+        className={editing ? 'auth-dialog' : 'onboarding-shell'}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="profile-title"
+        aria-label={text(editing ? 'Hồ sơ và sở thích' : 'Bắt đầu trải nghiệm của bạn')}
       >
-        <h2 id="profile-title">
-          {props.editing ? 'Hồ sơ và sở thích' : 'Bắt đầu trải nghiệm của bạn'}
-        </h2>
+        {editing && (
+          <h2 id="profile-title">
+            {text(props.editing ? 'Hồ sơ và sở thích' : 'Bắt đầu trải nghiệm của bạn')}
+          </h2>
+        )}
         {loaded ? (
-          <ProfileForm
-            key={loaded.state.completed ? 'edit' : 'register'}
-            {...props}
-            state={loaded.state}
-            options={loaded.options}
-            onReload={() => setRetry((value) => value + 1)}
-            onComplete={(state) => {
-              setLoaded({ ...loaded, state });
-              props.onSaved(state.profile.displayName);
-            }}
-          />
+          !loaded.state.completed ? (
+            <RegistrationWizard
+              state={loaded.state}
+              options={loaded.options}
+              token={props.token}
+              onReload={() => setRetry((value) => value + 1)}
+              onLogout={props.onLogout}
+              onComplete={(state) => {
+                setLoaded({ ...loaded, state });
+                props.onSaved(state.profile.displayName);
+              }}
+            />
+          ) : (
+            <ProfileForm
+              key={loaded.state.completed ? 'edit' : 'register'}
+              {...props}
+              state={loaded.state}
+              options={loaded.options}
+              onReload={() => setRetry((value) => value + 1)}
+              onComplete={(state) => {
+                setLoaded({ ...loaded, state });
+                props.onSaved(state.profile.displayName);
+              }}
+            />
+          )
         ) : (
           <>
-            <p role="status">{error || 'Đang tải hồ sơ…'}</p>
+            <p role="status">{text(error || 'Đang tải hồ sơ…')}</p>
             {error && (
               <button type="button" onClick={() => setRetry(retry + 1)}>
-                Thử lại
+                {text('Thử lại')}
               </button>
             )}
             <button type="button" onClick={() => void props.onLogout()}>
-              Đăng xuất
+              {text('Đăng xuất')}
             </button>
           </>
         )}
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }
 function ProfileForm({
@@ -164,6 +168,7 @@ function ProfileForm({
   onComplete: (state: State) => void;
   onReload: () => void;
 }) {
+  const text = useAuthMessages();
   const [step, setStep] = useState(state.completed ? 1 : 0);
   const [role, setRole] = useState<'CUSTOMER' | 'ORGANIZER'>(state.registrationRole ?? 'CUSTOMER');
   const [name, setName] = useState(state.profile.displayName);
@@ -187,7 +192,7 @@ function ProfileForm({
   const mandatory = (
     <>
       <label>
-        Tên hiển thị
+        {text('Tên hiển thị')}
         <input
           autoFocus
           required
@@ -197,17 +202,17 @@ function ProfileForm({
         />
       </label>
       <label>
-        Giới tính
+        {text('Giới tính')}
         <select required value={gender} onChange={(e) => setGender(e.target.value)}>
-          <option value="">Chọn giới tính</option>
-          <option value="MALE">Nam</option>
-          <option value="FEMALE">Nữ</option>
-          <option value="OTHER">Khác</option>
-          <option value="UNDISCLOSED">Không muốn tiết lộ</option>
+          <option value="">{text('Chọn giới tính')}</option>
+          <option value="MALE">{text('Nam')}</option>
+          <option value="FEMALE">{text('Nữ')}</option>
+          <option value="OTHER">{text('Khác')}</option>
+          <option value="UNDISCLOSED">{text('Không muốn tiết lộ')}</option>
         </select>
       </label>
       <label>
-        Ngày sinh
+        {text('Ngày sinh')}
         <input
           required
           type="date"
@@ -341,6 +346,7 @@ function ProfileForm({
   }
   return (
     <form
+      className="profile-form"
       onSubmit={(e) => {
         e.preventDefault();
         if (!state.completed && step === 0) setStep(1);
@@ -353,7 +359,7 @@ function ProfileForm({
       >
         {!state.completed && step === 0 ? (
           <>
-            <p>Bạn muốn tham gia với vai trò nào?</p>
+            <p>{text('Bạn muốn tham gia với vai trò nào?')}</p>
             <label>
               <input
                 type="radio"
@@ -361,7 +367,7 @@ function ProfileForm({
                 checked={role === 'CUSTOMER'}
                 onChange={() => setRole('CUSTOMER')}
               />{' '}
-              Khách tham dự — khám phá và mua vé
+              {text('Khách tham dự — khám phá và mua vé')}
             </label>
             <label>
               <input
@@ -370,17 +376,21 @@ function ProfileForm({
                 checked={role === 'ORGANIZER'}
                 onChange={() => setRole('ORGANIZER')}
               />{' '}
-              Nhà tổ chức — tạo tổ chức và sự kiện nháp
+              {text('Nhà tổ chức — tạo tổ chức và sự kiện nháp')}
             </label>
             <p>
-              Nhà tổ chức có thể bật quyền mua vé sau. Admin duyệt tổ chức và sự kiện trước mở bán.
+              {text(
+                'Nhà tổ chức có thể bật quyền mua vé sau. Admin duyệt tổ chức và sự kiện trước mở bán.',
+              )}
             </p>
             {mandatory}
           </>
         ) : (
           <>
             {state.completed && mandatory}
-            <p>Câu hỏi có dấu * cần trả lời. Bạn có thể sửa câu trả lời trong tài khoản.</p>
+            <p>
+              {text('Câu hỏi có dấu * cần trả lời. Bạn có thể sửa câu trả lời trong tài khoản.')}
+            </p>
             <QuestionFields
               questions={questions}
               answers={answers}
@@ -397,20 +407,20 @@ function ProfileForm({
           </>
         )}
       </fieldset>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert">{text(error)}</p>}
       <button type="submit" className="auth-submit" disabled={busy}>
-        {busy ? 'Đang lưu…' : !state.completed && step === 0 ? 'Tiếp tục' : 'Lưu hồ sơ'}
+        {text(busy ? 'Đang lưu…' : !state.completed && step === 0 ? 'Tiếp tục' : 'Lưu hồ sơ')}
       </button>
       {!state.completed && step === 1 && (
         <>
           {!hasRequired && (
             <button type="button" disabled={busy || retryPending} onClick={() => void save(true)}>
-              Bỏ qua sở thích và hoàn tất
+              {text('Bỏ qua sở thích và hoàn tất')}
             </button>
           )}
           {!retryPending && (
             <button type="button" disabled={busy} onClick={() => setStep(0)}>
-              Quay lại
+              {text('Quay lại')}
             </button>
           )}
         </>
@@ -419,29 +429,29 @@ function ProfileForm({
         state.roles.includes('ORGANIZER') &&
         !state.roles.includes('CUSTOMER') && (
           <button type="button" disabled={busy} onClick={() => void enableCustomer()}>
-            Bật quyền mua vé Customer
+            {text('Bật quyền mua vé Customer')}
           </button>
         )}
       {state.completed && (
         <>
           {state.roles.includes('ADMIN') && (
             <Link to="/admin/rbac" onClick={props.onClose}>
-              Quản trị phân quyền
+              {text('Quản trị phân quyền')}
             </Link>
           )}
           {state.roles.includes('ADMIN') && (
             <Link to="/admin/onboarding" onClick={props.onClose}>
-              Quản lý câu hỏi đăng ký
+              {text('Quản lý câu hỏi đăng ký')}
             </Link>
           )}
           <button type="button" disabled={busy} onClick={props.onClose}>
-            Đóng
+            {text('Đóng')}
           </button>
         </>
       )}
       {!state.completed && (
         <button type="button" disabled={busy} onClick={() => void props.onLogout()}>
-          Đăng xuất
+          {text('Đăng xuất')}
         </button>
       )}
     </form>

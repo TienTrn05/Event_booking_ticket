@@ -4,6 +4,7 @@ import { eventSchema } from '../../catalog/api/catalog.api';
 export type EventSearchInput = {
   q?: string;
   category?: string;
+  collection?: 'featured';
   city?: string;
   sort: 'relevance' | 'popular' | 'date_asc' | 'price_asc' | 'price_desc';
   page: number;

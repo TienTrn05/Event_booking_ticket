@@ -1,117 +1,186 @@
 import { Link } from 'react-router-dom';
-import { Ticket } from 'lucide-react';
-import { useAuthDialog } from '../../../features/auth/context/AuthDialogContext';
-import { useScrollReveal } from '../../../shared/motion/useScrollReveal';
+import {
+  ArrowUp,
+  ArrowUpRight,
+  Clock3,
+  Compass,
+  Facebook,
+  Github,
+  Instagram,
+  Mail,
+  MapPin,
+  Phone,
+  Ticket,
+} from 'lucide-react';
+import { FooterBackgroundGradient, FooterWordmark } from '../../../components/ui/footer-artwork';
+import { Brand } from '../../../shared/ui/Brand';
+import { useLocale } from '../../../shared/i18n/LocaleContext';
+import { scrollToTop } from '../../../shared/motion/scroll';
 
-const footerGroups = [
-  {
-    title: 'Explore',
-    links: [
-      { label: 'Trending events', to: '/#featured' },
-      { label: 'Browse all events', to: '/#discover' },
-      { label: 'Browse by location', to: '/#locations' },
-      { label: 'Resale tickets', to: '/#resale' },
-    ],
-  },
-  {
-    title: 'Discover more',
-    links: [
-      { label: 'Featured organizers', to: '/#stars' },
-      { label: 'The Spotlight', to: '/#spotlight' },
-      { label: 'Merchandise', to: '/#merchandise' },
-      { label: 'Blog & insights', to: '/#blog' },
-    ],
-  },
+const contact = {
+  quote: 'Beyond the ticket. Into the moment.',
+  email: 'ngoctien20022005@gmail.com',
+  phone: '0935572707',
+  phoneHref: 'tel:+84935572707',
+};
+
+const socialLinks = [
+  { label: 'Facebook', href: 'https://www.facebook.com/nin.tran0205', icon: Facebook },
+  { label: 'GitHub', href: 'https://github.com/TienTrn05', icon: Github },
+  { label: 'Instagram', href: 'https://www.instagram.com/ny_nne/', icon: Instagram },
 ];
 
 export default function Footer() {
-  const { openAuth } = useAuthDialog();
-  const revealRoot = useScrollReveal();
+  const { t } = useLocale();
+  function returnToTop() {
+    [...document.querySelectorAll<HTMLAnchorElement>('[data-brand-home]')]
+      .find((link) => link.getClientRects().length > 0)
+      ?.focus({ preventScroll: true });
+    // Let keyboard activation finish before starting a cancellable scroll.
+    requestAnimationFrame(scrollToTop);
+  }
+  const linkGroups = [
+    {
+      title: t('Khám phá', 'Explore'),
+      icon: Compass,
+      links: [
+        { to: '/events', label: t('Tìm sự kiện', 'Find events') },
+        { to: '/reopening', label: t('Vé mở bán lại', 'Reopened tickets') },
+        { to: '/blog', label: t('Câu chuyện & cảm hứng', 'Stories & inspiration') },
+      ],
+    },
+    {
+      title: t('Hành trình của bạn', 'Your journey'),
+      icon: Ticket,
+      links: [
+        { to: '/my-tickets', label: t('Vé của tôi', 'My tickets') },
+        { to: '/my-orders', label: t('Đơn hàng của tôi', 'My orders') },
+        { to: '/guide', label: t('Hướng dẫn đặt vé', 'Booking guide') },
+        { to: '/organizer', label: t('Bắt đầu tổ chức', 'Start organizing') },
+      ],
+    },
+  ];
+
   return (
-    <footer className="home-footer relative overflow-hidden text-white">
-      <div aria-hidden="true" className="footer-glow pointer-events-none absolute inset-0" />
-      <div ref={revealRoot} className="relative mx-auto max-w-7xl px-4 pb-24 pt-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 border-b border-white/15 pb-12 sm:grid-cols-2 lg:grid-cols-[1.5fr_repeat(3,1fr)]">
-          <div>
-            <Link
-              to="/"
-              className="inline-flex items-center gap-3 text-xl font-extrabold tracking-tight text-white"
-            >
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500 text-white">
-                <Ticket size={21} />
-              </span>
-              Eventix
-            </Link>
-            <p className="mt-5 max-w-xs text-sm leading-7 text-slate-300">
-              Discover events, find your people, and make every night a story worth keeping.
-            </p>
-          </div>
-          {footerGroups.map((group) => (
-            <div data-reveal key={group.title}>
-              <h3 className="mb-5 text-sm font-extrabold text-white">{group.title}</h3>
-              <ul className="space-y-3.5">
-                {group.links.map((link) => (
-                  <li key={link.to}>
-                    <Link
-                      to={link.to}
-                      className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
-                    >
-                      <span aria-hidden="true" className="footer-link-mark" />
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+    <footer className="eventix-footer w-full text-foreground">
+      <div className="relative isolate overflow-hidden border-t border-line bg-surface">
+        <FooterBackgroundGradient />
+        <div className="mx-auto max-w-[1240px] px-5 pt-9 sm:px-8 sm:pt-12 lg:px-10">
+          <div className="flex flex-col gap-9 lg:flex-row lg:gap-12">
+            <div className="min-w-0 lg:w-[28%] lg:shrink-0">
+              <Brand />
+              <blockquote
+                lang="en"
+                className="mt-5 max-w-sm text-xl font-semibold leading-relaxed tracking-tight"
+              >
+                {contact.quote}
+              </blockquote>
+              <nav aria-label={t('Trang cá nhân', 'Social profiles')} className="mt-5">
+                <ul className="flex flex-wrap gap-2">
+                  {socialLinks.map(({ label, href, icon: Icon }) => (
+                    <li key={label}>
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t(
+                          `${label} (mở trong thẻ mới)`,
+                          `${label} (opens in a new tab)`,
+                        )}
+                        className="hover-footer-link inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:bg-accent-soft"
+                      >
+                        <Icon size={19} aria-hidden="true" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
             </div>
-          ))}
-          <div data-reveal>
-            <h3 className="mb-5 text-sm font-extrabold text-white">Account & support</h3>
-            <ul className="space-y-3.5">
-              <li>
-                <button
-                  type="button"
-                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
-                  onClick={() => openAuth('tickets')}
-                >
-                  <span aria-hidden="true" className="footer-link-mark" />
-                  My Tickets
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
-                  onClick={() => openAuth('login')}
-                >
-                  <span aria-hidden="true" className="footer-link-mark" />
-                  Đăng nhập
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
-                  onClick={() => openAuth('register')}
-                >
-                  <span aria-hidden="true" className="footer-link-mark" />
-                  Đăng ký
-                </button>
-              </li>
-              <li>
-                <Link
-                  to="/guide"
-                  className="footer-link inline-flex items-center gap-2 text-sm text-slate-300"
-                >
-                  <span aria-hidden="true" className="footer-link-mark" />
-                  Help & guides
-                </Link>
-              </li>
-            </ul>
+            <nav
+              aria-label={t('Liên kết cuối trang', 'Footer navigation')}
+              className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-7 sm:gap-x-12 lg:gap-x-8"
+            >
+              {linkGroups.map(({ title, icon: Icon, links }) => (
+                <div key={title} className="min-w-[105px] flex-1">
+                  <h2 className="mb-3 flex items-center gap-2 text-sm font-bold">
+                    <Icon size={16} className="text-accent" aria-hidden="true" />
+                    {title}
+                  </h2>
+                  <ul>
+                    {links.map(({ to, label }) => (
+                      <li key={to}>
+                        <Link
+                          to={to}
+                          className="hover-footer-link inline-flex min-h-11 items-center gap-2 rounded-lg text-sm text-muted"
+                        >
+                          {label}
+                          {to === '/organizer' && <ArrowUpRight size={16} aria-hidden="true" />}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </nav>
+            <div className="min-w-0 lg:w-[29%] lg:shrink-0">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-bold">
+                <Mail size={16} className="text-accent" aria-hidden="true" />
+                {t('Liên hệ', 'Contact')}
+              </h2>
+              <address className="text-sm not-italic leading-6 text-muted">
+                <ul>
+                  <li>
+                    <a
+                      href={`mailto:${contact.email}`}
+                      className="hover-footer-link flex min-h-11 items-center gap-3 rounded-lg py-2"
+                    >
+                      <Mail size={17} className="shrink-0 text-accent" aria-hidden="true" />
+                      <span className="min-w-0 break-all">{contact.email}</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={contact.phoneHref}
+                      className="hover-footer-link flex min-h-11 items-center gap-3 rounded-lg py-2"
+                    >
+                      <Phone size={17} className="shrink-0 text-accent" aria-hidden="true" />
+                      {contact.phone}
+                    </a>
+                  </li>
+                  <li className="flex min-h-11 items-center gap-3 py-2">
+                    <MapPin size={17} className="shrink-0 text-accent" aria-hidden="true" />
+                    {t('Liên Chiểu, Đà Nẵng', 'Lien Chieu District, Da Nang')}
+                  </li>
+                </ul>
+              </address>
+              <p className="flex min-h-11 items-center gap-3 py-2 text-sm leading-6 text-muted">
+                <Clock3 size={17} className="shrink-0 text-accent" aria-hidden="true" />
+                <span>
+                  <span className="sr-only">{t('Giờ liên hệ: ', 'Contact hours: ')}</span>
+                  <time dateTime="08:00">{t('08:00', '8:00 AM')}</time>
+                  {' – '}
+                  <time dateTime="17:00">{t('17:00', '5:00 PM')}</time>
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line pt-5 text-xs text-muted sm:mt-10">
+            <p>
+              © {new Date().getFullYear()} Eventix.{' '}
+              {t('Mọi quyền được bảo lưu.', 'All rights reserved.')}
+            </p>
+            <button
+              type="button"
+              onClick={returnToTop}
+              className="hover-footer-link inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold"
+            >
+              {t('Về đầu trang', 'Back to top')}
+              <ArrowUp size={16} aria-hidden="true" />
+            </button>
           </div>
         </div>
-        <div className="flex flex-col justify-between gap-2 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center">
-          <span>© 2026 Eventix. Made for memorable moments.</span>
-          <span>Preview experience · Account access and ticket sales are coming soon.</span>
+        <div className="mx-auto max-w-[1320px] px-3 pb-2 pt-3 sm:px-5 sm:pb-4">
+          <FooterWordmark text="EVENTIX" />
         </div>
       </div>
     </footer>

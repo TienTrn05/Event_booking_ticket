@@ -1,67 +1,78 @@
-import { ArrowRight, CalendarClock, FileCheck2, RefreshCw } from 'lucide-react';
-import { ui } from '../../../../shared/styles/classes';
+﻿import { ArrowRight, FileCheck2, RotateCcw, Ticket } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useCatalog } from '../../../catalog/hooks/useCatalog';
-import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
-
-const typeLabel: Record<string, string> = {
-  CAPACITY: 'Điều chỉnh sức chứa',
-  NEW_SALE_WAVE: 'Đợt mở bán mới',
-  SALES_CONFIG: 'Điều chỉnh bán vé',
-  RESUME_SALES: 'Mở bán trở lại',
-};
-
+import { useLocale } from '../../../../shared/i18n/LocaleContext';
+import { HorizontalRail } from '../../../../shared/ui/HorizontalRail';
+import { SectionHeader } from '../../../../shared/ui/SectionHeader';
+import { ExpressiveIcon } from '../../../../shared/ui/ExpressiveIcon';
+import { ViewAllLink } from '../../../../shared/ui/ViewAllLink';
 export default function ResaleTickets() {
   const { catalog } = useCatalog();
-  const { openPreview } = useQuickPreview();
+  const { t } = useLocale();
+  const title = t('Một cơ hội nữa để có mặt', 'Another chance to be there');
+  if (!catalog.reopeningRequests.length) return null;
   return (
-    <section id="resale" className={ui('home-chapter chapter-resale bg-ink-900 py-16 lg:py-24')}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-end justify-between gap-6">
-          <div>
-            <span className="inline-flex items-center gap-2 text-sm font-bold text-primary-300">
-              <RefreshCw size={16} /> Cơ hội gặp lại
-            </span>
-            <h2 className="mt-3 text-3xl font-extrabold text-white lg:text-5xl">Đợt mở bán lại.</h2>
-            <p className="mt-3 max-w-2xl text-white/65">
-              Hồ sơ do nhà tổ chức gửi và đã được duyệt. Đây không phải thị trường chuyển nhượng vé
-              cá nhân.
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2">
+    <section id="resale" className="home-section home-resale">
+      <div className="home-section-inner">
+        <HorizontalRail
+          label={title}
+          density="ticket"
+          heading={
+            <SectionHeader
+              title={title}
+              compact
+              eyebrow={t('Đợt mở bán lại', 'Reopened ticket sales')}
+              icon={<ExpressiveIcon icon={RotateCcw} tone="coral" />}
+              description={t(
+                'Các đợt mở bán bổ sung đã được duyệt từ nhà tổ chức.',
+                'Additional sales approved for publication by organizers.',
+              )}
+            />
+          }
+          actions={<ViewAllLink to="/reopening" />}
+        >
           {catalog.reopeningRequests.map((request) => (
-            <article
+            <Link
+              data-reveal
               key={request.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openPreview('resale', request.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openPreview('resale', request.id);
-                }
-              }}
-              className="group overflow-hidden rounded-3xl border border-white/15 bg-white/10 backdrop-blur-sm transition hover:-translate-y-1 hover:border-primary-300/60"
+              to={`/reopening?request=${request.id}`}
+              className="home-ticket home-card"
+              aria-label={`${t('Xem đợt mở bán lại', 'View reopened sale')}: ${request.eventTitle}`}
             >
-              <div className="grid sm:grid-cols-[180px_1fr]">
-                <img className="h-full min-h-48 w-full object-cover" src={request.image} alt="" />
-                <div className="p-6">
-                  <span className="inline-flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-primary-300">
-                    <FileCheck2 size={15} /> {typeLabel[request.type] ?? request.type}
-                  </span>
-                  <h3 className="mt-3 text-xl font-extrabold text-white">{request.eventTitle}</h3>
-                  <p className="mt-2 text-sm text-white/60">{request.organizer}</p>
-                  <p className="mt-4 line-clamp-2 text-sm leading-6 text-white/75">
-                    {request.reason}
-                  </p>
-                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-primary-300">
-                    <CalendarClock size={16} /> Xem hồ sơ <ArrowRight size={15} />
-                  </span>
-                </div>
+              <div className="home-ticket-stub" aria-hidden="true">
+                <Ticket size={36} strokeWidth={1.4} />
+                <span className="text-center text-[10px] font-bold uppercase tracking-[.16em]">
+                  {t('Hẹn lại', 'Encore')}
+                </span>
+                <span className="mt-2 flex h-8 gap-1">
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i % 3 === 0 ? 'w-0.5 bg-current opacity-40' : 'w-px bg-current opacity-40'
+                      }
+                    />
+                  ))}
+                </span>
               </div>
-            </article>
+              <div className="min-w-0 flex-1 p-5">
+                <span className="home-sticker">
+                  <FileCheck2 size={13} />
+                  {t('Đã duyệt', 'Approved')}
+                </span>
+                <h3 className="mt-4 line-clamp-2 text-base font-bold leading-6 text-foreground">
+                  {request.eventTitle}
+                </h3>
+                <p className="mt-2 truncate text-xs text-muted">{request.organizer}</p>
+                <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted">{request.reason}</p>
+                <span className="mt-4 inline-flex min-h-8 items-center gap-2 text-xs font-bold text-[var(--resale-accent)]">
+                  {t('Chi tiết đợt bán', 'Sale details')}
+                  <ArrowRight size={14} />
+                </span>
+              </div>
+            </Link>
           ))}
-        </div>
+        </HorizontalRail>
       </div>
     </section>
   );

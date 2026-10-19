@@ -37,7 +37,12 @@ export class QuestionnaireService {
         await finishKey(db, record.id, 'QUESTIONNAIRE', current.id, 200);
         return current;
       }
-      const id = await this.repository.publish(db, actor.id, current.id, input.questions);
+      const id = await this.repository.publish(
+        db,
+        actor.id,
+        current.id,
+        input.questions.map((question) => ({ ...question, required: true })),
+      );
       await this.repository.audit(db, actor.id, id, requestId);
       await finishKey(db, record.id, 'QUESTIONNAIRE', id, 200);
       return this.repository.get(db, id);

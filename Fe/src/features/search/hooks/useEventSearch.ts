@@ -35,7 +35,14 @@ export function useEventSearch(
                   ...result,
                   items:
                     page > 1 && previous.filterKey === key && previous.result
-                      ? [...previous.result.items, ...result.items]
+                      ? [
+                          ...new Map(
+                            [...previous.result.items, ...result.items].map((item) => [
+                              item.id,
+                              item,
+                            ]),
+                          ).values(),
+                        ]
                       : result.items,
                 },
               }));

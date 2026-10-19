@@ -28,7 +28,7 @@ export class OnboardingRepository {
       `SELECT slug AS id,name FROM event_categories WHERE is_active ORDER BY id`,
     );
     const cities = await db.query(
-      `SELECT city AS id,display_name AS name FROM city_profiles ORDER BY sort_order,city`,
+      `SELECT city AS id,display_name AS name,image_url AS image FROM city_profiles ORDER BY sort_order,city`,
     );
     const organizers = await db.query(
       `SELECT o.public_id AS id,o.name,o.avatar_url AS avatar FROM organizations o WHERE o.status='APPROVED' AND o.public_id IS NOT NULL ORDER BY o.name,o.id LIMIT 100`,

@@ -1,93 +1,73 @@
-import { ui } from '../../../../shared/styles/classes';
-import { SectionEmblem } from '../../../../shared/ui/SectionEmblem';
-import { BadgeCheck, ArrowRight } from 'lucide-react';
-import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { BadgeCheck, Building2, Users } from 'lucide-react';
+import { ExpressiveIcon } from '../../../../shared/ui/ExpressiveIcon';
+import { ViewAllLink } from '../../../../shared/ui/ViewAllLink';
+import { Link } from 'react-router-dom';
 import { useCatalog } from '../../../catalog/hooks/useCatalog';
-
+import { useLocale } from '../../../../shared/i18n/LocaleContext';
+import { HorizontalRail } from '../../../../shared/ui/HorizontalRail';
+import { SectionHeader } from '../../../../shared/ui/SectionHeader';
 export default function FeaturedOrganizers() {
-  const { openPreview } = useQuickPreview();
   const { catalog } = useCatalog();
-
+  const { t } = useLocale();
+  const title = t('Những người tạo nên cuộc hẹn', 'The people behind the experience');
+  if (!catalog.organizers.length) return null;
   return (
-    <section
-      id="stars"
-      className={ui(
-        'home-chapter chapter-stars stars-section relative isolate overflow-hidden py-14 lg:py-20',
-      )}
-    >
-      <div aria-hidden="true" className="stars-backdrop pointer-events-none absolute inset-0">
-        <svg
-          className="stars-waves absolute inset-0 h-full w-full"
-          viewBox="0 0 1600 420"
-          preserveAspectRatio="none"
+    <section id="stars" className="home-section home-community">
+      <div className="home-section-inner">
+        <HorizontalRail
+          label={title}
+          density="organizer"
+          heading={
+            <SectionHeader
+              title={title}
+              compact
+              eyebrow={t('Nhà tổ chức', 'Organizers')}
+              icon={<ExpressiveIcon icon={Users} tone="green" />}
+            />
+          }
+          actions={<ViewAllLink to="/organizers" />}
         >
-          <path d="M-100 250 C 170 350, 330 80, 540 185 S 890 315, 1120 180 S 1390 105, 1700 230" />
-          <path d="M-100 310 C 170 160, 350 265, 560 150 S 900 150, 1120 280 S 1430 140, 1700 190" />
-          <path d="M-80 110 C 210 30, 380 170, 560 250 S 930 130, 1130 180 S 1420 300, 1700 160" />
-          <path d="M-100 370 C 250 200, 390 360, 620 260 S 980 270, 1200 340 S 1450 250, 1700 320" />
-
-          <path d="M-120 210 C 120 120, 320 300, 560 220 S 930 120, 1160 210 S 1450 330, 1720 240" />
-          <path d="M-90 145 C 140 260, 320 60, 520 145 S 900 310, 1140 210 S 1450 70, 1710 155" />
-          <path d="M-110 285 C 180 410, 360 140, 560 215 S 900 255, 1120 205 S 1430 145, 1700 245" />
-          <path d="M-70 75 C 190 10, 400 140, 620 120 S 970 55, 1180 170 S 1470 260, 1710 130" />
-        </svg>
-      </div>
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <SectionEmblem kind="stars" />
-            <h2
-              data-reveal="soft-heading"
-              className="stars-title mt-2 text-3xl font-extrabold tracking-tight"
-            >
-              Feature Stars
-            </h2>
-          </div>
-          <a
-            href="#organizers"
-            className="stars-all-link inline-flex items-center gap-2 text-sm font-bold"
-          >
-            For organizers <ArrowRight size={16} />
-          </a>
-        </div>
-        <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
           {catalog.organizers.map((org) => (
-            <article
+            <Link
               data-reveal
               key={org.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openPreview('organizer', org.id)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openPreview('organizer', org.id);
-                }
-              }}
-              className="stars-card group relative flex min-h-[180px] w-[164px] shrink-0 flex-col items-center justify-center rounded-2xl p-4 text-center"
+              to={`/organizers/${org.id}`}
+              className="home-card group flex min-h-28 items-center gap-4 rounded-2xl border border-line bg-surface p-4"
             >
-              <div className="relative mb-3">
-                <div className="stars-avatar h-[104px] w-[104px] overflow-hidden rounded-full border-2 p-0.5">
+              <div className="relative shrink-0">
+                {org.avatar ? (
                   <img
                     src={org.avatar}
                     alt=""
-                    className="h-full w-full rounded-full object-cover"
                     loading="lazy"
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 rounded-full border border-line object-cover"
                   />
-                </div>
-                {org.verified && (
-                  <span
-                    className="stars-verified absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2"
-                    aria-label="Verified organizer"
-                  >
-                    <BadgeCheck size={17} />
+                ) : (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent">
+                    <Building2 size={26} />
                   </span>
                 )}
+                {org.verified && (
+                  <BadgeCheck
+                    className="absolute -bottom-1 -right-1 rounded-full bg-surface text-accent"
+                    size={22}
+                    aria-label={t('Đã xác minh', 'Verified')}
+                  />
+                )}
               </div>
-              <h3 className="stars-name w-full truncate text-sm font-extrabold">{org.name}</h3>
-            </article>
+              <div className="min-w-0">
+                <h3 className="line-clamp-2 text-sm font-bold leading-6 text-foreground">
+                  {org.name}
+                </h3>
+                <p className="mt-1 text-xs text-muted">
+                  {t(`${org.eventCount} sự kiện`, `${org.eventCount} events`)}
+                </p>
+              </div>
+            </Link>
           ))}
-        </div>
+        </HorizontalRail>
       </div>
     </section>
   );

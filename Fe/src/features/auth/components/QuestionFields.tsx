@@ -1,3 +1,4 @@
+import { useAuthMessages } from '../../../shared/i18n/authMessages';
 import type { Question, Answers } from '../schemas/questionnaire.schema';
 export function QuestionFields({
   questions,
@@ -28,6 +29,7 @@ export function QuestionFields({
   };
   editing: boolean;
 }) {
+  const text = useAuthMessages();
   return (
     <>
       {questions.map((q) => {
@@ -41,7 +43,7 @@ export function QuestionFields({
                 value={city}
                 onChange={(e) => onCity(e.target.value)}
               >
-                <option value="">Chưa chọn</option>
+                <option value="">{text('Chưa chọn')}</option>
                 {options.cities.map((i) => (
                   <option key={i.id} value={i.id}>
                     {i.name}
@@ -99,7 +101,7 @@ export function QuestionFields({
                 value={typeof answers[q.key] === 'string' ? answers[q.key] : ''}
                 onChange={(e) => onAnswer(q.key, e.target.value)}
               >
-                <option value="">Chưa chọn</option>
+                <option value="">{text('Chưa chọn')}</option>
                 {q.options?.map((i) => (
                   <option key={i.value} value={i.value}>
                     {i.label}

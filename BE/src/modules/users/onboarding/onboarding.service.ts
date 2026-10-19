@@ -38,7 +38,10 @@ export class OnboardingService {
       const questionnaire = await this.questionnaires.get(db);
       return {
         ...(await this.repository.options(db)),
-        questionnaire: { id: questionnaire.id, questions: questionnaire.questions },
+        questionnaire: {
+          id: questionnaire.id,
+          questions: questionnaire.questions.map((question) => ({ ...question, required: true })),
+        },
       };
     });
   }

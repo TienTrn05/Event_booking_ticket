@@ -24,6 +24,8 @@ export class SearchRepository {
     };
     if (candidates) delete filters.q;
     const built = eventParams(filters);
+    if (q.collection === 'featured')
+      built.clauses.push('(e.featured_rank IS NOT NULL OR e.spotlight_rank IS NOT NULL)');
     const params: unknown[] = [...built.params];
     let select = built.select;
     let rank = 'NULL::integer';

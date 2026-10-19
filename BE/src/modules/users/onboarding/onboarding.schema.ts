@@ -18,10 +18,15 @@ export const onboardingInput = z
     dateOfBirth: calendarDate,
     ...preferenceFields,
     followedOrganizers: z.array(publicId).max(20).refine(unique).default([]),
+    noOrganizerYet: z.boolean().default(false),
     questionnaireId: numericId.optional(),
     answers: answersSchema,
   })
-  .strict();
+  .strict()
+  .refine((value) => !value.noOrganizerYet || value.followedOrganizers.length === 0, {
+    message: 'Choose organizers or explicitly choose none, not both.',
+    path: ['noOrganizerYet'],
+  });
 export const preferencesInput = z.object(preferenceFields).strict();
 export type OnboardingInput = z.infer<typeof onboardingInput>;
 export type PreferencesInput = z.infer<typeof preferencesInput>;

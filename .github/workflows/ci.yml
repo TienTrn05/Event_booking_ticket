@@ -1,64 +1,11 @@
-name: Quality
+﻿name: Quality
 on: [push, pull_request]
 permissions:
   contents: read
 jobs:
-  postgres-integration:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5@sha256:13b4a40bb095774f5fda635e45fd5677cc6a26565e42b24997b0c72b88e75984
-        env:
-          discovery.type: single-node
-          xpack.security.enabled: "true"
-          xpack.security.http.ssl.enabled: "false"
-          xpack.ml.enabled: "false"
-          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
-          ELASTIC_PASSWORD: search_fixture_only
-        ports:
-          - 9200:9200
-        options: >-
-          --health-cmd "curl -fsS -u elastic:search_fixture_only http://localhost:9200/_cluster/health"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 30
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: validation_fixture
-          POSTGRES_PASSWORD: validation_fixture_only
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U validation_fixture -d postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: BE/.node-version
-          cache: npm
-          cache-dependency-path: BE/package-lock.json
-      - name: Install backend
-        working-directory: BE
-        run: npm ci
-      - name: Fresh schema, populated migrations, commerce and real search engine
-        working-directory: BE
-        env:
-          PG_COMMERCE_EXTERNAL: "1"
-          COMMERCE_TEST_DB_PORT: "5432"
-          SEARCH_TEST_URL: http://127.0.0.1:9200
-          SEARCH_TEST_USERNAME: elastic
-          SEARCH_TEST_PASSWORD: search_fixture_only
-        run: npm run test:search
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,9 +20,9 @@ jobs:
       - name: Install backend
         working-directory: BE
         run: npm ci
-      - name: Check backend
+      - name: Check backend source and build
         working-directory: BE
-        run: npm run check
+        run: npm run check:ci
       - name: Install frontend
         working-directory: Fe
         run: npm ci

@@ -3,6 +3,18 @@ import { getHomeCatalog } from '../api/catalog.api';
 import { CatalogContext } from '../context/CatalogContext';
 import type { HomeCatalog } from '../types';
 
+const emptyCatalog: HomeCatalog = {
+  categories: [],
+  featuredEvents: [],
+  events: [],
+  spotlightEvents: [],
+  organizers: [],
+  merchandise: [],
+  articles: [],
+  reopeningRequests: [],
+  locations: [],
+};
+
 export function CatalogProvider({ children }: { children: ReactNode }) {
   const [catalog, setCatalog] = useState<HomeCatalog | null>(null);
   const [error, setError] = useState(false);
@@ -16,36 +28,25 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController();
     void getHomeCatalog(controller.signal)
-      .then(setCatalog)
+      .then((result) => {
+        if (!controller.signal.aborted) setCatalog(result);
+      })
       .catch((reason: unknown) => {
-        if (reason instanceof DOMException && reason.name === 'AbortError') return;
+        if (
+          controller.signal.aborted ||
+          (reason instanceof DOMException && reason.name === 'AbortError')
+        )
+          return;
         setError(true);
       });
     return () => controller.abort();
   }, [revision]);
 
-  if (error)
-    return (
-      <main className="reference-site grid min-h-screen place-items-center bg-home-page px-6 text-center text-home-text">
-        <div>
-          <h1 className="text-2xl font-extrabold">Không tải được dữ liệu sự kiện</h1>
-          <p className="mt-3 text-home-muted">
-            Kiểm tra API và kết nối PostgreSQL, sau đó thử lại.
-          </p>
-          <button
-            className="mt-6 rounded-xl bg-home-button px-5 py-3 font-bold text-home-button-text"
-            onClick={reload}
-          >
-            Thử lại
-          </button>
-        </div>
-      </main>
-    );
-  if (!catalog)
-    return (
-      <div className="reference-site grid min-h-screen place-items-center bg-home-page text-sm font-bold text-home-muted">
-        Đang tải dữ liệu sự kiện…
-      </div>
-    );
-  return <CatalogContext.Provider value={{ catalog, reload }}>{children}</CatalogContext.Provider>;
+  return (
+    <CatalogContext.Provider
+      value={{ catalog: catalog ?? emptyCatalog, loading: !catalog && !error, error, reload }}
+    >
+      {children}
+    </CatalogContext.Provider>
+  );
 }

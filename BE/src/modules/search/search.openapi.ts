@@ -1,6 +1,12 @@
 import { response, errorResponse, arrayOf } from '../../shared/openapi/helpers.js';
 const parameters = [
   { name: 'q', in: 'query', schema: { type: 'string', maxLength: 120 } },
+  {
+    name: 'collection',
+    in: 'query',
+    schema: { type: 'string', enum: ['featured'] },
+    description: 'Featured or spotlight events; revalidated in PostgreSQL.',
+  },
   ...['category', 'city', 'from', 'to', 'minPrice', 'maxPrice', 'available'].map((name) => ({
     name,
     in: 'query',

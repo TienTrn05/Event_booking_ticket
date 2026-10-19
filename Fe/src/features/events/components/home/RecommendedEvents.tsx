@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+﻿import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import { apiRequest } from '../../../../shared/api/client';
 import { useAuthDialog } from '../../../auth/context/AuthDialogContext';
 import { eventSchema } from '../../../catalog/api/catalog.api';
-import { ui } from '../../../../shared/styles/classes';
+import { useLocale } from '../../../../shared/i18n/LocaleContext';
+import EventCard from './DiscoveryEventCard';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
+import { selectHomeFeatured } from '../../utils/home-curation';
+import { HorizontalRail } from '../../../../shared/ui/HorizontalRail';
+import { SectionHeader } from '../../../../shared/ui/SectionHeader';
+import { HeartHandshake } from 'lucide-react';
+import { ExpressiveIcon } from '../../../../shared/ui/ExpressiveIcon';
+import { ViewAllLink } from '../../../../shared/ui/ViewAllLink';
 const schema = z.object({
   data: z.object({
     algorithm: z.literal('RULES_V1'),
@@ -13,14 +20,6 @@ const schema = z.object({
     ),
   }),
 });
-const labels: Record<string, string> = {
-  FOLLOWING: 'Nhà tổ chức bạn theo dõi',
-  CATEGORY: 'Danh mục yêu thích',
-  CITY: 'Cùng thành phố',
-  SOON: 'Sắp diễn ra',
-  POPULAR: 'Được quan tâm',
-  DISCOVERY: 'Khám phá thêm',
-};
 export default function RecommendedEvents() {
   const { accessToken, profileRevision } = useAuthDialog();
   return accessToken ? (
@@ -29,60 +28,51 @@ export default function RecommendedEvents() {
 }
 function RecommendationList({ token }: { token: string }) {
   const [items, setItems] = useState<z.infer<typeof schema>['data']['items']>([]);
+  const { t } = useLocale();
+  const { catalog } = useCatalog();
   useEffect(() => {
-    let cancelled = false;
-    void apiRequest('/users/me/recommendations?limit=8', {
+    const controller = new AbortController();
+    void apiRequest('/users/me/recommendations?limit=4', {
+      signal: controller.signal,
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((response) => {
-        if (!cancelled) setItems(schema.parse(response).data.items);
+        if (!controller.signal.aborted) setItems(schema.parse(response).data.items);
       })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+      .catch(() => {
+        /* Optional recommendations never replace discovery or invent results. */
+      });
+    return () => controller.abort();
   }, [token]);
-  if (!items.length) return null;
+  const excluded = new Set([
+    ...selectHomeFeatured(catalog).map((event) => event.id),
+    (catalog.featuredEvents[0] ?? catalog.events[0])?.id,
+  ]);
+  const unique = items.filter(({ event }) => !excluded.has(event.id));
+  if (!unique.length) return null;
   return (
-    <section className={ui('home-chapter')}>
-      <div className={ui('home-container')}>
-        <div className={ui('chapter-heading')}>
-          <h2>Dành cho bạn</h2>
-          <p>Theo sở thích, địa điểm và nhà tổ chức bạn quan tâm.</p>
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))',
-            gap: 20,
-          }}
+    <section className="home-section home-recommendations">
+      <div className="home-section-inner">
+        <HorizontalRail
+          label={t('Dành cho bạn', 'Picked for you')}
+          heading={
+            <SectionHeader
+              compact
+              title={t('Dành cho bạn', 'Picked for you')}
+              eyebrow={t('Thêm một chút hợp gu', 'A little more your style')}
+              icon={<ExpressiveIcon icon={HeartHandshake} tone="coral" />}
+              description={t(
+                'Theo sở thích, địa điểm và nhà tổ chức bạn quan tâm.',
+                'Based on your interests, location, and the organizers you follow.',
+              )}
+            />
+          }
+          actions={<ViewAllLink to="/for-you" />}
         >
-          {items.map(({ event, reasons }) => (
-            <Link
-              key={event.id}
-              to={`/events/${event.id}`}
-              className={ui('spotlight-card')}
-              style={{ display: 'block' }}
-            >
-              <img
-                src={event.image}
-                alt=""
-                loading="lazy"
-                style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }}
-              />
-              <h3>{event.title}</h3>
-              <p>
-                {event.city} · {event.dateLabel}
-              </p>
-              <p>
-                {reasons
-                  .map((reason) => labels[reason])
-                  .filter(Boolean)
-                  .join(' · ') || 'Khám phá sự kiện sắp tới'}
-              </p>
-            </Link>
+          {unique.map(({ event }) => (
+            <EventCard key={event.id} event={event} />
           ))}
-        </div>
+        </HorizontalRail>
       </div>
     </section>
   );

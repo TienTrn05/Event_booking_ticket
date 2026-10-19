@@ -2,6 +2,7 @@ import { z } from 'zod';
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_ENV: z.enum(['development', 'testing', 'staging', 'production']).default('development'),
+  LOCAL_COMPOSE: z.enum(['true', 'false']).default('false'),
   HOST: z.string().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DB_HOST: z.string().min(1),
@@ -78,6 +79,17 @@ export function parseEnv(source: NodeJS.ProcessEnv) {
     throw new Error(`Invalid environment fields: ${fields.join(', ')}`);
   }
   const es = result.data;
+  if (es.LOCAL_COMPOSE === 'true') {
+    if (!['development', 'testing'].includes(es.APP_ENV))
+      throw new Error('Local Compose is limited to development/testing.');
+    if (es.REDIS_URL) {
+      // Keep the encoded password and logical DB; only change the container endpoint.
+      const redis = new URL(es.REDIS_URL);
+      redis.hostname = 'redis';
+      redis.port = '6379';
+      es.REDIS_URL = redis.toString();
+    }
+  }
   if (es.ELASTICSEARCH_URL) {
     const url = new URL(es.ELASTICSEARCH_URL);
     if (
@@ -92,7 +104,10 @@ export function parseEnv(source: NodeJS.ProcessEnv) {
     if (
       url.protocol !== 'https:' &&
       (!['development', 'testing'].includes(es.APP_ENV) ||
-        !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))
+        !(
+          ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+          (es.LOCAL_COMPOSE === 'true' && url.hostname === 'elasticsearch')
+        ))
     )
       throw new Error('Elasticsearch requires HTTPS outside local development/testing.');
     if (
