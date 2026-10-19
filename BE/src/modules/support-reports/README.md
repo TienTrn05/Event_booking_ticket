@@ -1,5 +1,5 @@
 # support-reports
 
-Module dự kiến, chưa có endpoint nghiệp vụ. Khi triển khai tách `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts`.
+Đã có /reports create/list/detail và /admin/reports queue/claim/resolve. Report đúng booking của người gửi hoặc event trong scope; Organizer chỉ event report không chứa booking của khách. ADMIN/permission/report IN_REVIEW được giao đúng tài nguyên mới đọc summary booking hoặc gỡ event. Đóng report thu hồi scope, không QR/CCCD/credential. Resolve dùng service hiện có, tương thích /admin/support-reports trong refunds.
 
-Controller chỉ HTTP; service kiểm tra quyền/scope, policy và transaction; repository dùng SQL có tham số với cùng connection được truyền vào. Xem Docs/10 và Docs/23 tại gốc repo. Không tạo API giả trả thành công khi nghiệp vụ chưa tồn tại.
+POST /admin/events/:id/unpublish chuyển PUBLISHED→ARCHIVED, ngừng public/bán/check-in/vào cửa; giữ đơn/vé/tiền, không refund/đền bù. Không endpoint Admin khóa/mở khóa User. ADR-035/Docs40.

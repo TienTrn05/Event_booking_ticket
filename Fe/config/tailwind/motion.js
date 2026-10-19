@@ -8,6 +8,8 @@ export const motion = {
     'dock-arrive': 'dockArrive 680ms cubic-bezier(0.22, 1, 0.36, 1) both',
     'reveal-left': 'revealLeft 760ms cubic-bezier(0.22, 1, 0.36, 1) both',
     'reveal-scale': 'revealScale 720ms cubic-bezier(0.22, 1, 0.36, 1) both',
+    'reveal-soft': 'revealSoft 900ms cubic-bezier(0.22, 1, 0.36, 1) both',
+    'reveal-fade': 'revealFade 700ms ease-out both',
     'ambient-drift': 'ambientDrift 16s ease-in-out infinite alternate',
     'glow-pulse': 'glowPulse 2.8s ease-in-out infinite',
   },
@@ -38,8 +40,16 @@ export const motion = {
       to: { opacity: '1', translate: '0 0' },
     },
     revealScale: {
-      from: { opacity: '0', translate: '0 20px', scale: '0.965' },
+      from: { opacity: '0', translate: '0 8px', scale: '0.99' },
       to: { opacity: '1', translate: '0 0', scale: '1' },
+    },
+    revealSoft: {
+      from: { opacity: '0', transform: 'translate3d(0, 8px, 0)' },
+      to: { opacity: '1', transform: 'translate3d(0, 0, 0)' },
+    },
+    revealFade: {
+      from: { opacity: '0' },
+      to: { opacity: '1' },
     },
     ambientDrift: {
       from: { transform: 'scale(1.02) translate3d(-0.5%, -0.5%, 0)' },

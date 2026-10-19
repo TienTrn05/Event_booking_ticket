@@ -1,22 +1,104 @@
 {
   "name": "@event-ticketing/api",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.19.0",
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "postinstall": "npm run prisma:generate",
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "start": "node dist/server.js",
-    "db:check": "tsx src/scripts/check-database.ts"
+    "start": "node dist/runtime/monolith.js",
+    "start:api": "node dist/server.js",
+    "db:check": "tsx src/maintenance/check-database.ts",
+    "worker:notifications": "tsx src/runtime/notification-worker.ts",
+    "setup:env": "node scripts/setup-env.mjs",
+    "lint": "eslint --config eslint.config.mjs . --max-warnings 0",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.{json,md,ts,mjs}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"scripts/*.mjs\" \"*.{json,md,ts,mjs}\"",
+    "test": "vitest run --config vitest.config.ts",
+    "test:commerce": "npm run build && node scripts/test-commerce.mjs",
+    "check:v1": "npm run check && npm run test:search",
+    "check:secrets": "node check-secrets.mjs",
+    "check": "npm run check:secrets && npm run prisma:validate && npm run lint && npm run typecheck && npm test && npm run build && npm run format:check",
+    "check:ci": "npm run check:secrets && npm run prisma:validate && npm run lint && npm run typecheck && npm run build && prettier --check \"src/**/*.ts\" \"*.{json,md,ts,mjs}\"",
+    "worker:bookings": "tsx src/runtime/booking-worker.ts",
+    "infra:redis": "docker compose --env-file .env -f compose.redis.yml up -d redis",
+    "infra:stop": "docker compose --env-file .env -f compose.redis.yml stop redis",
+    "infra:search": "docker compose --env-file .env -f compose.redis.yml -f compose.search.yml up -d elasticsearch",
+    "search:setup": "node scripts/setup-search.mjs",
+    "search:reindex": "tsx src/maintenance/reindex-search.ts",
+    "test:search": "npm run build && node scripts/test-search.mjs",
+    "https:setup": "node scripts/setup-https.mjs",
+    "dev:https": "node scripts/dev-https.mjs",
+    "db:restore-drill": "npm run build && node scripts/restore-drill.mjs",
+    "start:monolith": "node dist/runtime/monolith.js",
+    "infra:search:stop": "docker compose --env-file .env -f compose.redis.yml -f compose.search.yml stop elasticsearch",
+    "stack:up": "docker compose up -d --build --wait --wait-timeout 240",
+    "stack:down": "docker compose stop",
+    "stack:logs": "docker compose logs --follow api"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1149.0",
+    "@aws-sdk/s3-request-presigner": "3.1149.0",
+    "@payos/node": "2.0.5",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "dotenv": "17.4.2",
     "express": "5.2.1",
     "express-rate-limit": "8.7.0",
+    "google-auth-library": "11.1.0",
     "helmet": "8.3.0",
-    "mysql2": "3.24.4",
+    "jose": "6.2.12",
+    "nodemailer": "10.0.16",
+    "pg": "8.23.0",
     "pino": "10.3.1",
+    "redis": "6.3.0",
+    "swagger-ui-express": "5.0.1",
     "zod": "4.6.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "24.13.4",
+    "@types/nodemailer": "8.0.2",
+    "@types/pg": "8.23.1",
+    "@types/supertest": "7.2.1",
+    "@types/swagger-ui-express": "4.1.8",
+    "eslint": "10.10.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.6",
+    "prisma": "7.10.0",
+    "supertest": "7.2.2",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "5.0.0"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "printWidth": 100,
+    "endOfLine": "lf"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "prisma": {
+      "mysql2": "3.24.6"
+    }
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "@scarf/scarf@1.4.0": false
   }
 }

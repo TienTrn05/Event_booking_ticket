@@ -1,17 +1,31 @@
-name: Quality
+﻿name: Quality
 on: [push, pull_request]
 permissions:
   contents: read
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version-file: BE/tooling/.node-version
+          node-version-file: BE/.node-version
           cache: npm
-      - run: npm ci
-      - run: npm run check
+          cache-dependency-path: |
+            BE/package-lock.json
+            Fe/package-lock.json
+      - name: Install backend
+        working-directory: BE
+        run: npm ci
+      - name: Check backend source and build
+        working-directory: BE
+        run: npm run check:ci
+      - name: Install frontend
+        working-directory: Fe
+        run: npm ci
+      - name: Check frontend
+        working-directory: Fe
+        run: npm run check

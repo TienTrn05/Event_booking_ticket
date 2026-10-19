@@ -1,86 +1,73 @@
-import { ui } from '../../../../shared/styles/classes';
-import { SectionEmblem } from './SectionEmblem';
-import { BadgeCheck, ChevronRight } from 'lucide-react';
-import { organizers } from '../../data/mockData';
-
+import { BadgeCheck, Building2, Users } from 'lucide-react';
+import { ExpressiveIcon } from '../../../../shared/ui/ExpressiveIcon';
+import { ViewAllLink } from '../../../../shared/ui/ViewAllLink';
+import { Link } from 'react-router-dom';
+import { useCatalog } from '../../../catalog/hooks/useCatalog';
+import { useLocale } from '../../../../shared/i18n/LocaleContext';
+import { HorizontalRail } from '../../../../shared/ui/HorizontalRail';
+import { SectionHeader } from '../../../../shared/ui/SectionHeader';
 export default function FeaturedOrganizers() {
+  const { catalog } = useCatalog();
+  const { t } = useLocale();
+  const title = t('Những người tạo nên cuộc hẹn', 'The people behind the experience');
+  if (!catalog.organizers.length) return null;
   return (
-    <section id="stars" className={ui('home-chapter chapter-stars py-14 lg:py-20')}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-end justify-between gap-4 mb-6">
-          <div>
-            <span className="text-sm font-bold text-primary-600 uppercase tracking-wide">
-              Find your people
-            </span>
-            <SectionEmblem kind="stars" />
-            <h2
-              data-reveal="heading"
-              className={ui(
-                'text-2xl lg:text-3xl font-extrabold text-ink-900 tracking-tight mt-1.5',
-              )}
-            >
-              Feature Stars
-            </h2>
-          </div>
-          <button
-            className={ui(
-              'flex items-center gap-1 text-sm font-semibold text-ink-600 hover:text-ink-900 transition-colors',
-            )}
-          >
-            All organizers
-            <ChevronRight size={16} />
-          </button>
-        </div>
-
-        <div
-          className={ui('flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0')}
+    <section id="stars" className="home-section home-community">
+      <div className="home-section-inner">
+        <HorizontalRail
+          label={title}
+          density="organizer"
+          heading={
+            <SectionHeader
+              title={title}
+              compact
+              eyebrow={t('Nhà tổ chức', 'Organizers')}
+              icon={<ExpressiveIcon icon={Users} tone="green" />}
+            />
+          }
+          actions={<ViewAllLink to="/organizers" />}
         >
-          {organizers.map((org) => (
-            <button
+          {catalog.organizers.map((org) => (
+            <Link
               data-reveal
               key={org.id}
-              className={ui(
-                'group flex-shrink-0 w-[200px] bg-white rounded-2xl border border-ink-100 shadow-card p-4 flex flex-col items-center text-center hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300',
-              )}
+              to={`/organizers/${org.id}`}
+              className="home-card group flex min-h-28 items-center gap-4 rounded-2xl border border-line bg-surface p-4"
             >
-              <div className="relative mb-3">
-                <div
-                  className={ui(
-                    'w-16 h-16 rounded-full overflow-hidden ring-2 ring-ink-100 group-hover:ring-primary-200 transition-all',
-                  )}
-                >
+              <div className="relative shrink-0">
+                {org.avatar ? (
                   <img
                     src={org.avatar}
-                    alt={org.name}
-                    className="w-full h-full object-cover"
+                    alt=""
                     loading="lazy"
+                    width={64}
+                    height={64}
+                    className="h-16 w-16 rounded-full border border-line object-cover"
                   />
-                </div>
-                {org.verified && (
-                  <span
-                    className={ui(
-                      'absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm',
-                    )}
-                  >
-                    <BadgeCheck size={18} className="text-primary-600 fill-primary-100" />
+                ) : (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-soft text-accent">
+                    <Building2 size={26} />
                   </span>
                 )}
-              </div>
-              <h3
-                className={ui(
-                  'text-sm font-bold text-ink-900 mb-1 line-clamp-1 group-hover:text-primary-700 transition-colors',
+                {org.verified && (
+                  <BadgeCheck
+                    className="absolute -bottom-1 -right-1 rounded-full bg-surface text-accent"
+                    size={22}
+                    aria-label={t('Đã xác minh', 'Verified')}
+                  />
                 )}
-              >
-                {org.name}
-              </h3>
-              <div className={ui('flex items-center gap-2 text-xs text-ink-400')}>
-                <span className="font-medium">{org.eventCount} events</span>
-                <span className="w-1 h-1 rounded-full bg-ink-300" />
-                <span>{org.category}</span>
               </div>
-            </button>
+              <div className="min-w-0">
+                <h3 className="line-clamp-2 text-sm font-bold leading-6 text-foreground">
+                  {org.name}
+                </h3>
+                <p className="mt-1 text-xs text-muted">
+                  {t(`${org.eventCount} sự kiện`, `${org.eventCount} events`)}
+                </p>
+              </div>
+            </Link>
           ))}
-        </div>
+        </HorizontalRail>
       </div>
     </section>
   );
