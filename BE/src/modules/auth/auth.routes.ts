@@ -32,6 +32,9 @@ export function createAuthRouter() {
   router.get('/google/callback', controller.googleCallback);
   router.post('/refresh', authLimit, controller.refresh);
   router.post('/logout', controller.logout);
+  router.post('/logout-all', controller.logoutAll);
+  router.get('/sessions', controller.sessions);
+  router.delete('/sessions/:sessionId', controller.revokeSession);
   router.get('/me', controller.me);
   router.get('/methods', controller.methods);
 

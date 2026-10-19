@@ -14,6 +14,7 @@ import { assertSale } from '../shared/booking.policy.js';
 import * as repo from '../shared/booking.repository.js';
 
 import { claimKey, finishKey } from '../../../shared/idempotency/idempotency.repository.js';
+import { zoneHoldInput } from './hold.schema.js';
 export async function createHold(
   actor: RequestActor,
   publicId: string,
@@ -22,8 +23,13 @@ export async function createHold(
   key: string,
   requestId: string,
   admit: () => Promise<void>,
+  zones?: { sectionId: string; quantity: number }[],
 ) {
-  const sorted = [...seatIds].sort(compareIds);
+  let sorted = [...seatIds].sort(compareIds);
+  if (zones)
+    zones = zoneHoldInput
+      .parse({ zones })
+      .zones.sort((a, b) => compareIds(a.sectionId, b.sectionId));
   // Redis/network admission is outside the PG transaction. Replay avoids needing a new queue lease.
   const previous = await withConnection(async (db) => {
     await repo.requireBuyer(db, actor, 'seat.hold');
@@ -36,10 +42,13 @@ export async function createHold(
       await repo.requireBuyer(db, actor, 'seat.hold');
       const record = await claimKey(db, actor.id, 'hold.create', key, {
         method: 'POST',
-        route: 'events/:eventId/sessions/:sessionId/seats/hold',
+        route: zones
+          ? 'events/:eventId/sessions/:sessionId/zones/hold'
+          : 'events/:eventId/sessions/:sessionId/seats/hold',
         publicId,
         sessionId,
-        seatIds: sorted,
+        seatIds: zones ? [] : sorted,
+        ...(zones ? { zones } : {}),
       });
       if (record.resource_id)
         return {
@@ -49,6 +58,8 @@ export async function createHold(
         };
       await repo.quota(db, actor.id, sessionId);
       const context = await repo.sessionContext(db, sessionId, publicId, true);
+      if (context.ticketing_mode !== (zones ? 'QUANTITY' : 'NUMBERED'))
+        throw new AppError(422, 'TICKETING_MODE_CONFLICT', 'Hình thức giữ vé không đúng sự kiện.');
       const own = await allocationRepo.listActiveAllocations(db, actor.id, sessionId);
       let time = await repo.now(db);
       const expired = own.rows.filter((h) => h.expires_at <= time);
@@ -62,6 +73,7 @@ export async function createHold(
       assertSale(context, time);
       // Hold row precedes seat locks. It remains invisible until commit and rolls back on any failure.
       const hold = (await allocationRepo.insertHold(db, actor.id, sessionId)).rows[0]!;
+      if (zones) sorted = await repo.zoneUnits(db, sessionId, zones, time);
       const seats = await repo.seatRows(db, sorted, sessionId, true);
       time = await repo.now(db);
       assertSale(context, time);

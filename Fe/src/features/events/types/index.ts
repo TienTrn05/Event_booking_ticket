@@ -28,13 +28,6 @@ export interface Event {
   reopeningNote: string | null;
 }
 
-export interface Category {
-  name: EventCategory;
-  icon: string;
-  eventCount: number;
-  gradient: string;
-}
-
 export interface ReopeningRequest {
   id: string;
   eventId: string;

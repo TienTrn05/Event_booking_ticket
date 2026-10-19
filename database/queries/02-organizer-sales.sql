@@ -1,5 +1,5 @@
--- :organization_id/:actor_user_id/:identity_id lấy từ phiên công ty đã xác thực.
--- Service kiểm tra sales.read_own, domain công ty và scope; SQL không tự xác thực JWT.
+-- :organization_id/:actor_user_id/:identity_id lấy từ phiên đã xác thực.
+-- Service kiểm tra sales.read_own và scope; không yêu cầu domain công ty.
 -- :from_utc, :to_utc lọc thời điểm xác nhận booking, khoảng [from,to).
 -- Báo cáo cohort booking; không phải báo cáo dòng tiền theo ngày hoàn.
 -- Chỉ khoản được booking chọn để xác nhận là doanh thu bán vé.
@@ -21,7 +21,7 @@ WHERE e.organization_id = :organization_id
   AND EXISTS (
       SELECT 1 FROM organization_memberships m
       JOIN organizations o ON o.id=m.organization_id AND o.status='APPROVED'
-      JOIN external_identities i ON i.id=m.company_identity_id AND i.user_id=m.user_id
+      JOIN external_identities i ON i.id=:identity_id AND i.user_id=m.user_id
       JOIN users u ON u.id=m.user_id AND u.status='ACTIVE'
       WHERE m.organization_id=e.organization_id AND m.user_id=:actor_user_id
         AND m.status='ACTIVE' AND i.id=:identity_id AND i.revoked_at IS NULL

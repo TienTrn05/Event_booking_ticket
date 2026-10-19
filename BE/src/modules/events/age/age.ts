@@ -4,7 +4,7 @@ export function ageAtDate(dateOfBirth: string, referenceDate: string) {
   calendarDate.parse(dateOfBirth);
   calendarDate.parse(referenceDate);
   if (dateOfBirth > referenceDate)
-    throw new AppError(400, 'INVALID_DATE_OF_BIRTH', 'NgÃ y sinh khÃ´ng há»£p lá»‡.');
+    throw new AppError(400, 'INVALID_DATE_OF_BIRTH', 'Ngày sinh không hợp lệ.');
   const years = Number(referenceDate.slice(0, 4)) - Number(dateOfBirth.slice(0, 4));
   return years - (referenceDate.slice(5) < dateOfBirth.slice(5) ? 1 : 0);
 }

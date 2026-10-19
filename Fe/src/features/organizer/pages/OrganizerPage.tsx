@@ -1,90 +1,149 @@
-import { Link, useParams } from 'react-router-dom';
-import { BadgeCheck, Calendar, ShoppingBag } from 'lucide-react';
-import { ui } from '../../../shared/styles/classes';
+﻿import { Link, useParams } from 'react-router-dom';
+import { BadgeCheck, Building2, ShoppingBag } from 'lucide-react';
 import { useCatalog } from '../../catalog/hooks/useCatalog';
+import { organizerSchema } from '../../catalog/api/catalog.api';
+import { useCatalogResource } from '../../catalog/hooks/useCatalogResource';
+import { useAuthDialog } from '../../auth/context/AuthDialogContext';
+import { useLocale } from '../../../shared/i18n/LocaleContext';
+import { EmptyState, ErrorState, Skeleton } from '../../../shared/ui/Page';
+import EventCard from '../../events/components/home/DiscoveryEventCard';
 
 export function OrganizerPage() {
   const { organizerId } = useParams();
   const { catalog } = useCatalog();
-  const organizer = catalog.organizers.find((item) => item.id === organizerId);
-  if (!organizer) {
+  const { accessToken } = useAuthDialog();
+  const {
+    data: organizer,
+    loading,
+    error,
+    retry,
+  } = useCatalogResource(
+    organizerId ? `/organizers/${encodeURIComponent(organizerId)}` : null,
+    organizerSchema,
+    accessToken,
+  );
+  const { t } = useLocale();
+  if (!organizer)
     return (
-      <main id="main" className={ui('container content-page empty-state')}>
-        <h1>Không tìm thấy nhà tổ chức</h1>
-        <Link className={ui('button')} to="/#stars">
-          Về Featured Stars
-        </Link>
+      <main id="main" className="mx-auto min-h-[55vh] max-w-[1240px] px-4 py-12 sm:px-6 lg:px-8">
+        {loading ? (
+          <Skeleton className="h-80" />
+        ) : error ? (
+          <ErrorState onRetry={retry} />
+        ) : (
+          <EmptyState
+            title={t('Không tìm thấy nhà tổ chức', 'Organizer unavailable')}
+            action={
+              <Link to="/#stars" className="font-semibold text-accent">
+                {t('Khám phá nhà tổ chức', 'Explore organizers')}
+              </Link>
+            }
+          />
+        )}
       </main>
     );
-  }
   const events = catalog.events.filter((event) => event.organizerId === organizer.id);
   const products = catalog.merchandise.filter((product) => product.organizerId === organizer.id);
   return (
-    <main id="main" className={ui('container content-page')}>
-      <div className={ui('breadcrumb')}>
-        <Link to="/">Trang chủ</Link>
+    <main id="main" className="mx-auto max-w-[1240px] px-4 py-10 sm:px-6 lg:px-8">
+      <nav className="mb-6 flex gap-2 text-sm text-muted" aria-label={t('Đường dẫn', 'Breadcrumb')}>
+        <Link to="/" className="hover:text-accent">
+          {t('Trang chủ', 'Home')}
+        </Link>
         <span>/</span>
-        <span>Nhà tổ chức</span>
-      </div>
-      <section className="grid gap-8 rounded-3xl border border-home-line bg-home-card p-7 md:grid-cols-[180px_1fr] md:p-10">
-        <img
-          className="h-40 w-40 rounded-full border-4 border-home-accent object-cover"
-          src={organizer.avatar}
-          alt={organizer.name}
+        <span>{t('Nhà tổ chức', 'Organizer')}</span>
+      </nav>
+      <section className="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 -top-28 h-80 w-80 rounded-full bg-accent-soft"
         />
-        <div>
-          <span className="inline-flex items-center gap-2 text-sm font-bold text-home-accent">
-            <BadgeCheck size={18} />
-            {organizer.verified ? 'Đã xác minh' : 'Đang xác minh'}
-          </span>
-          <h1 className="mt-3 text-4xl font-extrabold text-home-text">{organizer.name}</h1>
-          <p className="mt-3 text-home-muted">
-            {organizer.category} · {organizer.eventCount} sự kiện
-          </p>
-          <p className="mt-3 max-w-2xl text-home-muted">{organizer.summary}</p>
-          {organizer.upcomingEventTitle && (
-            <p className="mt-5 flex items-center gap-2 text-home-secondary">
-              <Calendar size={18} />
-              {organizer.upcomingEventTitle} · {organizer.upcomingEventDate}
-            </p>
+        <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+          {organizer.avatar ? (
+            <img
+              src={organizer.avatar}
+              alt=""
+              width={128}
+              height={128}
+              className="h-32 w-32 shrink-0 rounded-2xl border border-line object-cover"
+            />
+          ) : (
+            <div className="grid h-32 w-32 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent">
+              <Building2 size={44} />
+            </div>
           )}
-        </div>
-      </section>
-      <section className="mt-10 grid gap-5 md:grid-cols-2">
-        <div className="rounded-2xl border border-home-line bg-home-card p-6">
-          <h2 className="text-xl font-extrabold text-home-text">Sự kiện đang kết nối</h2>
-          <div className="mt-4 space-y-3">
-            {events.length ? (
-              events.map((event) => (
-                <Link
-                  className="block rounded-xl bg-home-elevated p-4 font-bold text-home-text hover:text-home-accent"
-                  key={event.id}
-                  to={`/events/${event.id}`}
-                >
-                  {event.title}
-                </Link>
-              ))
-            ) : (
-              <p className="text-home-muted">Chưa có sự kiện trong catalog hiện tại.</p>
+          <div className="min-w-0">
+            {organizer.verified && (
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-accent">
+                <BadgeCheck size={18} />
+                {t('Nhà tổ chức đã xác minh', 'Verified organizer')}
+              </p>
             )}
+            <h1 className="mt-3 break-words text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              {organizer.name}
+            </h1>
+            <p className="mt-3 text-sm text-muted">
+              {organizer.category}
+              {organizer.category ? ' · ' : ''}
+              {t(`${organizer.eventCount} sự kiện`, `${organizer.eventCount} events`)}
+            </p>
           </div>
         </div>
-        <div className="rounded-2xl border border-home-line bg-home-card p-6">
-          <h2 className="flex items-center gap-2 text-xl font-extrabold text-home-text">
-            <ShoppingBag size={20} />
-            Merchandise
+        {organizer.summary && (
+          <p className="relative mt-6 max-w-3xl whitespace-pre-line text-base leading-8 text-muted">
+            {organizer.summary}
+          </p>
+        )}
+      </section>
+      <section className="mt-10">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl font-bold text-foreground">
+            {t('Sự kiện trên trang khám phá', 'Events in discovery')}
           </h2>
-          <p className="mt-4 text-home-muted">
-            {products.length} sản phẩm đang được giới thiệu trên Home.
+          {organizer.upcomingEventId && (
+            <Link
+              to={`/events/${organizer.upcomingEventId}`}
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-accent"
+            >
+              {t('Xem sự kiện sắp tới', 'View upcoming event')}
+            </Link>
+          )}
+        </div>
+        {events.length ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title={t(
+              'Chưa có sự kiện trong danh sách hiện tại',
+              'No events in the current discovery list',
+            )}
+          />
+        )}
+      </section>
+      {products.length > 0 && (
+        <section className="mt-10 rounded-2xl border border-line bg-surface p-6">
+          <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
+            <ShoppingBag size={22} className="text-accent" />
+            {t('Sản phẩm từ nhà tổ chức', 'Organizer merchandise')}
+          </h2>
+          <p className="mt-3 text-sm text-muted">
+            {t(
+              `${products.length} sản phẩm trên trang khám phá.`,
+              `${products.length} products in discovery.`,
+            )}
           </p>
           <Link
-            className="mt-5 inline-flex font-bold text-home-accent"
             to={`/?organizer=${organizer.id}#merchandise`}
+            className="mt-4 inline-flex min-h-11 items-center font-semibold text-accent"
           >
-            Xem bộ sưu tập
+            {t('Xem bộ sưu tập', 'View collection')}
           </Link>
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

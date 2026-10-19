@@ -18,6 +18,8 @@ export function useRouteScroll() {
       const nextHash = link?.hash;
       if (!nextHash || nextHash === '#' || !document.getElementById(nextHash.slice(1))) return;
       event.preventDefault();
+      if (link?.classList.contains('skip-link'))
+        document.getElementById(nextHash.slice(1))?.focus({ preventScroll: true });
       if (nextHash === hash) {
         scrollToHash(nextHash);
         return;
@@ -31,5 +33,5 @@ export function useRouteScroll() {
   useEffect(() => {
     if (hash) scrollToHash(hash);
     else window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [pathname, hash, search]);
+  }, [pathname, hash]);
 }

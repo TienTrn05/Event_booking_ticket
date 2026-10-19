@@ -80,11 +80,7 @@ export const identityRepository = {
       `INSERT INTO users(display_name) VALUES ('Người dùng Eventix') RETURNING id::text`,
     );
     const userId = rows[0]!.id;
-    const role = await db.query(
-      `INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE code='CUSTOMER' RETURNING role_id`,
-      [userId],
-    );
-    return { userId, roleAdded: role.rowCount === 1 };
+    return { userId };
   },
   async aliasEmail(db: PoolClient, phone: string) {
     const { rows } = await db.query<{ email: string }>(
@@ -146,10 +142,6 @@ export const identityRepository = {
        RETURNING id::text`,
       [userId, subject, email, verified, hostedDomain],
     );
-    const role = await db.query(
-      `INSERT INTO user_roles (user_id, role_id) SELECT $1, id FROM roles WHERE code = 'CUSTOMER' RETURNING role_id`,
-      [userId],
-    );
-    return { userId, identityId: identity.rows[0]!.id, roleAdded: role.rowCount === 1 };
+    return { userId, identityId: identity.rows[0]!.id };
   },
 };

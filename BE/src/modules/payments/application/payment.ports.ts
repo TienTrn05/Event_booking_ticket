@@ -26,31 +26,43 @@ export interface PaymentGateway {
   ): Promise<{ link: PaymentLink; status: string; receipts: Receipt[]; amountPaid: number }>;
   verify(payload: unknown): Promise<Receipt>;
 }
-export type LockedPurchase = {
+export type PaymentPurchase = {
   id: string;
   customerId: string;
-  sessionId: string;
-  holdId: string;
   status: string;
+  confirmedPaymentId: string | null;
   expiresAt: Date;
   expired: boolean;
   amount: string;
   currency: string;
   canConfirm: boolean;
+  items: { id: string; name: string; price: string; quantity?: number }[];
+};
+export type LockedPurchase = PaymentPurchase & {
+  sessionId: string;
+  holdId: string;
   items: { id: string; seatId: string; name: string; price: string }[];
 };
 export interface PurchaseReader {
   lock(db: PoolClient, bookingId: string, ownerId?: string): Promise<LockedPurchase>;
 }
-export interface BookingPaymentPort extends PurchaseReader {
-  authorize(db: PoolClient, actor: RequestActor): Promise<void>;
-  validateAttendees(db: PoolClient, purchase: LockedPurchase): Promise<boolean>;
-  confirm(db: PoolClient, purchase: LockedPurchase, paymentId: string): Promise<void>;
+export interface PurchasePaymentPort {
+  lock(db: PoolClient, id: string, ownerId?: string): Promise<PaymentPurchase>;
+  authorize(
+    db: PoolClient,
+    actor: RequestActor,
+    permission?: 'booking.create' | 'booking.read_self',
+  ): Promise<void>;
+  validateAttendees(db: PoolClient, purchase: PaymentPurchase): Promise<boolean>;
+  confirm(db: PoolClient, purchase: PaymentPurchase, paymentId: string): Promise<void>;
   terminate(
     db: PoolClient,
-    purchase: LockedPurchase,
+    purchase: PaymentPurchase,
     status: 'EXPIRED' | 'CANCELLED',
   ): Promise<void>;
+}
+export interface BookingPaymentPort extends PurchasePaymentPort, PurchaseReader {
+  lock(db: PoolClient, id: string, ownerId?: string): Promise<LockedPurchase>;
 }
 export interface TicketIssuer {
   issue(db: PoolClient, purchase: LockedPurchase): Promise<void>;

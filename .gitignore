@@ -34,3 +34,30 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.example.json
+# Tài liệu và hướng dẫn làm việc chỉ giữ local
+/Docs/
+/docs/
+AGENTS.md
+PROJECT_RULES.md
+.agents/
+.codex/
+
+# Bộ kiểm thử và công cụ chạy test chỉ giữ local
+tests/
+__tests__/
+*.test.ts
+*.test.tsx
+*.test.js
+*.test.jsx
+*.spec.ts
+*.spec.tsx
+*.spec.js
+*.spec.jsx
+/BE/vitest.config.ts
+/BE/scripts/test-*.mjs
+
+# Báo cáo và thư mục QA tạm
+playwright-report/
+test-results/
+.nyc_output/
+/.*-review/

@@ -1,24 +1,46 @@
 name: eventix
 services:
   redis:
-    image: redis:8.2.3-alpine@sha256:08ad0b1d280850169a790dba1393ff7a90aef951fc19632cf4d3ce4f78e679ba
+    extends:
+      file: compose.redis.yml
+      service: redis
+  elasticsearch:
+    extends:
+      file: compose.search.yml
+      service: elasticsearch
+  api:
+    build: .
+    image: eventix-api:local
+    init: true
+    env_file: .env
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD outside Git}
-    command:
-      [
-        sh,
-        -c,
-        'exec redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"',
-      ]
+      LOCAL_COMPOSE: 'true'
+      HOST: 0.0.0.0
+      PORT: '3000'
+      DB_HOST: ${DOCKER_DB_HOST:-host.docker.internal}
+      REDIS_URL: ${REDIS_URL:?Configure REDIS_URL in BE/.env}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:?Run npm run search:setup first}
+      ELASTICSEARCH_API_KEY:
+      READINESS_REQUIRE_WORKERS: 'true'
+      WORKER_HEALTH_DIRECTORY: /app/.local/worker-health
+    extra_hosts:
+      - host.docker.internal:host-gateway
     ports:
-      - 127.0.0.1:6379:6379
-    volumes:
-      - redis-data:/data
+      - 127.0.0.1:${DOCKER_API_PORT:-3000}:3000
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     healthcheck:
-      test: [CMD-SHELL, 'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG']
-      interval: 3s
-      timeout: 2s
-      retries: 10
+      test: [CMD, node, dist/runtime/healthcheck.js]
+      interval: 10s
+      timeout: 10s
+      start_period: 30s
+      retries: 12
+    stop_grace_period: 30s
     restart: unless-stopped
     networks:
       - backend
@@ -26,3 +48,4 @@ networks:
   backend: {}
 volumes:
   redis-data:
+  elasticsearch-data:

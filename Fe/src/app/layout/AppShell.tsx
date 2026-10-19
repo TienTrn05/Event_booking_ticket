@@ -1,19 +1,25 @@
 import { Outlet } from 'react-router-dom';
-import { AuthDialogProvider } from '../../features/auth/components/AuthDialog';
+import { CatalogProvider } from '../../features/catalog/components/CatalogProvider';
 import { QuickPreviewDialog } from '../../features/preview/components/QuickPreviewDialog';
 import { ui } from '../../shared/styles/classes';
-import Navbar from './home/Navbar';
+import { SidebarLayout } from './SidebarLayout';
 import Footer from './home/Footer';
 
 export function AppShell() {
   return (
-    <div className={ui('reference-site min-h-screen bg-ink-50 transition-colors duration-300')}>
-      <AuthDialogProvider>
-        <Navbar />
-        <Outlet />
+    <SidebarLayout
+      contentId="main-content"
+      className={ui(
+        'reference-site min-h-screen bg-page text-foreground transition-colors duration-300',
+      )}
+    >
+      <CatalogProvider>
+        <div id="main-content" tabIndex={-1}>
+          <Outlet />
+        </div>
         <Footer />
         <QuickPreviewDialog />
-      </AuthDialogProvider>
-    </div>
+      </CatalogProvider>
+    </SidebarLayout>
   );
 }

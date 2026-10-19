@@ -1,0 +1,29 @@
+// Client projection for the Organizer-block pilot only. SQL migrations own DDL.
+// Do not use db push/migrate with this intentionally limited model projection.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model OrganizationBlock {
+  userId         BigInt       @map("user_id")
+  organizationId BigInt       @map("organization_id")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([userId, organizationId])
+  @@map("organization_blocks")
+}
+
+model Organization {
+  id       BigInt              @id @default(autoincrement())
+  publicId String?             @map("public_id") @db.VarChar(80)
+  name     String              @db.VarChar(180)
+  avatar   String?             @map("avatar_url") @db.VarChar(1000)
+  blocks   OrganizationBlock[]
+
+  @@map("organizations")
+}

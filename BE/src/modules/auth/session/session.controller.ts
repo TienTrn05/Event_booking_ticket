@@ -9,6 +9,10 @@ import {
   currentMethods,
   currentUser,
   logout,
+  logoutAll,
+  listSessions,
+  revokeOwnedSession,
+  authenticatedUser,
   refreshMaxAge,
   rotateRefresh,
   sessionEnabled,
@@ -22,6 +26,11 @@ import {
   setRefresh,
 } from '../http/auth.http.js';
 import { emailOtpEnabled } from '../otp/email/email-delivery.js';
+import {
+  numericId,
+  paginationSchema,
+  emptyBodySchema,
+} from '../../../shared/validation/common.schema.js';
 export function createSessionController() {
   const configHandler: RequestHandler = (_req, res) =>
     send(res, { googleEnabled: authEnabled, emailOtpEnabled, sessionEnabled });
@@ -70,6 +79,36 @@ export function createSessionController() {
 
   const methodsHandler: RequestHandler = async (req, res) =>
     send(res, await currentMethods(req.get('authorization')));
+  const sessionsHandler: RequestHandler = async (req, res) => {
+    const query = paginationSchema.parse(req.query);
+    send(
+      res,
+      await listSessions(
+        await authenticatedUser(req.get('authorization')),
+        query.page,
+        query.pageSize,
+      ),
+    );
+  };
+  const revokeHandler: RequestHandler = async (req, res) => {
+    requireBrowser(req);
+    if (req.body !== undefined) emptyBodySchema.parse(req.body);
+    const actor = await authenticatedUser(req.get('authorization'));
+    const id = numericId.parse(req.params.sessionId);
+    await revokeOwnedSession(actor, id, String(res.locals.requestId));
+    if (id === actor.sessionId) clearRefresh(res);
+    res.status(204).end();
+  };
+  const logoutAllHandler: RequestHandler = async (req, res) => {
+    requireBrowser(req);
+    emptyBodySchema.parse(req.body);
+    await logoutAll(
+      await authenticatedUser(req.get('authorization')),
+      String(res.locals.requestId),
+    );
+    clearRefresh(res);
+    res.status(204).end();
+  };
   return {
     config: configHandler,
     csrf: csrfHandler,
@@ -77,5 +116,8 @@ export function createSessionController() {
     logout: logoutHandler,
     me: meHandler,
     methods: methodsHandler,
+    sessions: sessionsHandler,
+    revokeSession: revokeHandler,
+    logoutAll: logoutAllHandler,
   };
 }

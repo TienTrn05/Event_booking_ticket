@@ -40,35 +40,26 @@ export class CheckInRepository {
       )
     ).rows[0];
   }
-  async lookupId(db: PoolClient, id: string) {
-    return (
-      await db.query<{ booking_id: string }>(
-        'SELECT bi.booking_id::text FROM tickets t JOIN booking_items bi ON bi.id=t.booking_item_id WHERE t.id=$1',
-        [id],
-      )
-    ).rows[0];
-  }
   async staff(db: PoolClient, actor: RequestActor, organizationId?: string) {
     const access = await db.query<{ organization_id: string }>(
       `SELECT m.organization_id::text FROM organization_memberships m JOIN organizations o ON o.id=m.organization_id
-   JOIN auth_sessions a ON a.user_id=m.user_id AND a.identity_id=m.company_identity_id JOIN external_identities i ON i.id=a.identity_id
+   JOIN auth_sessions a ON a.user_id=m.user_id JOIN external_identities i ON i.id=a.identity_id
    JOIN user_roles ur ON ur.user_id=m.user_id JOIN role_permissions rp ON rp.role_id=ur.role_id JOIN permissions p ON p.id=rp.permission_id
    WHERE m.user_id=$1 AND a.id=$2 AND ($3::bigint IS NULL OR m.organization_id=$3) AND p.code='ticket.checkin_own'
-   AND m.status='ACTIVE' AND o.status='APPROVED' AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
-   AND i.revoked_at IS NULL AND i.email_verified_at IS NOT NULL AND i.provider=m.company_identity_provider
-   AND i.provider IN ('GOOGLE','COMPANY_EMAIL') AND split_part(i.email_canonical,'@',2)=o.company_domain
-   AND (i.provider='COMPANY_EMAIL' OR i.hosted_domain=o.company_domain) FOR SHARE OF m,o,a,i,ur,rp`,
+   AND m.status='ACTIVE' AND o.status='APPROVED' AND o.public_id IS NOT NULL AND a.revoked_at IS NULL AND a.expires_at>clock_timestamp()
+   AND i.revoked_at IS NULL
+    FOR SHARE OF m,o,a,i,ur,rp`,
       [actor.id, actor.sessionId, organizationId ?? null],
     );
     if (!access.rowCount)
-      throw new AppError(403, 'FORBIDDEN', 'Cần phiên công ty và quyền kiểm tra vé của tổ chức.');
+      throw new AppError(403, 'FORBIDDEN', 'Cần phiên hợp lệ và quyền kiểm tra vé của tổ chức.');
     return access.rows;
   }
   async sessions(db: PoolClient, organizationIds: string[]) {
     return (
       await db.query(
-        `SELECT s.id::text,e.title,ep.public_id AS "eventId",s.starts_at AS "startsAt",s.timezone
-   FROM event_sessions s JOIN events e ON e.id=s.event_id JOIN event_publications ep ON ep.event_id=e.id
+        `SELECT s.id::text,e.title,e.public_id AS "eventId",s.starts_at AS "startsAt",s.timezone
+   FROM event_sessions s JOIN events e ON e.id=s.event_id
    WHERE e.organization_id=ANY($1::bigint[]) AND e.status='PUBLISHED' AND s.status='SCHEDULED' ORDER BY s.starts_at DESC,s.id LIMIT 100`,
         [organizationIds],
       )

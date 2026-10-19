@@ -47,6 +47,15 @@ const payment: Schema = {
     bookingId: id,
     provider: { type: 'string', enum: ['PAYOS'] },
     status: { type: 'string', enum: ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'] },
+    outcome: {
+      type: 'string',
+      enum: ['SUCCESS', 'FAILED'],
+      nullable: true,
+      description:
+        'Kết quả mua vé; null khi BE chưa có kết luận. Redirect không xác nhận thành công.',
+    },
+    canRetry: { type: 'boolean', description: 'Được thử lại; không gia hạn thời hạn giữ ghế.' },
+    expiresAt: { type: 'string', format: 'date-time' },
     amountMinor: text,
     receivedMinor: text,
     currency: { type: 'string', enum: ['VND'] },
@@ -100,7 +109,9 @@ export const paymentPaths = {
     post: {
       tags: ['Payment'],
       operationId: 'createPayosPayment',
-      summary: 'Kiểm tra từng attendee và chuẩn bị link payOS; không gia hạn hold.',
+      summary: 'Chuẩn bị payOS hoặc thử lại lần thất bại trong thời hạn giữ ghế gốc.',
+      description:
+        'Gửi lại request do lỗi mạng dùng cùng key. Một lần thanh toán mới sau FAILED dùng key mới; request đồng thời dùng chung attempt PENDING. Không mở attempt mới khi đã nhận tiền chưa xác nhận.',
       security: bearer,
       parameters: [param('bookingId'), origin, key],
       requestBody: body({ type: 'object', additionalProperties: false }),

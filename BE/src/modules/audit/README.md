@@ -1,5 +1,3 @@
 # audit
 
-Module dự kiến, chưa có endpoint nghiệp vụ. Khi triển khai tách `*.routes.ts`, `*.controller.ts`, `*.service.ts`, `*.repository.ts`, `*.schema.ts`, `*.types.ts`.
-
-Controller chỉ HTTP; service kiểm tra quyền/scope, policy và transaction; repository dùng SQL có tham số với cùng connection được truyền vào. Xem Docs/10 và Docs/23 tại gốc repo. Không tạo API giả trả thành công khi nghiệp vụ chưa tồn tại.
+GET /admin/audit-logs đã triển khai: audit.read và scope duyệt/report, phân trang/lọc thời gian/resource/action. Chỉ metadata actor/action/resource/request/time; không reason/raw before-after/credential/PII. Service kiểm tra quyền, repository giữ SQL. Xem Docs/40.

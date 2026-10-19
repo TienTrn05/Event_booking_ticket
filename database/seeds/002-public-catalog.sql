@@ -40,7 +40,7 @@ WHERE u.id BETWEEN 900101 AND 900112 AND r.code = 'ORGANIZER'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO organizations
-  (id,name,company_domain,applicant_user_id,company_identity_id,company_identity_provider,status,reviewed_by,reviewed_at)
+  (id,name,contact_domain,applicant_user_id,applicant_identity_id,applicant_identity_provider,status,reviewed_by,reviewed_at)
 VALUES
 (902001,'Sơn Tùng M-TP','sontungmtp.demo',900101,901101,'COMPANY_EMAIL','APPROVED',900001,'2026-08-02'),
 (902002,'Đen Vâu','denvau.demo',900102,901102,'COMPANY_EMAIL','APPROVED',900001,'2026-08-02'),
@@ -57,16 +57,13 @@ VALUES
 ON CONFLICT DO NOTHING;
 
 INSERT INTO organization_memberships
-  (id,organization_id,user_id,company_identity_id,company_identity_provider,status,approved_by,approved_at)
-SELECT 903000 + (id - 902000), id, applicant_user_id, company_identity_id,
-  company_identity_provider, 'ACTIVE', 900001, '2026-08-02'
+  (id,organization_id,user_id,member_identity_id,member_identity_provider,status,approved_by,approved_at)
+SELECT 903000 + (id - 902000), id, applicant_user_id, applicant_identity_id,
+  applicant_identity_provider, 'ACTIVE', 900001, '2026-08-02'
 FROM organizations WHERE id BETWEEN 902001 AND 902012
 ON CONFLICT DO NOTHING;
 
-INSERT INTO organization_profiles
-  (organization_id,public_id,avatar_url,summary,category_label,featured_rank)
-VALUES
-(902001,'o1','https://images.pexels.com/photos/12216243/pexels-photo-12216243.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Đơn vị tổ chức các chương trình âm nhạc và trải nghiệm dành cho cộng đồng người hâm mộ.','Music',1),
+UPDATE organizations o SET public_id=p.public_id,avatar_url=p.avatar_url,summary=p.summary,category_label=p.category_label,featured_rank=p.featured_rank,profile_created_at=COALESCE(o.profile_created_at,CURRENT_TIMESTAMP),profile_updated_at=CURRENT_TIMESTAMP FROM (VALUES (902001,'o1','https://images.pexels.com/photos/12216243/pexels-photo-12216243.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Đơn vị tổ chức các chương trình âm nhạc và trải nghiệm dành cho cộng đồng người hâm mộ.','Music',1),
 (902002,'o2','https://images.pexels.com/photos/6201175/pexels-photo-6201175.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Đơn vị tổ chức các đêm nhạc và dự án văn hóa đương đại.','Music',2),
 (902003,'o3','https://images.pexels.com/photos/17373843/pexels-photo-17373843.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Nhà tổ chức lễ hội âm nhạc và hoạt động cộng đồng.','Festivals',3),
 (902004,'o4','https://images.pexels.com/photos/2559741/pexels-photo-2559741.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Không gian dành cho nghệ thuật và triển lãm đương đại.','Arts',4),
@@ -77,8 +74,7 @@ VALUES
 (902009,'o9','https://images.pexels.com/photos/5193526/pexels-photo-5193526.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Nhà tổ chức chương trình biểu diễn quốc tế.','Music',NULL),
 (902010,'o10','https://images.pexels.com/photos/1708909/pexels-photo-1708909.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Cộng đồng công nghệ và robotics.','Technology',NULL),
 (902011,'o11','https://images.pexels.com/photos/39201792/pexels-photo-39201792.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Đơn vị đào tạo và workshop nhiếp ảnh.','Workshops',NULL),
-(902012,'o12','https://images.pexels.com/photos/30247038/pexels-photo-30247038.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Nhà tổ chức lễ hội và chương trình đếm ngược.','Festivals',NULL)
-ON CONFLICT DO NOTHING;
+(902012,'o12','https://images.pexels.com/photos/30247038/pexels-photo-30247038.jpeg?auto=compress&cs=tinysrgb&h=200&w=200','Nhà tổ chức lễ hội và chương trình đếm ngược.','Festivals',NULL)) AS p(organization_id,public_id,avatar_url,summary,category_label,featured_rank) WHERE o.id=p.organization_id AND o.public_id IS NULL;
 
 INSERT INTO event_categories (name,slug,is_active) VALUES
 ('Music','music',TRUE),('Technology','technology',TRUE),('Sports','sports',TRUE),
@@ -169,12 +165,7 @@ SET status = 'PUBLISHED', approved_review_id = d.review_id,
 FROM demo_event_seed d
 WHERE d.event_id = e.id;
 
-INSERT INTO event_publications
-  (event_id,public_id,display_name,cover_image_url,card_badge,admission_type,catalog_status,starting_price_minor,currency,featured_rank,spotlight_rank,reopening_note,published_at)
-SELECT event_id,public_id,title,image_url,card_badge,admission_type,catalog_status,price_minor,'VND',
-  featured_rank,spotlight_rank,NULL,'2026-08-05'
-FROM demo_event_seed
-ON CONFLICT DO NOTHING;
+UPDATE events e SET public_id=d.public_id,display_name=d.title,publication_cover_image_url=d.image_url,card_badge=d.card_badge,admission_type=d.admission_type,ticketing_mode=d.admission_type,catalog_status=d.catalog_status,starting_price_minor=d.price_minor,currency='VND',featured_rank=d.featured_rank,spotlight_rank=d.spotlight_rank,reopening_note=NULL,published_at='2026-08-05',publication_created_at=CURRENT_TIMESTAMP,publication_updated_at=CURRENT_TIMESTAMP FROM demo_event_seed d WHERE e.id=d.event_id AND e.public_id IS NULL;
 
 INSERT INTO merchandise_products
   (id,public_id,event_id,organization_id,name,description,image_url,price_minor,currency,badge,requires_ticket,status,sort_order)

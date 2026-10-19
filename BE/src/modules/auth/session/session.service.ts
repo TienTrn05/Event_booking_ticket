@@ -9,6 +9,8 @@ import { authRepository } from '../auth.repository.js';
 import { requireSessionConfig, secret } from '../shared/auth.config.js';
 import { hash, random } from '../shared/auth.crypto.js';
 import type { Account, Session } from '../shared/auth.types.js';
+import type { RequestActor } from '../../../shared/auth/request-actor.js';
+import { usersRepository } from '../../users/repositories/users.repository.js';
 export async function createSession(
   connection: PoolClient,
   account: Account,
@@ -47,6 +49,7 @@ export async function rotateRefresh(token: string, requestId: string): Promise<S
   return withTransaction(async (connection) => {
     const row = await authRepository.refreshByHash(connection, hash(token));
     if (!row) throw new AppError(401, 'UNAUTHENTICATED', 'Phiên đăng nhập không hợp lệ.');
+    await authRepository.lockUser(connection, row.user_id);
     await authRepository.lockSession(connection, row.session_id);
     const current = await authRepository.lockedRefresh(connection, row.id);
     if (!current) throw new AppError(401, 'UNAUTHENTICATED', 'Phiên đăng nhập không hợp lệ.');
@@ -138,7 +141,47 @@ export async function logout(token: string | undefined, requestId: string) {
   await withTransaction(async (connection) => {
     const row = await authRepository.refreshByHash(connection, hash(token));
     if (!row) return;
+    await authRepository.lockUser(connection, row.user_id);
     await authRepository.revokeSession(connection, row.session_id);
     await authRepository.audit(connection, row.user_id, 'auth.logout', row.session_id, requestId);
+  });
+}
+
+export async function listSessions(actor: RequestActor, page: number, pageSize: number) {
+  return withTransaction(async (db) => {
+    await authRepository.lockUser(db, actor.id);
+    await usersRepository.profile(db, actor, true);
+    const result = await authRepository.listSessions(
+      db,
+      actor.id,
+      actor.sessionId,
+      pageSize,
+      (page - 1) * pageSize,
+    );
+    const total = Number(result.total);
+    return {
+      items: result.items,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    };
+  });
+}
+
+export async function revokeOwnedSession(actor: RequestActor, id: string, requestId: string) {
+  await withTransaction(async (db) => {
+    await authRepository.lockUser(db, actor.id);
+    await usersRepository.profile(db, actor, true);
+    const result = await authRepository.revokeOwnedSession(db, actor.id, id);
+    if (!result) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy phiên.');
+    if (result.changed)
+      await authRepository.audit(db, actor.id, 'auth.session.revoke', id, requestId);
+  });
+}
+
+export async function logoutAll(actor: RequestActor, requestId: string) {
+  await withTransaction(async (db) => {
+    await authRepository.lockUser(db, actor.id);
+    await usersRepository.profile(db, actor, true);
+    await authRepository.revokeAll(db, actor.id);
+    await authRepository.audit(db, actor.id, 'auth.logout_all', actor.sessionId, requestId);
   });
 }

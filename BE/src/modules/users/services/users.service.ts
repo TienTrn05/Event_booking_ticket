@@ -12,6 +12,12 @@ export function updateProfile(actor: RequestActor, input: ProfileUpdate, request
   return withTransaction(async (db) => {
     const existing = await usersRepository.profile(db, actor, true);
     await usersRepository.requireUpdatePermission(db, actor.id);
+    if (input.gender === null || input.dateOfBirth === null)
+      throw new AppError(
+        422,
+        'PROFILE_FIELDS_REQUIRED',
+        'Giới tính và ngày sinh không được bỏ trống.',
+      );
     if (input.dateOfBirth && input.dateOfBirth > (await usersRepository.today(db)))
       throw new AppError(400, 'INVALID_DATE_OF_BIRTH', 'Ngày sinh không được ở tương lai.');
     if (

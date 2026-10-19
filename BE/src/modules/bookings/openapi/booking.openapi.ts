@@ -1,3 +1,5 @@
+import { inputSchema } from '../../../shared/openapi/input-schema.js';
+import { zoneHoldInput } from '../holds/hold.schema.js';
 type Schema = Record<string, unknown>;
 const id: Schema = { type: 'string', pattern: '^[1-9][0-9]{0,18}$' };
 const ref = (name: string) => ({ $ref: `#/components/schemas/${name}` });
@@ -50,6 +52,7 @@ export const bookingSchemas = {
     type: 'object',
     properties: {
       id,
+      eventId: id,
       sessionId: id,
       holdId: id,
       status: {
@@ -95,6 +98,24 @@ export const bookingSchemas = {
   },
 };
 export const bookingPaths = {
+  '/events/{eventId}/sessions/{sessionId}/zones': {
+    get: {
+      tags: ['Bookings'],
+      summary: 'Public outdoor zones, stage/geometry and current quantity',
+      parameters: eventParams,
+      responses: { '200': result({ type: 'object' }), ...errors },
+    },
+  },
+  '/events/{eventId}/sessions/{sessionId}/zones/hold': {
+    post: {
+      tags: ['Bookings'],
+      summary: 'Hold up to six outdoor tickets by zone quantity; same five-minute deadline',
+      security: bearer,
+      parameters: [...eventParams, key],
+      requestBody: body(inputSchema(zoneHoldInput)),
+      responses: { '201': result(ref('SeatHold')), ...errors },
+    },
+  },
   '/events/{eventId}/sessions': {
     get: {
       tags: ['Booking'],

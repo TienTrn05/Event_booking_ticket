@@ -1,5 +1,41 @@
 import { errorResponse, response } from '../../../shared/openapi/helpers.js';
+import { privateOperation as op } from '../../../shared/openapi/private-operation.js';
+import { emptyBodySchema } from '../../../shared/validation/common.schema.js';
+const sessionMutation = (path: string, method: 'post' | 'delete') => {
+  const operation = op(
+    path,
+    method,
+    'Auth',
+    'Thu hồi phiên của chính User; Origin và double-submit CSRF bắt buộc.',
+    method === 'post' ? emptyBodySchema : undefined,
+  );
+  return {
+    ...operation,
+    parameters: [
+      ...operation.parameters.filter((p) => p.name !== 'Idempotency-Key'),
+      { name: 'X-CSRF-Token', in: 'header', required: true, schema: { type: 'string' } },
+    ],
+    responses: {
+      ...operation.responses,
+      '204': {
+        description: 'Đã thu hồi. Thu hồi phiên hiện tại hoặc logout-all xóa refresh cookie.',
+      },
+    },
+  };
+};
 export const authPaths = {
+  '/auth/sessions': {
+    get: op(
+      '/auth/sessions',
+      'get',
+      'Auth',
+      'Phiên còn hoạt động của chính User: id/deviceLabel/provider/authenticatedAt/createdAt/expiresAt/current. Không token/family/identity subject.',
+      undefined,
+      ['page', 'pageSize'],
+    ),
+  },
+  '/auth/logout-all': { post: sessionMutation('/auth/logout-all', 'post') },
+  '/auth/sessions/{sessionId}': { delete: sessionMutation('/auth/sessions/{sessionId}', 'delete') },
   '/auth/config': {
     get: {
       tags: ['Auth'],

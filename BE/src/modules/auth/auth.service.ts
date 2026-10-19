@@ -11,6 +11,9 @@ export {
   authenticatedUser,
   createSession,
   logout,
+  logoutAll,
+  listSessions,
+  revokeOwnedSession,
   rotateRefresh,
 } from './session/session.service.js';
 export {

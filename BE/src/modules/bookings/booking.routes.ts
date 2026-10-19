@@ -23,7 +23,12 @@ export function createBookingRouter(admissionGate: AdmissionGate) {
   router.get('/events/:eventId/sessions', controller.sessions);
   router.get('/events/:eventId/sessions/:sessionId/seats', controller.seats);
   router.use(
-    ['/holds', '/bookings', '/events/:eventId/sessions/:sessionId/seats/hold'],
+    [
+      '/holds',
+      '/bookings',
+      '/events/:eventId/sessions/:sessionId/seats/hold',
+      '/events/:eventId/sessions/:sessionId/zones/hold',
+    ],
     async (req, _res, next) => {
       if (req.method !== 'GET') requireAppOrigin(req);
       actors.set(req, await authenticatedUser(req.get('authorization')));
@@ -63,6 +68,12 @@ export function createBookingRouter(admissionGate: AdmissionGate) {
     mutationLimit,
     controller.createHold,
   );
+  router.post(
+    '/events/:eventId/sessions/:sessionId/zones/hold',
+    mutationLimit,
+    controller.createZoneHold,
+  );
+  router.get('/events/:eventId/sessions/:sessionId/zones', controller.zones);
   router.get('/holds/:holdId', controller.getHold);
   router.delete('/holds/:holdId', controller.releaseHold);
   router.post('/bookings', controller.createBooking);

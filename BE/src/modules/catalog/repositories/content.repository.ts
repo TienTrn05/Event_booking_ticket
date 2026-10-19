@@ -21,27 +21,29 @@ export const contentRepository: Pick<
   CatalogRepository,
   'listMerchandise' | 'findMerchandise' | 'listArticles' | 'findArticle'
 > = {
-  async listMerchandise() {
+  async listMerchandise(userId) {
     return withConnection(async (connection) => {
-      const { rows } = await connection.query<CatalogRow<CatalogMerchandise>>(`
-        SELECT mp.public_id AS id, ep.public_id AS "eventId", e.title AS "eventTitle",
+      const { rows } = await connection.query<CatalogRow<CatalogMerchandise>>(
+        `
+        SELECT mp.public_id AS id, e.public_id AS "eventId", e.title AS "eventTitle",
           mp.name, mp.description, mp.image_url AS image, mp.price_minor AS price,
-          mp.currency, o.name AS organizer, op.public_id AS "organizerId",
+          mp.currency, o.name AS organizer, o.public_id AS "organizerId",
           mp.badge, mp.requires_ticket AS "requiresTicket"
         FROM merchandise_products mp
         JOIN events e ON e.id = mp.event_id
-        JOIN event_publications ep ON ep.event_id = e.id
         JOIN organizations o ON o.id = mp.organization_id
-        JOIN organization_profiles op ON op.organization_id = o.id
-        WHERE mp.status = 'PUBLISHED' AND e.status = 'PUBLISHED'
-          AND ep.published_at <= CURRENT_TIMESTAMP
+        WHERE mp.status = 'PUBLISHED' AND e.status = 'PUBLISHED' AND o.status='APPROVED'
+          AND e.published_at <= CURRENT_TIMESTAMP
+          AND NOT EXISTS(SELECT 1 FROM organization_blocks ob WHERE ob.organization_id=o.id AND ob.user_id=$1::bigint)
         ORDER BY mp.sort_order, mp.id
-      `);
+      `,
+        [userId ?? null],
+      );
       return rows.map(mapMerchandise);
     });
   },
-  async findMerchandise(id) {
-    const products = await this.listMerchandise();
+  async findMerchandise(id, userId) {
+    const products = await this.listMerchandise(userId);
     return products.find((product) => product.id === id) ?? null;
   },
   async listArticles() {

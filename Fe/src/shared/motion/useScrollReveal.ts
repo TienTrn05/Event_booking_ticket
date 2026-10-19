@@ -1,55 +1,43 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 
-// Literal utilities let Tailwind discover every state at build time.
-const revealClasses = {
-  heading: '!animate-reveal-left',
-  softHeading: '!animate-reveal-soft',
-  fadeCard: '!animate-reveal-fade',
-  card: '!animate-reveal-scale',
-} as const;
-const delays = [
-  '![animation-delay:0ms]',
-  '![animation-delay:70ms]',
-  '![animation-delay:140ms]',
-  '![animation-delay:210ms]',
-];
+import { useReducedMotion } from './useReducedMotion';
 
-/** Reveal once per element, including cards added by filters or load-more. */
+/** Content stays visible unless the observer can stage a motion preference safely. */
 export function useScrollReveal() {
-  const root = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLElement>(null);
+  const reduced = useReducedMotion();
   useEffect(() => {
     const container = root.current;
-    if (!container || !('IntersectionObserver' in window)) return;
+    if (!container || !('IntersectionObserver' in window) || reduced) return;
     const tracked = new Set<HTMLElement>();
     const observer = new IntersectionObserver(
-      (intersections) => {
-        for (const entry of intersections) {
-          if (!entry.isIntersecting) continue;
-          const kind =
-            (entry.target as HTMLElement).dataset.reveal === 'soft-heading'
-              ? 'softHeading'
-              : (entry.target as HTMLElement).dataset.reveal === 'fade-card'
-                ? 'fadeCard'
-                : (entry.target as HTMLElement).dataset.reveal === 'heading'
-                  ? 'heading'
-                  : 'card';
-          entry.target.classList.add(revealClasses[kind]);
-          observer.unobserve(entry.target);
-        }
+      (entries) => {
+        for (const entry of entries)
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).dataset.motion = 'visible';
+            observer.unobserve(entry.target);
+          }
       },
-      { threshold: 0.08 },
+      { threshold: 0.06, rootMargin: '0px 0px 40px 0px' },
     );
     const collect = () => {
-      container.querySelectorAll<HTMLElement>('[data-reveal]').forEach((element) => {
-        if (tracked.has(element)) return;
+      for (const element of tracked)
+        if (!container.contains(element)) {
+          observer.unobserve(element);
+          tracked.delete(element);
+        }
+      for (const element of container.querySelectorAll<HTMLElement>('[data-reveal]')) {
+        if (tracked.has(element)) continue;
         tracked.add(element);
-        const siblings = [...(element.parentElement?.children ?? [])];
-        element.classList.add(
-          delays[Math.min(siblings.indexOf(element), 3)]!,
-          'focus-within:!animate-none',
-        );
+        const position = element.parentElement?.classList.contains('rail-item')
+          ? element.parentElement
+          : element;
+        const siblings = [...(position.parentElement?.children ?? [])];
+        const index = Math.max(0, siblings.indexOf(position));
+        element.style.setProperty('--reveal-delay', `${Math.min(index, 3) * 60}ms`);
+        element.dataset.motion = 'pending';
         observer.observe(element);
-      });
+      }
     };
     collect();
     const mutations = new MutationObserver(collect);
@@ -57,13 +45,11 @@ export function useScrollReveal() {
     return () => {
       observer.disconnect();
       mutations.disconnect();
-      for (const element of tracked)
-        element.classList.remove(
-          ...Object.values(revealClasses),
-          ...delays,
-          'focus-within:!animate-none',
-        );
+      for (const element of tracked) {
+        delete element.dataset.motion;
+        element.style.removeProperty('--reveal-delay');
+      }
     };
-  }, []);
+  }, [reduced]);
   return root;
 }

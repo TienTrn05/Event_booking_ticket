@@ -121,14 +121,13 @@ export const attendeeRepository = {
     if (!target) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy vé.');
     const access = await db.query(
       `SELECT m.id FROM organization_memberships m JOIN organizations o ON o.id=m.organization_id
-      JOIN auth_sessions s ON s.user_id=m.user_id AND s.identity_id=m.company_identity_id
+      JOIN auth_sessions s ON s.user_id=m.user_id
       JOIN external_identities i ON i.id=s.identity_id JOIN user_roles ur ON ur.user_id=m.user_id
       JOIN role_permissions rp ON rp.role_id=ur.role_id JOIN permissions p ON p.id=rp.permission_id
       WHERE m.user_id=$1 AND s.id=$2 AND m.organization_id=$3 AND p.code='ticket.checkin_own'
       AND m.status='ACTIVE' AND o.status='APPROVED' AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
-      AND i.revoked_at IS NULL AND i.email_verified_at IS NOT NULL AND i.provider=m.company_identity_provider
-      AND i.provider IN ('GOOGLE','COMPANY_EMAIL') AND split_part(i.email_canonical,'@',2)=o.company_domain
-      AND (i.provider='COMPANY_EMAIL' OR i.hosted_domain=o.company_domain) FOR SHARE OF m,o,s,i,ur,rp`,
+      AND i.revoked_at IS NULL
+       FOR SHARE OF m,o,s,i,ur,rp`,
       [actor.id, actor.sessionId, target.organization_id],
     );
     if (!access.rowCount) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy vé.');

@@ -1,8 +1,15 @@
 import type { HomeCatalog } from '../../catalog/types';
 import type { PreviewItem, PreviewKind } from '../types';
 import { formatPrice } from '../../../shared/utils/format';
+import { formatEventDate } from '../../events/utils/event-time';
 
-export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, id: string | null) {
+export function getPreviewItem(
+  catalog: HomeCatalog,
+  kind: PreviewKind | null,
+  id: string | null,
+  t: (vi: string, en: string) => string,
+  locale: string,
+) {
   if (!kind || !id) return;
   if (kind === 'event') {
     const event = catalog.events.find((item) => item.id === id);
@@ -15,9 +22,9 @@ export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, i
       description: event.description,
       image: event.image,
       facts: [
-        { label: 'Thời gian', value: event.dateLabel },
-        { label: 'Địa điểm', value: `${event.venue}, ${event.city}` },
-        { label: 'Tổ chức', value: event.organizer },
+        { label: t('Thời gian', 'Date'), value: formatEventDate(event.startsAt, locale) },
+        { label: t('Địa điểm', 'Venue'), value: `${event.venue}, ${event.city}` },
+        { label: t('Tổ chức', 'Organizer'), value: event.organizer },
       ],
       detailPath: `/events/${id}`,
     } satisfies PreviewItem;
@@ -33,9 +40,9 @@ export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, i
       description: product.description,
       image: product.image,
       facts: [
-        { label: 'Sự kiện', value: product.eventTitle },
-        { label: 'Đơn vị', value: product.organizer },
-        { label: 'Giá', value: formatPrice(product.price, product.currency) },
+        { label: t('Sự kiện', 'Event'), value: product.eventTitle },
+        { label: t('Đơn vị', 'Organizer'), value: product.organizer },
+        { label: t('Giá', 'Price'), value: formatPrice(product.price, product.currency) },
       ],
       detailPath: `/merchandise/${id}`,
     } satisfies PreviewItem;
@@ -51,8 +58,8 @@ export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, i
       description: article.excerpt,
       image: article.image,
       facts: [
-        { label: 'Ngày đăng', value: article.date },
-        { label: 'Thời lượng', value: article.readTime },
+        { label: t('Ngày đăng', 'Published'), value: article.date },
+        { label: t('Thời lượng', 'Reading time'), value: article.readTime },
       ],
       detailPath: `/blog/${id}`,
     } satisfies PreviewItem;
@@ -63,14 +70,20 @@ export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, i
     return {
       kind,
       id,
-      eyebrow: organizer.verified ? 'Đã xác minh' : 'Organizer',
+      eyebrow: organizer.verified ? t('Đã xác minh', 'Verified') : t('Nhà tổ chức', 'Organizer'),
       title: organizer.name,
       description: organizer.summary,
       image: organizer.avatar,
       facts: [
-        { label: 'Danh mục', value: organizer.category },
-        { label: 'Sự kiện', value: `${organizer.eventCount} sự kiện` },
-        { label: 'Sắp tới', value: organizer.upcomingEventDate ?? 'Đang cập nhật' },
+        { label: t('Danh mục', 'Category'), value: organizer.category },
+        {
+          label: t('Sự kiện', 'Events'),
+          value: t(`${organizer.eventCount} sự kiện`, `${organizer.eventCount} events`),
+        },
+        {
+          label: t('Sắp tới', 'Upcoming'),
+          value: organizer.upcomingEventDate ?? t('Đang cập nhật', 'To be announced'),
+        },
       ],
       detailPath: `/organizers/${id}`,
     } satisfies PreviewItem;
@@ -80,14 +93,14 @@ export function getPreviewItem(catalog: HomeCatalog, kind: PreviewKind | null, i
   return {
     kind,
     id,
-    eyebrow: 'Hồ sơ mở bán đã duyệt',
+    eyebrow: t('Hồ sơ mở bán đã duyệt', 'Approved sales request'),
     title: request.eventTitle,
     description: request.reason,
     image: request.image,
     facts: [
-      { label: 'Loại yêu cầu', value: request.type },
-      { label: 'Tổ chức', value: request.organizer },
-      { label: 'Ảnh hưởng', value: request.impactSummary },
+      { label: t('Loại yêu cầu', 'Request type'), value: request.type },
+      { label: t('Tổ chức', 'Organizer'), value: request.organizer },
+      { label: t('Ảnh hưởng', 'Impact'), value: request.impactSummary },
     ],
     detailPath: `/reopening?request=${id}`,
   } satisfies PreviewItem;

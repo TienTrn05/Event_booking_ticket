@@ -1,6 +1,6 @@
 # PostgreSQL database
 
-Schema hiện hành có **46 bảng**: 38 bảng lõi, 6 bảng catalog, alias SĐT ADR-021, organization_follows ADR-023. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit vẫn được trả về API dưới dạng chuỗi để không mất độ chính xác trong JavaScript.
+Schema hiện hành có **51 bảng**, gồm các thay đổi đến migration017: onboarding/questionnaire, gộp catalog metadata, refund/feedback, organization_blocks, search outbox và outdoor inventory. Backend đọc trực tiếp PostgreSQL qua `pg`; ID `BIGINT` và tiền minor unit là chuỗi để không mất độ chính xác trong JavaScript. Các số bảng/kết quả ở phần nâng cấp bên dưới là lịch sử từng phiên bản; không dùng chúng thay trạng thái schema hiện hành.
 
 Ảnh upload mới lưu ở Cloudflare R2; DB chỉ lưu URL theo ADR-022. Database cũ cần [migration 003](migrations/003-r2-images.sql) sau backup/review; database mới dùng schema.sql đã có hai cột nullable. Chi tiết và kết quả local ở [Docs/28](../Docs/28-r2-image-upload.md).
 
@@ -10,8 +10,8 @@ Migration [004](migrations/004-profile-follow-notifications.sql) thêm hồ sơ/
 
 | File | Mục đích |
 | --- | --- |
-| [schema.sql](schema.sql) | Tạo mới toàn bộ 46 bảng theo ADR-023, PK/FK/UQ/CHECK/index và trigger |
-| [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp 3 role, 29 permission và ánh xạ quyền |
+| [schema.sql](schema.sql) | Tạo mới toàn bộ51 bảng đến ADR-038/migration017, PK/FK/UQ/CHECK/index và trigger |
+| [001-reference-data.sql](seeds/001-reference-data.sql) | Nạp role/permission và ánh xạ quyền hiện hành; không cấp vai trò cho User thật |
 | [002-public-catalog.sql](seeds/002-public-catalog.sql) | Nạp dữ liệu demo liên kết đầy đủ cho Public Web, gồm cả venue |
 | [001-public-catalog.sql](migrations/001-public-catalog.sql) | Nâng schema PostgreSQL 38 bảng lõi theo ADR-014 lên 44 bảng |
 | [queries](queries) | Query vận hành và audit, dùng tham số có tên của DBeaver |
@@ -35,6 +35,8 @@ database/seeds/002-public-catalog.sql  (tùy chọn, chỉ để demo)
 ```
 
 Database PostgreSQL cũ đã có **đúng schema 38 bảng lõi ADR-014**:
+
+Đoạn lệnh dưới đây chỉ đưa schema lõi lên mốc catalog001. Để chạy BE hiện hành, tiếp tục đối chiếu/apply các migration còn thiếu002–017 theo đúng thứ tự sau backup/review, rồi dùng seed hiện hành. Không dựa riêng vào số bảng để xác định phiên bản.
 
 ```text
 database/migrations/001-public-catalog.sql
@@ -76,7 +78,7 @@ WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
 -- Schema mới ADR-021: 45; database cũ trước migration 002: 44
 ```
 
-## Kiểm chứng
+## Kiểm chứng lịch sử catalog2026-09/10
 
 - `schema.sql` tạo đủ 44 bảng trên một PostgreSQL 18 tạm, độc lập với database người dùng.
 - Migration catalog chạy thành công trên schema lõi tối thiểu và tạo đủ 6 bảng mới.
@@ -95,3 +97,52 @@ DB đang có 44 bảng: backup/review rồi chạy migrations/002-email-otp.sql 
 ADR-024: migration [006](migrations/006-consolidate-ticket-attendees.sql) gộp attendee vào booking_items, bỏ bảng 1:1 và cột events.age_tag; nhãn API vẫn giữ. Xem [rà soát](../Docs/30-schema-consolidation.md).
 
 Migration [007](migrations/007-payos-payment.sql) thêm ba cột vào payments, không thêm bảng. DB local đã backup/review và áp dụng; schema vẫn 46 bảng. Schema fresh và upgrade đã kiểm chứng khớp; xem [Docs/32](../Docs/32-payos-booking-ticket-flow.md). Không chạy lại 007 khi schema đã có cột.
+
+## Onboarding và cấu hình event — migration 008/009
+
+DB đã có 007: backup trước, chạy [008](migrations/008-registration-onboarding.sql), rồi [009](migrations/009-session-pricing-config.sql) trên đúng DB. Không chạy lại khi đã có cột. DB rỗng dùng schema.sql + seed, không chạy các migration bổ sung. Schema giữ 46 bảng; migration giữ user/identity/role/lịch sử và metadata tổ chức. [Chi tiết](../Docs/33-registration-onboarding.md), [review/inventory](../Docs/34-organizer-event-api.md).
+
+Sau008/009, backup/review rồi chạy [010](migrations/010-admin-onboarding-questions.sql) để Admin cấu hình câu hỏi và FE render động. Fresh schema đã gồm010; không chạy lại migration. Hiện local/fresh45 bảng sau áp dụng008–011 theo yêu cầu chủ dự án (ADR-031). Xem [Docs35](../Docs/35-admin-onboarding-questions.md).
+
+## Gộp metadata catalog — migration011 / ADR-031
+
+Đã áp dụng008/009/010/011 trên DB local theo yêu cầu chủ dự án, sau backup đã kiểm tra. DB local và fresh đều45 bảng. Không chạy lại các migration này trên DB đã nâng cấp; DB rỗng chỉ dùng schema.sql và seed hiện hành.
+
+[011](migrations/011-merge-catalog-metadata.sql) copy toàn bộ profile/publication/public IDs/ảnh/timestamp vào organizations/events, kiểm tra bằng EXCEPT rồi DROP hai bảng extension, không CASCADE. Giữ ảnh nháp khác ảnh công bố; thay deferred outbox trigger, không phát lại thông báo cũ. Giữ identity/role assignment/đơn/tiền/vé. Backup trước008–011 nằm ở backups/before-008-011-1791740552152.dump (ngoài Git); khôi phục cùng release app cũ trên DB riêng nếu cần. Không chạy schema.sql lên DB đang có dữ liệu.
+
+Fresh + upgrade có seed và PG/Edge25 ca đã qua. Fixture catalog-before-011.sql chỉ dùng kiểm thử upgrade, không dùng để seed DB hiện hành. Xem [Docs36](../Docs/36-schema-audit.md).
+
+## Hoàn tiền/feedback — migration012
+
+Đã backup trước012 và áp dụng DB local; hiện46 bảng, không chạy lại012. DB rỗng dùng schema.sql + seed. [012](migrations/012-refunds-feedback.sql) dùng refunds/reports có sẵn, thêm evidence/version và một feedback chung hai target. Không bịa chứng từ cho SUCCESS refund cũ thiếu bằng chứng; kiểm tra dữ liệu lịch sử trước nâng DB khác. Backup local backups/before-012-1791805498317.dump được xác minh pg_restore --list. Khôi phục bằng backup trên DB riêng và release trước012 khi cần; không xóa giao dịch mới để rollback. [37](../Docs/37-refunds-reviews-app-feedback.md).
+
+## Organizer operations và demo bán vé — migration013
+
+Đã áp dụng [013](migrations/013-organizer-operations.sql) DB local sau backup backups/before-013-1791811206992.dump (250227 bytes, pg_restore --list qua); vẫn46 bảng. Không chạy lại013. DB rỗng dùng schema.sql, DB khác backup/review rồi nâng sau012. Thêm cột vào event_change_requests/events/notifications, không bảng mới hoặc role grant.
+
+[003-local-ticket-sales.sql](seeds/003-local-ticket-sales.sql) đã nạp local: event970001/public ID local-ticket-sales-demo, session970003,12 ghế2.000 VND/minimumAge18. Chỉ dùng local với seed002, hồ sơ APPROVED là fixture, không tài khoản Admin vận hành/phiên đăng nhập/payment mới. Chạy lặp giữ lịch/trạng thái ghế/tiền. Khôi phục bằng backup trên DB riêng và release trước013 khi cần, không xóa giao dịch mới. [API/Swagger và kiểm chứng](../Docs/38-organizer-sales-operations.md).
+
+
+## Customer ẩn Organizer — migration014 / ADR-035
+
+DB local đã áp dụng014 sau backup `backups/before-014-1791972755106.dump` (254724 bytes, pg_restore --list qua),47 bảng; fingerprint dữ liệu auth/role/đơn/vé/tiền/audit/follow giữ nguyên. **Không chạy014 lại trên DB local.** DB khác đã có013: backup/review rồi chạy migrations/014-organizer-blocks.sql một lần. DB rỗng dùng schema.sql có014,47 bảng; không chạy lại migration. Quan hệ nhiều–nhiều không đổi credential/role/đơn/vé/tiền/follow. Admin gỡ dùng ARCHIVED, không bảng compensation. Rollback app giữ preference/lịch sử, không drop dữ liệu hoặc ghi đè DB đang phục vụ. Chi tiết kiểm chứng/giới hạn runtime tại Docs26/40.
+
+## Search sự kiện — migration015 / ADR-036
+
+DB local đã apply015 sau backup backups/before-015-1791977547583.dump (257083 bytes, pg_restore --list qua),47 bảng; fingerprint toàn bộ bảng ngoài outbox giữ nguyên. **Không chạy015 lại trên DB local.** DB khác có014: backup/review rồi chạy015 một lần. DB rỗng dùng schema.sql có015, không chạy migration nữa. Chỉ functions/triggers/outbox jobs, không dữ liệu auth/role/đơn/vé/tiền hoặc bảng mới. Sau migration chạy BE npm run search:reindex với một tiến trình đồng bộ để tạo/backfill ES đã được duyệt. [Vận hành/khôi phục](../Docs/41-home-event-search.md).
+
+## Outdoor — migration016
+
+DB có015: backup/review rồi chạy016 một lần; DB rỗng dùng schema.sql đã gồm016. Dùng lại47 bảng, thêm mode/khu và inventory unit theo section/ordinal, không physical seats giả. Backfill mode giữ timestamps/historical rows, không tự cấu hình sức chứa cho catalog demo cũ. Sau khi016 đã áp dụng không chạy lại. [Schema/ERD/rollback và trạng thái thực tế](../Docs/42-outdoor-zone-ticketing.md).
+
+Kiểm chứng cuối2026-10-14: BE97 unit/HTTP/config/architecture + lint/typecheck/build/format/secret guard qua; PG/ES59 passed/2 browser skipped. DB local đã apply016 sau backup backups/before-016-1791983829678.dump263060 bytes (pg_restore --list qua), vẫn47 bảng; fingerprint mọi giá trị lịch sử và timestamps giữ nguyên khi loại đúng các cột mới. Không chạy016 lại. Smoke health/ready200, search200/Elasticsearch, Admin health401 khi chưa login, Swagger4 outdoor paths. Fixture PG/index/API key đã dọn, BE/tmp rỗng; không provider/tiền thật hoặc FE mới.
+
+## Nâng bốn phần BE v1 / ADR-038
+
+[017](migrations/017-backend-v1-extensions.sql) additive sau016: SKU/order/items/ledger và membership/product/payment/report/review. Fresh/populated upgrade khớp; chỉ apply sau backup/review/test, không chạy lại DB đã có marker backend_v1_extensions_installed(). [Docs44](../Docs/44-backend-v1-extensions.md) có ERD/API/lock/stock/PII, trạng thái apply và kiểm chứng tại [Docs26](../Docs/26-auth-progress.md).
+
+## Quản trị RBAC / migration018
+
+[018](migrations/018-dynamic-rbac.sql) sau017 thêm metadata role/users.roles_version, vẫn51 bảng; không thêm UserRole. Cấp rbac.manage cho role ADMIN hiện có theo chủ dự án. Backup/review trước apply, không chạy lại nếu dynamic_rbac_installed() tồn tại. DB rỗng dùng schema.sql rồi seed, không chạy migration riêng. API/UI/policy và khôi phục tại [Docs46](../Docs/46-dynamic-rbac.md), trạng thái local tại [Docs26](../Docs/26-auth-progress.md).
+
+Local đã áp018 ngày2026-10-15 sau backup before-018-1792075233118.dump295705 bytes, pg_restore --list qua. Fingerprint51 bảng/351 dòng lịch sử và mọi UserRole giữ nguyên;44 sequence chỉ permissions_id_seq tăng đúng một permission mới. Readiness/schema check và smoke OpenAPI/RBAC qua. **Không chạy018 lại trên DB local.**

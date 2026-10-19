@@ -30,12 +30,35 @@ export const catalogPaths = {
       tags: ['Catalog'],
       operationId: 'listEvents',
       summary: 'Tìm và lọc sự kiện public',
+      description:
+        'Bearer JWT tùy chọn: ẩn Organizer đã chặn theo User; response riêng tư no-store/Vary Authorization. from/to ISO có offset, [from,to); giá minor VND và availability phải thuộc cùng suất/cùng ghế. Không có JWT thì catalog Guest. Dữ liệu availability vẫn phải xác nhận lại khi hold.',
       parameters: [
         { name: 'q', in: 'query', schema: { type: 'string', maxLength: 120 } },
         { name: 'category', in: 'query', schema: { type: 'string', maxLength: 160 } },
         { name: 'city', in: 'query', schema: { type: 'string', maxLength: 120 } },
         { name: 'featured', in: 'query', schema: { type: 'boolean' } },
         { name: 'spotlight', in: 'query', schema: { type: 'boolean' } },
+        { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        {
+          name: 'minPrice',
+          in: 'query',
+          schema: { type: 'string', pattern: '^(0|[1-9][0-9]{0,18})$' },
+        },
+        {
+          name: 'maxPrice',
+          in: 'query',
+          schema: { type: 'string', pattern: '^(0|[1-9][0-9]{0,18})$' },
+        },
+        { name: 'available', in: 'query', schema: { type: 'boolean' } },
+        {
+          name: 'sort',
+          in: 'query',
+          schema: {
+            type: 'string',
+            enum: ['recommended', 'date_asc', 'date_desc', 'price_asc', 'price_desc'],
+          },
+        },
         {
           name: 'page',
           in: 'query',

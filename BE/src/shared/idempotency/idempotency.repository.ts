@@ -66,7 +66,30 @@ export async function claimKey(
 export async function finishKey(
   db: PoolClient,
   id: string,
-  type: 'HOLD' | 'BOOKING' | 'PAYMENT' | 'TICKET' | 'CHECK_IN',
+  type:
+    | 'HOLD'
+    | 'RBAC_CHANGE'
+    | 'BOOKING'
+    | 'PAYMENT'
+    | 'TICKET'
+    | 'CHECK_IN'
+    | 'EVENT'
+    | 'ORGANIZATION'
+    | 'LAYOUT'
+    | 'SESSION'
+    | 'TICKET_TYPE'
+    | 'REVIEW'
+    | 'REASON_NOTICE'
+    | 'USER'
+    | 'REFUND'
+    | 'FEEDBACK'
+    | 'SUPPORT_REPORT'
+    | 'QUESTIONNAIRE'
+    | 'EVENT_CHANGE'
+    | 'MEMBERSHIP'
+    | 'REPUTATION_ENTRY'
+    | 'MERCHANDISE'
+    | 'MERCHANDISE_ORDER',
   resourceId: string,
   status: number,
 ) {

@@ -24,7 +24,7 @@ export const mediaRepository = {
             [input.targetId],
           )
         : await db.query<{ id: string; organization_id: string; status: string; version: number }>(
-            `SELECT e.id::text, e.organization_id::text, e.status, e.version FROM events e
+            `SELECT e.id::text, e.organization_id::text, mp.status, mp.version FROM events e
          JOIN merchandise_products mp ON mp.event_id=e.id AND mp.organization_id=e.organization_id
          WHERE mp.id=$1 ${lock ? 'FOR UPDATE OF e,mp' : ''}`,
             [input.targetId],
@@ -33,13 +33,9 @@ export const mediaRepository = {
     if (!target) throw new AppError(404, 'NOT_FOUND', 'Không tìm thấy tài nguyên.');
     const membership = await db.query(
       `SELECT m.id FROM organization_memberships m JOIN organizations o ON o.id=m.organization_id
-       JOIN external_identities i ON i.id=m.company_identity_id AND i.user_id=m.user_id
-       WHERE m.organization_id=$1 AND m.user_id=$2 AND m.status='ACTIVE' AND o.status='APPROVED'
-         AND m.company_identity_id=$3 AND i.revoked_at IS NULL AND i.email_verified_at IS NOT NULL
-         AND m.company_identity_provider IN ('GOOGLE','COMPANY_EMAIL')
-         AND i.provider=m.company_identity_provider
-         AND split_part(i.email_canonical,'@',2)=o.company_domain
-         AND (i.provider='COMPANY_EMAIL' OR i.hosted_domain=o.company_domain)
+       JOIN external_identities i ON i.id=$3 AND i.user_id=m.user_id
+       WHERE m.organization_id=$1 AND m.user_id=$2 AND m.status IN ('PENDING','ACTIVE') AND o.status IN ('PENDING_REVIEW','APPROVED','REJECTED')
+         AND i.revoked_at IS NULL
          ${lock ? 'FOR SHARE OF m,o,i' : ''}`,
       [target.organization_id, actor.id, session.rows[0].identity_id],
     );
@@ -74,14 +70,10 @@ export const mediaRepository = {
         url,
       ]);
     } else {
-      await db.query('UPDATE merchandise_products SET image_url=$2 WHERE id=$1', [
+      await db.query('UPDATE merchandise_products SET image_url=$2,version=version+1 WHERE id=$1', [
         input.targetId,
         url,
       ]);
-      await db.query(
-        'UPDATE events SET version=version+1 WHERE id=(SELECT event_id FROM merchandise_products WHERE id=$1)',
-        [input.targetId],
-      );
     }
     await db.query(
       `INSERT INTO audit_logs (actor_type,actor_id,action,resource_type,resource_id,request_id)

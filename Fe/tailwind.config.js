@@ -11,20 +11,26 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         ...{
           page: 'var(--page)',
           surface: 'var(--surface)',
+          popover: 'var(--popover)',
           raised: 'var(--surface-raised)',
           foreground: 'var(--text)',
           muted: 'var(--muted)',
           line: 'var(--line)',
           accent: 'var(--accent)',
+          'accent-ink': 'var(--accent-text)',
           'accent-soft': 'var(--accent-soft)',
           'accent-hover': 'var(--accent-hover)',
           'on-accent': 'var(--on-accent)',
+          'section-featured': 'var(--feature-wash)',
+          'section-resale': 'var(--resale-wash)',
+          'section-community': 'var(--community-wash)',
+          'section-stories': 'var(--story-wash)',
           'home-page': 'var(--home-page)',
           'home-elevated': 'var(--home-elevated)',
           'home-card': 'var(--home-card)',
@@ -65,14 +71,17 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 3px rgba(8, 27, 45, 0.06), 0 1px 2px rgba(8, 27, 45, 0.04)',
-        'card-hover': '0 14px 34px rgba(8, 27, 45, 0.12), 0 4px 10px rgba(8, 27, 45, 0.05)',
-        elevated: '0 22px 52px rgba(8, 27, 45, 0.16)',
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow)',
+        elevated: 'var(--shadow-elevated)',
+      },
+      textColor: {
+        accent: 'var(--accent-text)',
       },
       borderRadius: {
-        xl: '12px',
-        '2xl': '16px',
-        '3xl': '20px',
+        xl: 'var(--radius-sm)',
+        '2xl': 'var(--radius-md)',
+        '3xl': 'var(--radius-lg)',
       },
       animation: {
         ...motion.animation,
@@ -101,6 +110,8 @@ export default {
     plugin(({ addBase, addVariant }) => {
       addBase(themeTokens);
       addVariant('legacy', '@scope (.legacy-site)');
+      addVariant('motion-full', ':root[data-motion="full"] &');
+      addVariant('motion-reduced', ':root[data-motion="reduced"] &');
       for (const [name, query] of Object.entries(responsiveVariants)) addVariant(name, query);
     }),
   ],

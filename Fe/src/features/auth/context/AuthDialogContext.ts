@@ -6,6 +6,7 @@ export const AuthDialogContext = createContext<{
   openAuth: (intent: AuthIntent) => void;
   user: { id: string; displayName: string } | null;
   accessToken: string | null;
+  profileRevision: number;
   logout: () => Promise<void>;
 } | null>(null);
 

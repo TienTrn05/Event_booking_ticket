@@ -1,108 +1,89 @@
-import { ui } from '../../../../shared/styles/classes';
-import { useState } from 'react';
-import { Heart, MapPin, Calendar } from 'lucide-react';
+﻿import { ArrowUpRight, CalendarDays, Image, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Event } from '../../types';
-import Badge from '../../../../shared/ui/Badge';
 import StatusBadge from '../StatusBadge';
 import { formatPrice } from '../../../../shared/utils/format';
 import { useQuickPreview } from '../../../preview/hooks/useQuickPreview';
+import { categoryLabel } from '../../../catalog/category-label';
+import { useLocale } from '../../../../shared/i18n/LocaleContext';
+import { formatEventDate } from '../../utils/event-time';
 
-interface EventCardProps {
+export default function EventCard({
+  event,
+  featured = false,
+}: {
   event: Event;
-  onToggleFavorite?: (id: string) => void;
-  isFavorite?: boolean;
-}
-
-export default function EventCard({ event, onToggleFavorite, isFavorite = false }: EventCardProps) {
-  const [favorite, setFavorite] = useState(isFavorite);
+  featured?: boolean;
+}) {
   const { openPreview } = useQuickPreview();
-
-  const handleFavorite = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setFavorite((prev) => !prev);
-    onToggleFavorite?.(event.id);
-  };
-
+  const { t, locale } = useLocale();
   return (
     <article
       data-reveal
-      role="button"
-      tabIndex={0}
-      onClick={() => openPreview('event', event.id)}
-      onKeyDown={(eventKey) => {
-        if (eventKey.key === 'Enter' || eventKey.key === ' ') {
-          eventKey.preventDefault();
-          openPreview('event', event.id);
-        }
-      }}
-      className={ui(
-        'group bg-white rounded-2xl border border-ink-100 shadow-card overflow-hidden transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 cursor-pointer',
-      )}
+      data-event-id={event.id}
+      className="home-card group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card"
     >
-      <div className={ui('relative aspect-[4/3] overflow-hidden bg-ink-100')}>
-        <img
-          src={event.image}
-          alt={event.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-        <div
-          className={ui(
-            'absolute inset-0 bg-gradient-to-t from-ink-900/70 via-ink-900/5 to-transparent',
-          )}
-        />
-        <div className={ui('absolute top-3 right-3')}>
-          <button
-            onClick={handleFavorite}
-            aria-label="Toggle favorite"
-            aria-pressed={favorite}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm shadow-sm transition-all hover:bg-white hover:scale-110"
-          >
-            <Heart
-              className={ui(
-                `w-4.5 h-4.5 transition-colors ${favorite ? 'fill-primary-500 text-primary-500' : 'text-ink-600'}`,
-              )}
-              size={18}
-            />
-          </button>
-        </div>
-        <div
-          className={ui('absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2')}
-        >
-          <Badge variant="neutral" className={ui('bg-white/90 text-ink-800 backdrop-blur-sm')}>
-            {event.category}
-          </Badge>
-          <StatusBadge status={event.status} />
-        </div>
-      </div>
-
-      <div className={ui('p-5')}>
-        <div className={ui('flex items-center gap-2 text-xs text-ink-400 mb-2')}>
-          <Calendar size={14} />
-          <span className="font-medium">{event.dateLabel}</span>
-        </div>
+      <Link
+        to={`/events/${event.id}`}
+        className="relative block aspect-[4/3] overflow-hidden bg-raised"
+        aria-label={t(`Xem sự kiện ${event.title}`, `View ${event.title}`)}
+      >
+        {event.image ? (
+          <img
+            src={event.image}
+            alt=""
+            width={640}
+            height={480}
+            loading="lazy"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105 motion-reduced:transform-none"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-muted">
+            <Image size={40} aria-hidden="true" />
+          </div>
+        )}
+        <span className="absolute bottom-3 left-3 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-foreground">
+          {categoryLabel(event.category, event.categorySlug, locale)}
+        </span>
+      </Link>
+      <div className={`flex flex-1 flex-col ${featured ? 'p-5' : 'p-4'}`}>
+        <p className="flex items-center gap-2 text-xs font-medium text-muted">
+          <CalendarDays size={14} aria-hidden="true" />
+          {formatEventDate(event.startsAt, locale)}
+        </p>
         <h3
-          className={ui(
-            'text-base font-bold text-ink-900 leading-snug mb-2 line-clamp-2 group-hover:text-primary-700 transition-colors',
-          )}
+          className={`mt-3 line-clamp-2 min-h-12 font-bold leading-6 text-foreground ${featured ? 'text-lg' : 'text-base'}`}
         >
-          {event.title}
+          <Link to={`/events/${event.id}`} className="transition hover:text-accent">
+            {event.title}
+          </Link>
         </h3>
-        <div className={ui('flex items-center gap-1.5 text-sm text-ink-500 mb-4')}>
-          <MapPin size={14} className="flex-shrink-0" />
+        <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+          <MapPin size={14} className="shrink-0" aria-hidden="true" />
           <span className="truncate">
             {event.venue}, {event.city}
           </span>
+        </p>
+        <div className="mt-2">
+          <StatusBadge status={event.status} />
         </div>
-        <div className={ui('flex items-end justify-between pt-3 border-t border-ink-100')}>
-          <div className="flex flex-col">
-            <span className={ui('text-xs text-ink-400 font-medium')}>Starting from</span>
-            <span className={ui('text-base font-bold text-ink-900')}>
-              {formatPrice(event.startingPrice, event.currency)}
-            </span>
+        <div className="mt-auto pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted">{t('Giá vé từ', 'Tickets from')}</p>
+              <p className="mt-1 font-bold tabular-nums text-foreground">
+                {formatPrice(event.startingPrice, event.currency)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openPreview('event', event.id)}
+              className="grid min-h-11 min-w-11 place-items-center rounded-full border border-line text-accent transition hover:bg-accent-soft"
+              aria-label={t(`Xem nhanh ${event.title}`, `Preview ${event.title}`)}
+            >
+              <ArrowUpRight size={20} />
+            </button>
           </div>
-          <span className={ui('text-xs text-ink-400 font-medium')}>{event.organizer}</span>
         </div>
       </div>
     </article>
