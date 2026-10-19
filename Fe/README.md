@@ -23,7 +23,7 @@ React + TypeScript + Vite. `src/app` điều phối router/providers; `src/featu
 Chạy ngay trong thư mục **Fe/** bằng `npm run dev`, mặc định tại http://127.0.0.1:5173. Nếu dùng runtime riêng trên Windows, kích hoạt một lần trong terminal đó:
 
 ```powershell
-. .\tooling\use-node.ps1
+# Dùng Node 24 / npm 11 đã có trong PATH
 npm.cmd ci
 npm.cmd run dev
 ```
@@ -85,7 +85,7 @@ Kiểm tra bằng `npm run check` ngay trong `Fe/`.
 
 ADR-021: Google hoặc email/SĐT + email OTP. Đăng ký email + SĐT tùy chọn; navbar tên người dùng mở linking. SMTP config ở BE; không cấp Organizer hoặc xác minh SĐT. Xem Docs/27-email-otp-setup.md.
 
-Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Chạy `. .\tooling\use-node.ps1` trước khi chạy npm.cmd; helper chỉ đổi PATH phiên hiện tại, không còn runtime riêng hoặc fallback `.local`. Xem Docs/24-local-development.md.
+Runtime Windows dùng chung Node 24.21.0 tại `D:\NVM\installs` (npm 11.19.0). Helper `. .\tooling\use-node.ps1` và `npm run setup:env` chỉ dùng khi có thư mục `tooling/` local; thư mục này không nằm trên GitHub. Clone mới dùng Node/npm trong PATH và sao chép `.env.example` thành `.env` khi cần cấu hình local. `npm run check` không phụ thuộc tooling. Xem Docs/24-local-development.md.
 
 Checkout → payOS → vé/QR và kiểm tra tại cửa đã nối; chi tiết API, quyền staff, kiểm thử và giới hạn ở Docs/32 (`../Docs/32-payos-booking-ticket-flow.md`, local). Không lưu JWT/CCCD/QR trong storage; idempotency key không chứa credential.
 
