@@ -2,9 +2,9 @@
 // These are utility classes, not CSS rules; Tailwind compiles them at build time.
 export const uiClasses: Readonly<Record<string, string>> = {
   $body: [
-    '[:where(&)]:bg-[#f6fbff] [:where(&)]:text-[color:#081b2d] [:where(&)]:[font-family:"Plus_Jakarta_Sans",_system-ui,_sans-serif] [:where(&)]:[transition:background-color_300ms_ease,_color_300ms_ease]',
-    '[:where(&)_::selection]:bg-[#bcecff] [:where(&)_::selection]:text-[color:#081b2d]',
-    "[[data-theme='dark']_:where(&)]:[background:#050b1a] [[data-theme='dark']_:where(&)]:text-[color:#eef7ff]",
+    '[:where(&)]:bg-page [:where(&)]:text-foreground [:where(&)]:font-sans [:where(&)]:[transition:background-color_300ms_ease,_color_300ms_ease]',
+    '[:where(&)_::selection]:bg-accent-soft [:where(&)_::selection]:text-foreground',
+    "[[data-theme='dark']_:where(&)]:[background:var(--page)] [[data-theme='dark']_:where(&)]:text-foreground",
     "[:where(&)_[data-theme='dark']_input]:[color-scheme:dark]",
     "[:where(&)_[data-theme='dark']_select]:[color-scheme:dark]",
     "[:where(&)_[data-theme='dark']_textarea]:[color-scheme:dark]",
@@ -60,17 +60,17 @@ export const uiClasses: Readonly<Record<string, string>> = {
   ].join(' '),
   'bg-emerald-100': ['[.reference-site.reference-site_&]:text-[color:#065f46]'].join(' '),
   'bg-ink-100': [
-    "[[data-theme='dark']_&]:!bg-[#101c35]",
+    "[[data-theme='dark']_&]:!bg-raised",
     '[.reference-site.reference-site_&]:!bg-home-elevated',
   ].join(' '),
   'bg-ink-50': [
-    "[[data-theme='dark']_&]:!bg-[#081126]",
+    "[[data-theme='dark']_&]:!bg-page",
     '[.reference-site.reference-site_&]:!bg-home-page',
   ].join(' '),
   'bg-rose-100': ['[.reference-site.reference-site_&]:text-[color:#9f1239]'].join(' '),
-  'bg-white': ["[[data-theme='dark']_&]:!bg-[#0d1730]"].join(' '),
-  'border-ink-100': ["[[data-theme='dark']_&]:![border-color:#203455]"].join(' '),
-  'border-ink-200': ["[[data-theme='dark']_&]:![border-color:#203455]"].join(' '),
+  'bg-white': ["[[data-theme='dark']_&]:!bg-surface"].join(' '),
+  'border-ink-100': ["[[data-theme='dark']_&]:!border-line"].join(' '),
+  'border-ink-200': ["[[data-theme='dark']_&]:!border-line"].join(' '),
   'border-t': [
     '[.reference-site.reference-site_article_&]:gap-3 [.reference-site.reference-site_article_&]:flex-wrap',
     '[.chapter-resale_article_&]:mt-[auto]',
@@ -93,7 +93,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
   ].join(' '),
   'brand-mark-dot': [
     'absolute right-[-4px] bottom-[-3px] w-2.5 h-2.5 [background:#dff6ff] [border:3px_solid_#0284c7] rounded-[999px]',
-    "[[data-theme='dark']_&]:[background:#0d1730] [[data-theme='dark']_&]:[border-color:#38bdf8]",
+    "[[data-theme='dark']_&]:[background:var(--surface)] [[data-theme='dark']_&]:[border-color:var(--accent)]",
   ].join(' '),
   breadcrumb: [
     'legacy:text-muted legacy:text-[length:12px] legacy:mb-[25px] legacy:flex legacy:gap-3',
@@ -127,10 +127,8 @@ export const uiClasses: Readonly<Record<string, string>> = {
     'legacy:[.reopening-body_&]:flex-wrap legacy:[.reopening-body_&]:gap-3',
   ].join(' '),
   'catalog-floating': [
-    '[&_a]:rounded-[100px] [&_a]:px-[18px] [&_a]:min-h-11',
     '[transition:opacity_420ms_ease,_translate_680ms_cubic-bezier(0.22,_1,_0.36,_1),_scale_680ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_680ms]',
     '[.reference-site.reference-site_&_>_div]:[background:var(--home-nav)] [.reference-site.reference-site_&_>_div]:border-home-line [.reference-site.reference-site_&_>_div]:rounded-[18px] [.reference-site.reference-site_&_>_div]:shadow-[0_10px_40px_#0003]',
-    'until-639:[.reference-site.reference-site_&]:hidden',
   ].join(' '),
   'category-label': [
     'legacy:text-[length:10px] legacy:text-accent legacy:font-bold',
@@ -204,10 +202,6 @@ export const uiClasses: Readonly<Record<string, string>> = {
   ].join(' '),
   'content-page': ['legacy:[padding-block:40px_65px] legacy:min-h-[55vh]'].join(' '),
   'create-link': ['legacy:until-1150:hidden'].join(' '),
-  'demo-label': [
-    'legacy:p-[6px_10px] legacy:[border:1px_solid_var(--line)] legacy:rounded-[6px] legacy:text-muted legacy:text-[length:10px] legacy:whitespace-nowrap',
-    'legacy:until-760:text-[length:8px]',
-  ].join(' '),
   'detail-copy': [
     'legacy:[&_h1]:text-[length:35px] legacy:[&_h1]:leading-[1.2] legacy:[&_h1]:m-[15px_0]',
     'legacy:[&_p]:text-muted legacy:[&_p]:text-[length:14px]',
@@ -487,7 +481,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
     'until-639:[.chapter-heading_>_&]:mt-4',
   ].join(' '),
   'home-mobile-menu': [
-    'overflow-hidden origin-top p-[16px_24px_24px] [background:var(--home-nav)] [border-top:1px_solid_var(--home-line)] [transition:max-height_420ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_240ms_ease,_transform_420ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_420ms] from-960:hidden',
+    'overflow-hidden origin-top p-[16px_24px_24px] [background:var(--home-nav)] [border-top:1px_solid_var(--home-line)] [transition:max-height_420ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_240ms_ease,_transform_420ms_cubic-bezier(0.22,_1,_0.36,_1),_visibility_0s_linear_420ms] from-1200:hidden',
     '[&_a]:flex [&_a]:items-center [&_a]:min-h-12 [&_a]:text-home-text',
   ].join(' '),
   'home-nav': [
@@ -506,10 +500,10 @@ export const uiClasses: Readonly<Record<string, string>> = {
     "[&_a]:relative [&_a]:[transition:color_220ms_ease] [&_a::after]:[content:''] [&_a::after]:absolute [&_a::after]:left-0 [&_a::after]:right-0 [&_a::after]:bottom-1.5 [&_a::after]:h-0.5 [&_a::after]:rounded-full [&_a::after]:bg-home-accent [&_a::after]:scale-x-0 [&_a::after]:origin-left [&_a::after]:[transition:scale_360ms_cubic-bezier(0.22,_1,_0.36,_1)]",
     '[&_a:hover]:text-home-accent [&_a:hover::after]:scale-x-50 [&_a[aria-current=location]]:text-home-accent [&_a[aria-current=location]::after]:scale-x-100',
     'until-1199:gap-4',
-    'until-959:hidden',
+    'until-1199:hidden',
   ].join(' '),
   'home-navbar': [
-    'sticky top-[0] z-[60] [border-bottom:1px_solid_var(--home-line)] [background:var(--home-nav)] text-home-text will-change-transform [transition:transform_620ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_420ms_ease,_box-shadow_420ms_ease]',
+    'sticky top-[0] z-[60] [border-bottom:1px_solid_var(--home-line)] [background:var(--home-nav)] text-home-text will-change-transform [transition:transform_850ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_650ms_ease,_box-shadow_650ms_ease]',
     '[&:focus-within]:[transform:translateY(0)] [&:focus-within]:opacity-100 [&:focus-within]:pointer-events-auto',
   ].join(' '),
   icon: [
@@ -617,7 +611,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
   'nav-menu': [
     'hidden items-center justify-center w-11 [&_svg]:[transition:transform_320ms_cubic-bezier(0.22,_1,_0.36,_1),_opacity_180ms_ease]',
     "[&[aria-expanded='true']_svg]:rotate-90 [&:active_svg]:scale-90",
-    'until-959:flex',
+    'until-1199:flex',
   ].join(' '),
   'nav-search': [
     'flex gap-2 items-center justify-center min-h-11 text-[length:13px] font-bold whitespace-nowrap w-11 [&_svg]:[transition:transform_280ms_ease] [&:hover_svg]:scale-110',
@@ -626,10 +620,6 @@ export const uiClasses: Readonly<Record<string, string>> = {
   'nav-tickets': [
     'flex gap-2 items-center justify-center min-h-11 text-[length:13px] font-bold whitespace-nowrap',
     'until-959:hidden',
-  ].join(' '),
-  'no-scrollbar': [
-    '[&::-webkit-scrollbar]:hidden',
-    '[-ms-overflow-style:none] [scrollbar-width:none]',
   ].join(' '),
   notice: [
     'legacy:[border-left:3px_solid_var(--accent)] legacy:p-[14px_18px] legacy:[background:var(--accent-soft)] legacy:text-[length:13px] legacy:leading-[1.7] legacy:rounded-[0_8px_8px_0]',
@@ -693,7 +683,6 @@ export const uiClasses: Readonly<Record<string, string>> = {
     '[&.reference-site_#categories]:![background:var(--home-elevated)] [&.reference-site_#categories]:border-home-line',
     '[&.reference-site_#categories_a]:rounded-[100px] [&.reference-site_#categories_a]:px-[18px] [&.reference-site_#categories_a]:min-h-11',
     "[&.reference-site_[aria-pressed='true']:not(.favorite-button)]:![background:var(--home-accent-soft)] [&.reference-site_[aria-pressed='true']:not(.favorite-button)]:!text-home-accent [&.reference-site_[aria-pressed='true']:not(.favorite-button)]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,_var(--home-accent)_35%,_transparent)]",
-    '[&.reference-site_footer]:[background:#080e16] [&.reference-site_footer]:pb-[100px] [&.reference-site_footer]:[border-top:1px_solid_#ffffff12]',
     '[&.reference-site_:is(.text-ink-900,_.text-ink-800,_.text-ink-700)]:!text-home-text',
     '[&.reference-site_:is(.text-ink-600,_.text-ink-500,_.text-ink-400)]:!text-home-muted',
     '[&.reference-site_:is(.text-primary-600,_.text-primary-700)]:text-home-accent',
@@ -770,10 +759,7 @@ export const uiClasses: Readonly<Record<string, string>> = {
     '[&:hover]:[transform:translateY(-3px)] [&:hover]:[background:var(--home-hover)] [&:hover]:[border-color:color-mix(in_srgb,_var(--home-accent)_45%,_transparent)]',
     'until-1199:grid-cols-[110px_minmax(0,_1fr)]',
     'until-959:flex until-959:flex-col',
-    '[.featured-hover-rail_&]:flex [.featured-hover-rail_&]:flex-col [.featured-hover-rail_&]:flex-[1_1_0] [.featured-hover-rail_&]:min-w-0 [.featured-hover-rail_&]:will-change-[flex-grow,transform] [.featured-hover-rail_&]:[transition:flex-grow_720ms_cubic-bezier(0.22,_1,_0.36,_1),_transform_520ms_cubic-bezier(0.22,_1,_0.36,_1),_border-color_320ms_ease,_box-shadow_520ms_ease]',
-    'pointer-wide-1100:[.featured-hover-rail:hover_&]:grow-[0.9]',
-    'pointer-wide-1100:[.featured-hover-rail_&:hover]:grow-[1.32] pointer-wide-1100:[.featured-hover-rail_&:hover]:[transform:translateY(-5px)]',
-    'pointer-wide-1100:[.featured-hover-rail_&:focus-within]:grow-[1.32] pointer-wide-1100:[.featured-hover-rail_&:focus-within]:[transform:translateY(-5px)]',
+    '[.featured-hover-rail_&]:flex [.featured-hover-rail_&]:flex-col [.featured-hover-rail_&]:flex-[1_1_0] [.featured-hover-rail_&]:min-w-0',
     'pointer-wide-1100:[.featured-hover-rail_&:hover_img]:[transform:scale(1.035)] pointer-wide-1100:[.featured-hover-rail_&:hover_img]:[transition:transform_760ms_cubic-bezier(0.22,_1,_0.36,_1)]',
     'until-1099:[.featured-hover-rail_&]:flex-[0_0_300px] until-1099:[.featured-hover-rail_&]:[scroll-snap-align:start]',
     'until-639:[.featured-hover-rail_&]:basis-[min(290px,_85vw)] until-639:[.featured-hover-rail_&]:min-w-0',
@@ -812,22 +798,22 @@ export const uiClasses: Readonly<Record<string, string>> = {
     'legacy:inline-flex legacy:items-center legacy:gap-2.5 legacy:text-accent legacy:[font-weight:650] legacy:text-[length:13px] legacy:border-0 legacy:p-2 legacy:underline',
   ].join(' '),
   'text-ink-400': [
-    "[[data-theme='dark']_&]:!text-[color:#89a4bd]",
-    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-[color:#89a4bd]",
+    "[[data-theme='dark']_&]:!text-muted",
+    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-muted",
   ].join(' '),
-  'text-ink-500': ["[[data-theme='dark']_&]:!text-[color:#89a4bd]"].join(' '),
+  'text-ink-500': ["[[data-theme='dark']_&]:!text-muted"].join(' '),
   'text-ink-600': [
-    "[[data-theme='dark']_&]:!text-[color:#c5d7eb]",
-    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-[color:#c5d7eb]",
+    "[[data-theme='dark']_&]:!text-muted",
+    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-muted",
   ].join(' '),
   'text-ink-700': [
-    "[[data-theme='dark']_&]:!text-[color:#c5d7eb]",
-    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-[color:#c5d7eb]",
+    "[[data-theme='dark']_&]:!text-muted",
+    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-muted",
   ].join(' '),
-  'text-ink-800': ["[[data-theme='dark']_&]:!text-[color:#eef7ff]"].join(' '),
+  'text-ink-800': ["[[data-theme='dark']_&]:!text-foreground"].join(' '),
   'text-ink-900': [
-    "[[data-theme='dark']_&]:!text-[color:#eef7ff]",
-    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-[color:#eef7ff]",
+    "[[data-theme='dark']_&]:!text-foreground",
+    "[[data-theme='dark']_.navbar-shell.navbar-solid_&]:!text-foreground",
   ].join(' '),
   'text-link': [
     'legacy:inline-flex legacy:items-center legacy:gap-2.5 legacy:text-accent legacy:[font-weight:650] legacy:text-[length:13px]',
@@ -837,16 +823,15 @@ export const uiClasses: Readonly<Record<string, string>> = {
   'text-xs': ['[.chapter-blog_article_&]:flex-wrap [.chapter-blog_article_&]:gap-2'].join(' '),
   'theme-control': ['relative text-[color:var(--home-text,_var(--text))] shrink-0'].join(' '),
   'theme-options': [
-    'absolute right-[0] top-[calc(100%_+_10px)] min-w-[190px] p-[7px] z-[80] [border:1px_solid_var(--home-line,_var(--line))] rounded-[16px] [background:var(--home-card,_var(--surface))] shadow-[0_12px_40px_#0003]',
+    'absolute right-[0] top-[calc(100%_+_10px)] min-w-[232px] p-[7px] z-[80] [border:1px_solid_var(--home-line,_var(--line))] rounded-[16px] [background:var(--home-card,_var(--surface))] shadow-elevated',
     '[&_button]:flex [&_button]:items-center [&_button]:w-full [&_button]:min-h-11 [&_button]:gap-2.5 [&_button]:p-[10px_12px] [&_button]:border-0 [&_button]:rounded-[10px] [&_button]:[background:transparent] [&_button]:text-[color:inherit] [&_button]:text-left [&_button]:text-[length:13px]',
     '[&_button_>_span]:flex-[1]',
     '[&_button:hover]:[background:var(--home-hover,_var(--surface-raised))]',
     '[&_button:focus-visible]:[background:var(--home-hover,_var(--surface-raised))]',
     "[&_button[aria-checked='true']]:text-[color:var(--home-accent,_var(--accent))] [&_button[aria-checked='true']]:[background:var(--home-accent-soft,_var(--accent-soft))]",
-    'until-639:right-[-40px]',
   ].join(' '),
   'theme-trigger': [
-    'flex items-center gap-[9px] min-h-11 p-[0_14px] [border:1px_solid_var(--home-line,_var(--line))] rounded-[24px] [background:var(--home-card,_var(--surface))] text-[color:inherit] text-[length:12px] font-bold cursor-pointer',
+    'flex items-center gap-[9px] min-h-11 p-[0_14px] [border:1px_solid_var(--home-line,_var(--line))] rounded-full [background:var(--home-card,_var(--surface))] text-[color:inherit] text-[length:12px] font-bold cursor-pointer',
     '[&:hover]:[border-color:var(--home-accent,_var(--accent))]',
     "[&[aria-expanded='true']]:[border-color:var(--home-accent,_var(--accent))]",
     '[&_>_svg:last-child]:[transition:transform_180ms_ease]',

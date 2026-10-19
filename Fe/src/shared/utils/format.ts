@@ -1,6 +1,7 @@
-export function formatPrice(price: number, currency: string): string {
+export function formatPrice(price: string | number, currency: string): string {
+  const amount = typeof price === 'string' && /^\d+$/.test(price) ? BigInt(price) : Number(price);
   if (currency === 'VND') {
-    return price.toLocaleString('vi-VN') + ' ₫';
+    return amount.toLocaleString('vi-VN') + ' ₫';
   }
-  return currency + ' ' + price.toLocaleString('en-US');
+  return currency + ' ' + amount.toLocaleString('en-US');
 }
